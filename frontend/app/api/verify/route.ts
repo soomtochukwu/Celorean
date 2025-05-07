@@ -20,7 +20,7 @@ export async function POST(req: NextRequest) {
     // Initialize and configure the verifier
     const selfBackendVerifier = new SelfBackendVerifier(
       "celorean-dev",
-      process.env.NEXT_PUBLIC_SELF_BACKEND_URL,
+      process.env.NEXT_PUBLIC_SELF_BACKEND_URL as string,
       "uuid",
       true
     );
