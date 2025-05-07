@@ -21,7 +21,7 @@ function VerificationPage() {
         endpoint: process.env.NEXT_PUBLIC_SELF_BACKEND_URL,
     "self-playground",
     "uuid",
-    true
+    true,
         disclosures: { date_of_birth: true, gender: true }
     }).build();
 
