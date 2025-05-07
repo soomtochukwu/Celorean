@@ -19,8 +19,9 @@ function VerificationPage() {
         appName: "celorean-dev",
         scope: "celorean-dev-scope",
         endpoint: process.env.NEXT_PUBLIC_SELF_BACKEND_URL,
-        userId,
-        devMode: true,
+    "self-playground",
+    "uuid",
+    true
         disclosures: { date_of_birth: true, gender: true }
     }).build();
 
