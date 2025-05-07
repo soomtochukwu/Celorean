@@ -17,7 +17,7 @@ const HeroSection = () => {
         <div className="absolute rounded-2xl inset-0 bg-gray-500 z-0 opacity-30"></div>
         <div className="max-w-4xl mx-auto z-10 text-center">
           <h1 className="text-2xl font-bold text-white mb-4">
-            Welcome to EduChain
+            Welcome to Celorean
           </h1>
           <div>
             <h2 className="text-xl font-bold text-gray-400 text-justify">
@@ -25,7 +25,7 @@ const HeroSection = () => {
               Blockchain and AI (MVP).
             </h2>
             <p className="text-base text-gray-400 mt-4 text-justify">
-              EduChain leverages the power of blockchain and AI to create a
+              Celorean leverages the power of blockchain and AI to create a
               dynamic, secure, and rewarding learning experience for all.
             </p>
           </div>
