@@ -20,7 +20,7 @@ export async function POST(req: NextRequest) {
     // Initialize and configure the verifier
     const selfBackendVerifier = new SelfBackendVerifier(
       "celorean-dev",
-      "mollusk-fine-usefully.ngrok-free.app/api/verify",
+      process.env.NEXT_PUBLIC_SELF_BACKEND_URL,
       "uuid",
       true
     );
