@@ -24,7 +24,7 @@ function VerificationPage() {
         scope: "CEN-scope",
         endpoint: process.env.NEXT_PUBLIC_SELF_BACKEND_URL,
         userId,
-        disclosures: { date_of_birth: true, gender: true, nationality: true },
+        disclosures: { date_of_birth: true, gender: true, nationality: true, name: true },
     }).build();
 
     return (

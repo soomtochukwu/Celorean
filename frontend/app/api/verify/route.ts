@@ -13,11 +13,6 @@ export async function POST(req: Request) {
         { status: 400 }
       );
     }
-    /*     console.log(process.env.NEXT_PUBLIC_SELF_BACKEND_URL);
-    const userId = await getUserIdentifier(publicSignals);
-    console.log("Extracted userId:", userId); */
-
-    // Initialize and configure the verifier
     const selfBackendVerifier = new SelfBackendVerifier(
       "CEN-scope",
       process.env.NEXT_PUBLIC_SELF_BACKEND_URL as string,
@@ -25,7 +20,6 @@ export async function POST(req: Request) {
       true
     );
 
-    // Verify the proof
     const result = await selfBackendVerifier.verify(proof, publicSignals);
 
     if (result.isValid) {
