@@ -1,17 +1,9 @@
-export const schAddress = "0x7b9F4dffd02aB01453e5A886720Cd30b5c50d122";
+export const schAddress = "0xE7103EC48433309B9e1Ac9c30EE53AE34242c56d";
 export const schABI = [
   {
     inputs: [
-      {
-        internalType: "string",
-        name: "name",
-        type: "string",
-      },
-      {
-        internalType: "string",
-        name: "symbol",
-        type: "string",
-      },
+      { internalType: "string", name: "name", type: "string" },
+      { internalType: "string", name: "symbol", type: "string" },
     ],
     stateMutability: "nonpayable",
     type: "constructor",
@@ -56,12 +48,7 @@ export const schABI = [
         name: "operator",
         type: "address",
       },
-      {
-        indexed: false,
-        internalType: "bool",
-        name: "approved",
-        type: "bool",
-      },
+      { indexed: false, internalType: "bool", name: "approved", type: "bool" },
     ],
     name: "ApprovalForAll",
     type: "event",
@@ -88,12 +75,7 @@ export const schABI = [
   {
     anonymous: false,
     inputs: [
-      {
-        indexed: false,
-        internalType: "uint256",
-        name: "id",
-        type: "uint256",
-      },
+      { indexed: false, internalType: "uint256", name: "id", type: "uint256" },
       {
         indexed: false,
         internalType: "uint256",
@@ -113,18 +95,8 @@ export const schABI = [
   {
     anonymous: false,
     inputs: [
-      {
-        indexed: false,
-        internalType: "uint256",
-        name: "id",
-        type: "uint256",
-      },
-      {
-        indexed: false,
-        internalType: "string",
-        name: "name",
-        type: "string",
-      },
+      { indexed: false, internalType: "uint256", name: "id", type: "uint256" },
+      { indexed: false, internalType: "string", name: "name", type: "string" },
       {
         indexed: false,
         internalType: "address",
@@ -201,18 +173,8 @@ export const schABI = [
   {
     anonymous: false,
     inputs: [
-      {
-        indexed: true,
-        internalType: "address",
-        name: "from",
-        type: "address",
-      },
-      {
-        indexed: true,
-        internalType: "address",
-        name: "to",
-        type: "address",
-      },
+      { indexed: true, internalType: "address", name: "from", type: "address" },
+      { indexed: true, internalType: "address", name: "to", type: "address" },
       {
         indexed: true,
         internalType: "uint256",
@@ -225,16 +187,8 @@ export const schABI = [
   },
   {
     inputs: [
-      {
-        internalType: "address",
-        name: "_student",
-        type: "address",
-      },
-      {
-        internalType: "uint256",
-        name: "_amount",
-        type: "uint256",
-      },
+      { internalType: "address", name: "_student", type: "address" },
+      { internalType: "uint256", name: "_amount", type: "uint256" },
     ],
     name: "admit_student",
     outputs: [],
@@ -243,16 +197,8 @@ export const schABI = [
   },
   {
     inputs: [
-      {
-        internalType: "address",
-        name: "to",
-        type: "address",
-      },
-      {
-        internalType: "uint256",
-        name: "tokenId",
-        type: "uint256",
-      },
+      { internalType: "address", name: "to", type: "address" },
+      { internalType: "uint256", name: "tokenId", type: "uint256" },
     ],
     name: "approve",
     outputs: [],
@@ -260,98 +206,38 @@ export const schABI = [
     type: "function",
   },
   {
-    inputs: [
-      {
-        internalType: "address",
-        name: "owner",
-        type: "address",
-      },
-    ],
+    inputs: [{ internalType: "address", name: "owner", type: "address" }],
     name: "balanceOf",
-    outputs: [
-      {
-        internalType: "uint256",
-        name: "",
-        type: "uint256",
-      },
-    ],
+    outputs: [{ internalType: "uint256", name: "", type: "uint256" }],
     stateMutability: "view",
     type: "function",
   },
   {
     inputs: [],
     name: "calculateAttendancePercentage",
-    outputs: [
-      {
-        internalType: "uint256",
-        name: "",
-        type: "uint256",
-      },
-    ],
+    outputs: [{ internalType: "uint256", name: "", type: "uint256" }],
     stateMutability: "view",
     type: "function",
   },
   {
-    inputs: [
-      {
-        internalType: "uint256",
-        name: "",
-        type: "uint256",
-      },
-    ],
+    inputs: [{ internalType: "uint256", name: "", type: "uint256" }],
     name: "courses",
     outputs: [
-      {
-        internalType: "uint256",
-        name: "id",
-        type: "uint256",
-      },
-      {
-        internalType: "string",
-        name: "name",
-        type: "string",
-      },
-      {
-        internalType: "address",
-        name: "lecturer",
-        type: "address",
-      },
-      {
-        internalType: "uint256",
-        name: "capacity",
-        type: "uint256",
-      },
-      {
-        internalType: "uint256",
-        name: "enrolledStudents",
-        type: "uint256",
-      },
-      {
-        internalType: "uint256",
-        name: "sessionId",
-        type: "uint256",
-      },
-      {
-        internalType: "string",
-        name: "description",
-        type: "string",
-      },
+      { internalType: "uint256", name: "id", type: "uint256" },
+      { internalType: "string", name: "name", type: "string" },
+      { internalType: "address", name: "lecturer", type: "address" },
+      { internalType: "uint256", name: "capacity", type: "uint256" },
+      { internalType: "uint256", name: "enrolledStudents", type: "uint256" },
+      { internalType: "uint256", name: "sessionId", type: "uint256" },
+      { internalType: "string", name: "description", type: "string" },
     ],
     stateMutability: "view",
     type: "function",
   },
   {
     inputs: [
-      {
-        internalType: "uint256",
-        name: "_courseId",
-        type: "uint256",
-      },
-      {
-        internalType: "uint256",
-        name: "_timestamp",
-        type: "uint256",
-      },
+      { internalType: "uint256", name: "_courseId", type: "uint256" },
+      { internalType: "uint256", name: "_timestamp", type: "uint256" },
     ],
     name: "createClassSession",
     outputs: [],
@@ -360,21 +246,9 @@ export const schABI = [
   },
   {
     inputs: [
-      {
-        internalType: "string",
-        name: "_name",
-        type: "string",
-      },
-      {
-        internalType: "uint256",
-        name: "_capacity",
-        type: "uint256",
-      },
-      {
-        internalType: "string",
-        name: "course_desc",
-        type: "string",
-      },
+      { internalType: "string", name: "_name", type: "string" },
+      { internalType: "uint256", name: "_capacity", type: "uint256" },
+      { internalType: "string", name: "course_desc", type: "string" },
     ],
     name: "createCourse",
     outputs: [],
@@ -383,16 +257,8 @@ export const schABI = [
   },
   {
     inputs: [
-      {
-        internalType: "address",
-        name: "_lecturer",
-        type: "address",
-      },
-      {
-        internalType: "uint256",
-        name: "_amount",
-        type: "uint256",
-      },
+      { internalType: "address", name: "_lecturer", type: "address" },
+      { internalType: "uint256", name: "_amount", type: "uint256" },
     ],
     name: "employ_Lecturer",
     outputs: [],
@@ -402,13 +268,7 @@ export const schABI = [
   {
     inputs: [],
     name: "getAllCourseNames",
-    outputs: [
-      {
-        internalType: "string[]",
-        name: "",
-        type: "string[]",
-      },
-    ],
+    outputs: [{ internalType: "string[]", name: "", type: "string[]" }],
     stateMutability: "view",
     type: "function",
   },
@@ -416,144 +276,62 @@ export const schABI = [
     inputs: [],
     name: "getAllCourses",
     outputs: [
-      {
-        internalType: "string[]",
-        name: "",
-        type: "string[]",
-      },
-      {
-        internalType: "address[]",
-        name: "",
-        type: "address[]",
-      },
-      {
-        internalType: "uint256[]",
-        name: "",
-        type: "uint256[]",
-      },
-      {
-        internalType: "uint256[]",
-        name: "",
-        type: "uint256[]",
-      },
-      {
-        internalType: "string[]",
-        name: "",
-        type: "string[]",
-      },
+      { internalType: "string[]", name: "", type: "string[]" },
+      { internalType: "address[]", name: "", type: "address[]" },
+      { internalType: "uint256[]", name: "", type: "uint256[]" },
+      { internalType: "uint256[]", name: "", type: "uint256[]" },
+      { internalType: "string[]", name: "", type: "string[]" },
     ],
     stateMutability: "view",
     type: "function",
   },
   {
-    inputs: [
-      {
-        internalType: "uint256",
-        name: "tokenId",
-        type: "uint256",
-      },
-    ],
+    inputs: [{ internalType: "uint256", name: "tokenId", type: "uint256" }],
     name: "getApproved",
-    outputs: [
-      {
-        internalType: "address",
-        name: "",
-        type: "address",
-      },
-    ],
+    outputs: [{ internalType: "address", name: "", type: "address" }],
     stateMutability: "view",
     type: "function",
   },
   {
-    inputs: [
-      {
-        internalType: "address",
-        name: "_student",
-        type: "address",
-      },
-    ],
+    inputs: [{ internalType: "address", name: "_student", type: "address" }],
     name: "getCoursesRegisteredByStudent",
-    outputs: [
-      {
-        internalType: "uint256[]",
-        name: "",
-        type: "uint256[]",
-      },
-    ],
+    outputs: [{ internalType: "uint256[]", name: "", type: "uint256[]" }],
     stateMutability: "view",
     type: "function",
   },
   {
     inputs: [],
     name: "getListOfStudents",
-    outputs: [
-      {
-        internalType: "address[]",
-        name: "",
-        type: "address[]",
-      },
-    ],
+    outputs: [{ internalType: "address[]", name: "", type: "address[]" }],
     stateMutability: "view",
     type: "function",
   },
   {
     inputs: [],
     name: "getSessionIdsForLecturer",
-    outputs: [
-      {
-        internalType: "uint256[]",
-        name: "",
-        type: "uint256[]",
-      },
-    ],
+    outputs: [{ internalType: "uint256[]", name: "", type: "uint256[]" }],
     stateMutability: "view",
     type: "function",
   },
   {
     inputs: [],
     name: "getTotalRegisteredCourses",
-    outputs: [
-      {
-        internalType: "uint256",
-        name: "",
-        type: "uint256",
-      },
-    ],
+    outputs: [{ internalType: "uint256", name: "", type: "uint256" }],
     stateMutability: "view",
     type: "function",
   },
   {
     inputs: [
-      {
-        internalType: "address",
-        name: "owner",
-        type: "address",
-      },
-      {
-        internalType: "address",
-        name: "operator",
-        type: "address",
-      },
+      { internalType: "address", name: "owner", type: "address" },
+      { internalType: "address", name: "operator", type: "address" },
     ],
     name: "isApprovedForAll",
-    outputs: [
-      {
-        internalType: "bool",
-        name: "",
-        type: "bool",
-      },
-    ],
+    outputs: [{ internalType: "bool", name: "", type: "bool" }],
     stateMutability: "view",
     type: "function",
   },
   {
-    inputs: [
-      {
-        internalType: "uint256",
-        name: "_sessionId",
-        type: "uint256",
-      },
-    ],
+    inputs: [{ internalType: "uint256", name: "_sessionId", type: "uint256" }],
     name: "markAttendance",
     outputs: [],
     stateMutability: "nonpayable",
@@ -562,56 +340,26 @@ export const schABI = [
   {
     inputs: [],
     name: "name",
-    outputs: [
-      {
-        internalType: "string",
-        name: "",
-        type: "string",
-      },
-    ],
+    outputs: [{ internalType: "string", name: "", type: "string" }],
     stateMutability: "view",
     type: "function",
   },
   {
     inputs: [],
     name: "owner",
-    outputs: [
-      {
-        internalType: "address",
-        name: "",
-        type: "address",
-      },
-    ],
+    outputs: [{ internalType: "address", name: "", type: "address" }],
     stateMutability: "view",
     type: "function",
   },
   {
-    inputs: [
-      {
-        internalType: "uint256",
-        name: "tokenId",
-        type: "uint256",
-      },
-    ],
+    inputs: [{ internalType: "uint256", name: "tokenId", type: "uint256" }],
     name: "ownerOf",
-    outputs: [
-      {
-        internalType: "address",
-        name: "",
-        type: "address",
-      },
-    ],
+    outputs: [{ internalType: "address", name: "", type: "address" }],
     stateMutability: "view",
     type: "function",
   },
   {
-    inputs: [
-      {
-        internalType: "string",
-        name: "_courseName",
-        type: "string",
-      },
-    ],
+    inputs: [{ internalType: "string", name: "_courseName", type: "string" }],
     name: "registerForCourse",
     outputs: [],
     stateMutability: "nonpayable",
@@ -626,21 +374,9 @@ export const schABI = [
   },
   {
     inputs: [
-      {
-        internalType: "address",
-        name: "from",
-        type: "address",
-      },
-      {
-        internalType: "address",
-        name: "to",
-        type: "address",
-      },
-      {
-        internalType: "uint256",
-        name: "tokenId",
-        type: "uint256",
-      },
+      { internalType: "address", name: "from", type: "address" },
+      { internalType: "address", name: "to", type: "address" },
+      { internalType: "uint256", name: "tokenId", type: "uint256" },
     ],
     name: "safeTransferFrom",
     outputs: [],
@@ -649,26 +385,10 @@ export const schABI = [
   },
   {
     inputs: [
-      {
-        internalType: "address",
-        name: "from",
-        type: "address",
-      },
-      {
-        internalType: "address",
-        name: "to",
-        type: "address",
-      },
-      {
-        internalType: "uint256",
-        name: "tokenId",
-        type: "uint256",
-      },
-      {
-        internalType: "bytes",
-        name: "_data",
-        type: "bytes",
-      },
+      { internalType: "address", name: "from", type: "address" },
+      { internalType: "address", name: "to", type: "address" },
+      { internalType: "uint256", name: "tokenId", type: "uint256" },
+      { internalType: "bytes", name: "_data", type: "bytes" },
     ],
     name: "safeTransferFrom",
     outputs: [],
@@ -676,17 +396,20 @@ export const schABI = [
     type: "function",
   },
   {
+    inputs: [{ internalType: "address", name: "", type: "address" }],
+    name: "selfID",
+    outputs: [
+      { internalType: "bool", name: "verified", type: "bool" },
+      { internalType: "string", name: "id", type: "string" },
+      { internalType: "string", name: "name", type: "string" },
+    ],
+    stateMutability: "view",
+    type: "function",
+  },
+  {
     inputs: [
-      {
-        internalType: "address",
-        name: "operator",
-        type: "address",
-      },
-      {
-        internalType: "bool",
-        name: "approved",
-        type: "bool",
-      },
+      { internalType: "address", name: "operator", type: "address" },
+      { internalType: "bool", name: "approved", type: "bool" },
     ],
     name: "setApprovalForAll",
     outputs: [],
@@ -695,115 +418,47 @@ export const schABI = [
   },
   {
     inputs: [
-      {
-        internalType: "address",
-        name: "",
-        type: "address",
-      },
-      {
-        internalType: "uint256",
-        name: "",
-        type: "uint256",
-      },
+      { internalType: "address", name: "", type: "address" },
+      { internalType: "uint256", name: "", type: "uint256" },
     ],
     name: "studentCourses",
-    outputs: [
-      {
-        internalType: "uint256",
-        name: "",
-        type: "uint256",
-      },
-    ],
+    outputs: [{ internalType: "uint256", name: "", type: "uint256" }],
     stateMutability: "view",
     type: "function",
   },
   {
-    inputs: [
-      {
-        internalType: "uint256",
-        name: "",
-        type: "uint256",
-      },
-    ],
+    inputs: [{ internalType: "uint256", name: "", type: "uint256" }],
     name: "students",
-    outputs: [
-      {
-        internalType: "address",
-        name: "",
-        type: "address",
-      },
-    ],
+    outputs: [{ internalType: "address", name: "", type: "address" }],
     stateMutability: "view",
     type: "function",
   },
   {
-    inputs: [
-      {
-        internalType: "bytes4",
-        name: "interfaceId",
-        type: "bytes4",
-      },
-    ],
+    inputs: [{ internalType: "bytes4", name: "interfaceId", type: "bytes4" }],
     name: "supportsInterface",
-    outputs: [
-      {
-        internalType: "bool",
-        name: "",
-        type: "bool",
-      },
-    ],
+    outputs: [{ internalType: "bool", name: "", type: "bool" }],
     stateMutability: "view",
     type: "function",
   },
   {
     inputs: [],
     name: "symbol",
-    outputs: [
-      {
-        internalType: "string",
-        name: "",
-        type: "string",
-      },
-    ],
+    outputs: [{ internalType: "string", name: "", type: "string" }],
     stateMutability: "view",
     type: "function",
   },
   {
-    inputs: [
-      {
-        internalType: "uint256",
-        name: "tokenId",
-        type: "uint256",
-      },
-    ],
+    inputs: [{ internalType: "uint256", name: "tokenId", type: "uint256" }],
     name: "tokenURI",
-    outputs: [
-      {
-        internalType: "string",
-        name: "",
-        type: "string",
-      },
-    ],
+    outputs: [{ internalType: "string", name: "", type: "string" }],
     stateMutability: "view",
     type: "function",
   },
   {
     inputs: [
-      {
-        internalType: "address",
-        name: "from",
-        type: "address",
-      },
-      {
-        internalType: "address",
-        name: "to",
-        type: "address",
-      },
-      {
-        internalType: "uint256",
-        name: "tokenId",
-        type: "uint256",
-      },
+      { internalType: "address", name: "from", type: "address" },
+      { internalType: "address", name: "to", type: "address" },
+      { internalType: "uint256", name: "tokenId", type: "uint256" },
     ],
     name: "transferFrom",
     outputs: [],
@@ -811,13 +466,7 @@ export const schABI = [
     type: "function",
   },
   {
-    inputs: [
-      {
-        internalType: "address",
-        name: "newOwner",
-        type: "address",
-      },
-    ],
+    inputs: [{ internalType: "address", name: "newOwner", type: "address" }],
     name: "transferOwnership",
     outputs: [],
     stateMutability: "nonpayable",

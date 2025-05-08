@@ -50,6 +50,14 @@ contract Celorean is KIP17, Ownable {
         bool marked;
     }
 
+    struct selfStatus {
+        bool verified;
+        string id;
+        string name;
+    }
+
+    mapping(address => selfStatus) public selfID;
+
     modifier onlyAdmin() {
         require(msg.sender == owner(), "Only admin can perform this action");
         _;
