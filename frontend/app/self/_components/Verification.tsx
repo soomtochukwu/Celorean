@@ -1,11 +1,15 @@
-'use client';
+"use client";
 
-import React, { useState, useEffect } from 'react';
-import SelfQRcodeWrapper, { SelfAppBuilder } from '@selfxyz/qrcode';
-import { v4 as uuidv4 } from 'uuid';
+import React, { useState, useEffect } from "react";
+import SelfQRcodeWrapper, { SelfAppBuilder } from "@selfxyz/qrcode";
+import { v4 as uuidv4 } from "uuid";
+import { useRouter } from "next/navigation";
 
 function VerificationPage() {
-    const [userId, setUserId] = useState<string | null>(null);
+    const
+        // 
+        [userId, setUserId] = useState<string | null>(null),
+        { push, } = useRouter();
 
     useEffect(() => {
         // Generate a user ID when the component mounts
@@ -13,16 +17,14 @@ function VerificationPage() {
     }, []);
 
     if (!userId) return null;
-    console.log(process.env.NEXT_PUBLIC_SELF_BACKEND_URL)
+    console.log(process.env.NEXT_PUBLIC_SELF_BACKEND_URL);
     // Create the SelfApp configuration
     const selfApp = new SelfAppBuilder({
-        appName: "celorean-dev",
-        scope: "celorean-dev-scope",
+        appName: "CEN",
+        scope: "CEN-scope",
         endpoint: process.env.NEXT_PUBLIC_SELF_BACKEND_URL,
-    "self-playground",
-    "uuid",
-    true,
-        disclosures: { date_of_birth: true, gender: true }
+        userId,
+        disclosures: { date_of_birth: true, gender: true, nationality: true },
     }).build();
 
     return (
@@ -32,10 +34,10 @@ function VerificationPage() {
 
             <SelfQRcodeWrapper
                 selfApp={selfApp}
-                onSuccess={() => {
+                onSuccess={async () => {
                     // Handle successful verification
-                    console.log("Verification successful!");
-                    // Redirect or update UI
+                    await alert("Verification successful!");
+                    await push("/")
                 }}
                 size={350}
             />
