@@ -14,8 +14,6 @@ import { celo, celoAlfajores } from "wagmi/chains";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { WagmiProvider } from "wagmi";
 
-require('dotenv').config();
-
 const { wallets } = getDefaultWallets();
 
 const config = getDefaultConfig({
