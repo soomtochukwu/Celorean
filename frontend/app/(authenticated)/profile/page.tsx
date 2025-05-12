@@ -9,7 +9,7 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
-import { ConnectWalletButton } from "@/components/ConnectWalletButton"
+import ConnectWalletButton from "@/components/ConnectWalletButton"
 
 export default function Profile() {
   const [isEditing, setIsEditing] = useState(false)

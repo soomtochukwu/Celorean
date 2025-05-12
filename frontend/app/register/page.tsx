@@ -10,7 +10,7 @@ import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
-import { ConnectWalletButton } from "@/components/ConnectWalletButton"
+import ConnectWalletButton from "@/components/ConnectWalletButton"
 
 export default function Register() {
   const router = useRouter()
@@ -71,7 +71,7 @@ export default function Register() {
                     <span className="bg-background px-2 text-muted-foreground">Connect with wallet</span>
                   </div>
                 </div>
-                <ConnectWalletButton className="w-full" onConnect={handleWalletConnect} />
+                <ConnectWalletButton />
               </div>
 
               <div className="relative">

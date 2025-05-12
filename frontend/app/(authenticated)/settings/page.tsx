@@ -19,7 +19,7 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog"
-import { ConnectWalletButton } from "@/components/ConnectWalletButton"
+import ConnectWalletButton from "@/components/ConnectWalletButton"
 
 export default function Settings() {
   const [theme, setTheme] = useState("dark")
@@ -78,7 +78,7 @@ export default function Settings() {
                       <Switch
                         id="theme"
                         checked={theme === "dark"}
-                        onCheckedChange={(checked) => setTheme(checked ? "dark" : "light")}
+                        onCheckedChange={(checked: any) => setTheme(checked ? "dark" : "light")}
                       />
                       <Moon className="h-4 w-4 text-muted-foreground" />
                     </div>
@@ -273,7 +273,7 @@ export default function Settings() {
                   <p className="text-xs font-mono text-muted-foreground">0x1a2b3c4d5e6f7a8b9c0d1e2f3a4b5c6d7e8f9a0b</p>
                 </div>
 
-                <ConnectWalletButton className="w-full" />
+                <ConnectWalletButton />
               </CardContent>
             </Card>
 
