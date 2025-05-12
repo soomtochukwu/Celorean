@@ -1,4 +1,6 @@
-"use client"
+
+// app/(authenticated)/achievements/page.tsx
+'use client';
 
 import React from 'react'
 
