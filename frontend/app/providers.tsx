@@ -20,7 +20,7 @@ const { wallets } = getDefaultWallets();
 
 const config = getDefaultConfig({
     appName: "Celorean",
-    projectId: "87f8337076c31bd80145f0f5aa859e3d",
+    projectId: "b7cfcf662095cd0ee1e06aa9eebd146a",
     wallets: [
         {
             groupName: "Other",
