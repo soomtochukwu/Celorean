@@ -1,7 +1,6 @@
 import Link from "next/link"
 import { ArrowRight, Shield, Zap, Brain, Lock } from "lucide-react"
 import { Button } from "@/components/ui/button"
-import { ConnectWalletButton } from "@/components/connect-wallet-button"
 
 export default function Home() {
   return (
@@ -20,7 +19,8 @@ export default function Home() {
             <Link href="/docs" className="text-sm text-muted-foreground hover:text-foreground transition-colors">
               Docs
             </Link>
-            <ConnectWalletButton />
+
+            <Link className="bg-green-700 text-white p-2 rounded-lg text-center" href={"/login"} >Login / Signup</Link>
           </div>
         </div>
       </header>
@@ -38,10 +38,9 @@ export default function Home() {
               experience for all.
             </p>
             <div className="flex flex-col sm:flex-row justify-center gap-4">
-              <ConnectWalletButton size="lg" className="relative">
-                <div className="absolute -inset-0.5 bg-gradient-to-r from-primary to-secondary opacity-30 blur-sm rounded-md"></div>
-                <span className="relative">Connect Wallet</span>
-              </ConnectWalletButton>
+
+              <Link className="bg-green-700 text-white p-2 rounded-lg text-center" href={"/login"} >Login / Signup</Link>
+
               <Button variant="outline" size="lg" asChild>
                 <Link href="/docs">
                   Learn More
@@ -152,7 +151,9 @@ export default function Home() {
             <p className="text-muted-foreground mb-8 max-w-2xl mx-auto">
               Join Celorean today and experience the future of education powered by blockchain and AI technology.
             </p>
-            <ConnectWalletButton size="lg" />
+
+            <Link className="bg-green-700 text-white p-2 rounded-lg text-center" href={"/login"} >Login / Signup</Link>
+
           </div>
         </div>
       </section>

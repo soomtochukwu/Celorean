@@ -1,6 +1,7 @@
+
 import { Coins, Users, BookOpen, TrendingUp, Activity, Zap } from "lucide-react"
-import { ConnectWalletButton } from "@/components/connect-wallet-button"
 import { StatCard } from "@/components/stat-card"
+import ConnectWalletButton from "@/components/ConnectWalletButton";
 
 export default function Dashboard() {
   return (
@@ -11,6 +12,7 @@ export default function Dashboard() {
           <p className="text-muted-foreground">Welcome back to your learning journey</p>
         </div>
         <ConnectWalletButton />
+
       </div>
 
       {/* Stats Grid */}

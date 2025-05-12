@@ -10,9 +10,11 @@ import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
-import { ConnectWalletButton } from "@/components/connect-wallet-button"
+import ConnectWalletButton from "@/components/ConnectWalletButton"
 
 export default function Login() {
+
+
   const router = useRouter()
   const [isLoading, setIsLoading] = useState(false)
   const [formData, setFormData] = useState({
@@ -69,7 +71,11 @@ export default function Login() {
                     <span className="bg-background px-2 text-muted-foreground">Connect with wallet</span>
                   </div>
                 </div>
-                <ConnectWalletButton className="w-full" onConnect={handleWalletConnect} />
+                <div className="flex w-full justify-center">
+
+                  <ConnectWalletButton />
+                </div>
+
               </div>
 
               <div className="relative">

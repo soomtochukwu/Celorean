@@ -19,7 +19,7 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog"
-import { ConnectWalletButton } from "@/components/connect-wallet-button"
+import { ConnectWalletButton } from "@/components/ConnectWalletButton"
 
 export default function Settings() {
   const [theme, setTheme] = useState("dark")
