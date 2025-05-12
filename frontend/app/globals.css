@@ -50,6 +50,7 @@
   * {
     @apply border-border;
   }
+
   body {
     @apply bg-background text-foreground;
     background-image: radial-gradient(circle at 50% 50%, rgba(16, 185, 129, 0.05) 0%, transparent 50%);
@@ -88,10 +89,12 @@
 }
 
 @keyframes float {
+
   0%,
   100% {
     transform: translateY(0);
   }
+
   50% {
     transform: translateY(-10px);
   }
@@ -102,10 +105,12 @@
 }
 
 @keyframes pulse-glow {
+
   0%,
   100% {
     opacity: 1;
   }
+
   50% {
     opacity: 0.6;
   }
@@ -114,4 +119,8 @@
 /* Responsive utilities */
 .responsive-container {
   @apply container mx-auto px-4 sm:px-6 lg:px-8;
+}
+
+* {
+  font-family: monospace;
 }
