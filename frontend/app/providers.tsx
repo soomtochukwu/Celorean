@@ -27,7 +27,7 @@ const config = getDefaultConfig({
             wallets: [metaMaskWallet, okxWallet, trustWallet],
         },
         ...wallets,
-
+        // 
     ],
     chains: [
         celoAlfajores,
