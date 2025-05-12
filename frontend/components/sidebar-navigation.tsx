@@ -6,13 +6,19 @@ import { usePathname } from "next/navigation"
 import { cn } from "@/lib/utils"
 import { Button } from "@/components/ui/button"
 import { LayoutDashboard, Shield, User, LogOut, Menu, X, Zap, BookOpen, Award, Settings, Users } from "lucide-react"
+import { useDisconnect } from "wagmi"
+import ConnectWalletButton from "./ConnectWalletButton"
+
 
 interface SidebarNavigationProps {
   className?: string
 }
 
 export function SidebarNavigation({ className }: SidebarNavigationProps) {
-  const pathname = usePathname()
+  const
+    // 
+    pathname = usePathname(),
+    { disconnect } = useDisconnect();
   const [isOpen, setIsOpen] = useState(false)
 
   const routes = [
@@ -101,10 +107,7 @@ export function SidebarNavigation({ className }: SidebarNavigationProps) {
           </nav>
 
           <div className="p-4">
-            <Button variant="ghost" className="w-full justify-start text-muted-foreground hover:text-destructive">
-              <LogOut className="mr-3 h-5 w-5" />
-              Disconnect
-            </Button>
+            <ConnectWalletButton />
           </div>
         </div>
       </div>

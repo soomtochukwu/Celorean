@@ -9,7 +9,6 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
-import ConnectWalletButton from "@/components/ConnectWalletButton"
 
 export default function Profile() {
   const [isEditing, setIsEditing] = useState(false)
@@ -44,7 +43,6 @@ export default function Profile() {
           <h1 className="text-3xl font-bold">Profile</h1>
           <p className="text-muted-foreground">Manage your personal information and settings</p>
         </div>
-        <ConnectWalletButton />
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">

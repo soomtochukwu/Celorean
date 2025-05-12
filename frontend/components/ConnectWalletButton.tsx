@@ -7,7 +7,16 @@ import React from 'react'
 const ConnectWalletButton = () => {
   useAutoRedirect();
   return (
-    <div><ConnectButton></ConnectButton></div>
+    <div><ConnectButton
+      accountStatus={{
+        smallScreen: "avatar",
+        largeScreen: "full",
+      }}
+      chainStatus="icon"
+      showBalance={{
+        smallScreen: false,
+        largeScreen: true,
+      }}></ConnectButton></div>
   )
 }
 

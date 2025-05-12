@@ -10,7 +10,11 @@ export function useAutoRedirect() {
     { isConnected, isDisconnected } = useAccount();
 
   useEffect(() => {
-    isConnected ? router.push("/dashboard") : null;
+    isConnected
+      ? path == "/login"
+        ? router.push("/dashboard")
+        : router.push("#")
+      : null;
   }, [isConnected]);
   useEffect(() => {
     isDisconnected && path == "/login"
