@@ -19,8 +19,8 @@ require('dotenv').config();
 const { wallets } = getDefaultWallets();
 
 const config = getDefaultConfig({
-    appName: process.env.NEXT_PUBLIC_appName as string,
-    projectId: process.env.NEXT_PUBLIC_projectId as string,
+    appName: "Celorean",
+    projectId: "87f8337076c31bd80145f0f5aa859e3d",
     wallets: [
         {
             groupName: "Other",
