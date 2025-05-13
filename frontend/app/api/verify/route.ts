@@ -19,7 +19,7 @@ export async function POST(req: Request) {
 
     // Initialize and configure the verifier
     const selfBackendVerifier = new SelfBackendVerifier(
-      "CEN-scope",
+      "CELOREAN-scope",
       process.env.NEXT_PUBLIC_SELF_BACKEND_URL as string,
       "uuid",
       true

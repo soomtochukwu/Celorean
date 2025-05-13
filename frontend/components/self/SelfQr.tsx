@@ -24,8 +24,8 @@ function SelfQr({
   console.log(process.env.NEXT_PUBLIC_SELF_BACKEND_URL);
   // Create the SelfApp configuration
   const selfApp = new SelfAppBuilder({
-    appName: "CEN",
-    scope: "CEN-scope",
+    appName: "CELOREAN",
+    scope: "CELOREAN-scope",
     endpoint: process.env.NEXT_PUBLIC_SELF_BACKEND_URL,
 
     logoBase64: selfBase64Logo as string,
