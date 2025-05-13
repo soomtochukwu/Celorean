@@ -6,6 +6,7 @@ import { v4 as uuidv4 } from "uuid";
 import { useRouter } from "next/navigation";
 import { selfBase64Logo } from "@/lib/utils";
 import Image from "next/image";
+import Link from "next/link";
 function SelfQr({
   setIsComplete,
 }: {

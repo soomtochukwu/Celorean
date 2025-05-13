@@ -17,6 +17,7 @@ import {
 import dynamic from "next/dynamic";
 import { useAccount } from "wagmi";
 import Image from "next/image";
+import Link from "next/link";
 
 const SelfQr = dynamic(() => import("@/components/self/SelfQr"), {
   ssr: false,
@@ -140,7 +141,20 @@ export default function SelfVerification() {
                   <div className="flex flex-col items-center justify-center py-10">
                     {isVerifying ? (
                       <div className="text-center">
-                        <SelfQr setIsComplete={setIsComplete} />
+                        <div className="hidden md:block">
+                          <SelfQr setIsComplete={setIsComplete} />
+                        </div>
+                        <div className="sm:hidden flex-col bg-[#256837] p-4 rounded-xl">
+                          <Link
+                            href={`https://redirect.self.xyz?sessionId=${localStorage.getItem(
+                              "sessionId"
+                            )}`}
+                          >
+                            Since you are on mobile,
+                            <br />
+                            click to continue on your mobile
+                          </Link>
+                        </div>
                       </div>
                     ) : (
                       <>
