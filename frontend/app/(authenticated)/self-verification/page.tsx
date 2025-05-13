@@ -56,7 +56,7 @@ export default function SelfVerification() {
     setCurrentStep(1);
   }, [isConnected]);
   useEffect(() => {
-    currentStep === 2 ? setIsVerifying(true) : null;
+    currentStep === 2 ? null : null;
   }, [currentStep]);
 
   return (
@@ -160,7 +160,7 @@ export default function SelfVerification() {
               <CardFooter className="flex justify-between border-t border-primary/10 p-6">
                 <Button
                   variant="outline"
-                  disabled={currentStep === 2 || isVerifying}
+                  disabled={currentStep === 1 || isVerifying}
                   onClick={() => setCurrentStep(currentStep - 1)}
                 >
                   Back
