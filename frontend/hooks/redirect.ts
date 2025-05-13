@@ -16,24 +16,5 @@ export function useAutoRedirect() {
         : router.push("#")
       : null;
   }, [isConnected]);
-  useEffect(() => {
-    isDisconnected && path == "/login"
-      ? null
-      : isDisconnected
-      ? router.push("/")
-      : null;
-  }, [isDisconnected]);
-}
-
-export function useRedirect() {
-  const //
-    router = useRouter(),
-    { isConnected, isDisconnected } = useAccount();
-
-  useEffect(() => {
-    isConnected ? router.push("/dashboard") : null;
-  }, [isConnected]);
-  useEffect(() => {
-    isDisconnected ? router.push("/") : null;
-  }, [isDisconnected]);
+  useEffect(() => {}, [isDisconnected]);
 }

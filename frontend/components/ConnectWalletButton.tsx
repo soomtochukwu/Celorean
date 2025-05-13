@@ -1,23 +1,26 @@
 "use client";
 
-import { useAutoRedirect } from '@/hooks/redirect'
-import { ConnectButton } from '@rainbow-me/rainbowkit'
-import React from 'react'
+import { useAutoRedirect } from "@/hooks/redirect";
+import { ConnectButton } from "@rainbow-me/rainbowkit";
+import React from "react";
 
 const ConnectWalletButton = () => {
   useAutoRedirect();
   return (
-    <div><ConnectButton
-      accountStatus={{
-        smallScreen: "avatar",
-        largeScreen: "full",
-      }}
-      chainStatus="icon"
-      showBalance={{
-        smallScreen: false,
-        largeScreen: false,
-      }}></ConnectButton></div>
-  )
-}
+    <div>
+      <ConnectButton
+        accountStatus={{
+          smallScreen: "avatar",
+          largeScreen: "full",
+        }}
+        chainStatus="icon"
+        showBalance={{
+          smallScreen: false,
+          largeScreen: false,
+        }}
+      ></ConnectButton>
+    </div>
+  );
+};
 
-export default ConnectWalletButton
+export default ConnectWalletButton;
