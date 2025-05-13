@@ -1,11 +1,13 @@
-"use client"
+"use client";
 
-import React from 'react'
+import React from "react";
 
 const page = () => {
   return (
-    <div>Achievements</div>
-  )
-}
+    <div className="flex h-screen w-screen items-center justify-center">
+      <div>Achievements</div>
+    </div>
+  );
+};
 
-export default page
+export default page;
