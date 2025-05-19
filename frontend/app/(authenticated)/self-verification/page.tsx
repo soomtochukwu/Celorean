@@ -140,7 +140,17 @@ export default function SelfVerification() {
                   <div className="flex flex-col items-center justify-center py-10">
                     {isVerifying ? (
                       <div className="text-center">
-                        <SelfQr setIsComplete={setIsComplete} />
+                        <div className=" md:block hidden">
+
+                          <SelfQr setIsComplete={setIsComplete} />
+                        </div>
+                        <button
+                          className="bg-[#46c458] md:hidden sm:block p-3 text-black rounded-md"
+                          onClick={() => {
+                            const a = document.createElement("a");
+                            a.href = `https://redirect.self.xyz/?sessionId=${localStorage.getItem("sessionId")}`;
+                            a.click();
+                          }}>Since you are on a mobile device, click here.                          </button>
                       </div>
                     ) : (
                       <>
