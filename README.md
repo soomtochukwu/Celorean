@@ -1,6 +1,6 @@
 # Celorean: Personalized Learning with Blockchain and AI (MVP)
 
-([Celorean ](https://celo-alfajores.blockscout.com/address/0x7b9F4dffd02aB01453e5A886720Cd30b5c50d122#code)) is a revolutionary personalized learning system that is undergoing active development in the [Celo ](https://celo.org/) ecosystem ([Check it out on karmaGap](/)). It leverages the power of blockchain and AI to create an engaging and rewarding educational experience. Our Minimum Viable Product (MVP) focuses on core functionalities to validate the concept and gather user feedback for future iterations.
+([Celorean ](https://celo-alfajores.blockscout.com/address/0x7b9F4dffd02aB01453e5A886720Cd30b5c50d122#code)) is a revolutionary personalized learning system that is undergoing active development in the [Celo ](https://celo.org/) ecosystem ([Check it out on karmaGap](/)). It leverages the power of blockchain and AI to create an engaging and **rewarding/incentivised** educational experience. Our Minimum Viable Product (MVP) focuses on core functionalities to validate the concept and gather user feedback for future iterations.
 
 ## Key Features:
 
