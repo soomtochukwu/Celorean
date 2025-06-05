@@ -22,7 +22,7 @@ export async function POST(req: Request) {
       "CELOREAN-scope",
       process.env.NEXT_PUBLIC_SELF_BACKEND_URL as string,
       "uuid",
-      true
+      // true
     );
 
     // Verify the proof
