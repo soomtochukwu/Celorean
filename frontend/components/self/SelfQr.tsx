@@ -31,7 +31,12 @@ function SelfQr({
 
     logoBase64: selfBase64Logo as string,
     userId,
-    disclosures: { date_of_birth: true, gender: true, nationality: true },
+    disclosures: {
+      name: true,
+      expiry_date: true,
+      gender: true,
+      nationality: true,
+    },
   }).build();
 
   return (
