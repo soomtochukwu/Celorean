@@ -2,10 +2,13 @@
 import Link from "next/link";
 import { ArrowRight, Shield, Zap, Brain, Lock } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { AnimatedBackground } from "@/components/animated-background";
 
 export default function Home() {
   return (
     <div className="min-h-screen flex flex-col">
+      <AnimatedBackground />
+
       {/* Header */}
       <header className="w-full py-4 px-6 glass border-b border-primary/10 sticky top-0 z-10">
         <div className="container mx-auto flex justify-between items-center">

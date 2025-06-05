@@ -294,3 +294,19 @@ contract Celorean is KIP17, Ownable {
         return sessionIds;
     }
 }
+
+/* 
+Celorean Contract Deployed at 0xa0408f497d09b0C4aD63c27E02255621BBBb3C01
+
+Verifying contracts...
+verifying contract ...
+Successfully submitted source code for contract
+contracts/Celorean.sol:Celorean at 0xa0408f497d09b0C4aD63c27E02255621BBBb3C01
+for verification on the block explorer. Waiting for verification result...
+
+Successfully verified contract Celorean on the block explorer.
+https://celoscan.io/address/0xa0408f497d09b0C4aD63c27E02255621BBBb3C01#code
+
+The contract 0xa0408f497d09b0C4aD63c27E02255621BBBb3C01 has already been verified on Sourcify.
+https://repo.sourcify.dev/contracts/full_match/42220/0xa0408f497d09b0C4aD63c27E02255621BBBb3C01/
+ */

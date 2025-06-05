@@ -1,9 +1,8 @@
-import { HardhatUserConfig } from "hardhat/config";
 import "@nomicfoundation/hardhat-toolbox";
 
 require("dotenv").config();
 
-const config: HardhatUserConfig = {
+const config = {
   solidity: "0.8.28",
   networks: {
     alfajores: {
@@ -11,14 +10,26 @@ const config: HardhatUserConfig = {
       accounts: [process.env.WALLET_KEY as string],
       gasPrice: 100000000000,
     },
+    celo: {
+      url: "https://forno.celo.org",
+      accounts: [process.env.WALLET_KEY as string],
+      chainId: 42220,
+      gasPrice: 100000000000,
+    },
     hardhat: {
-      chainId: 1337, // Replace with your desired chain ID
+      chainId: 1337,
+    },
+    localhost: {
+      url: "http://127.0.0.1:8545",
+      chainId: 1337,
+      accounts: [process.env.localPK as string],
+      blockConfirmations: 5,
     },
   },
   etherscan: {
     apiKey: {
-      "lisk-sepolia": "123",
-      alfajores: "empty",
+      alfajores: process.env.ALFAJORESCAN_API_KEY || "",
+      celo: process.env.CELOSCAN_API_KEY || "",
     },
     customChains: [
       {
@@ -30,11 +41,11 @@ const config: HardhatUserConfig = {
         },
       },
       {
-        network: "lisk-sepolia",
-        chainId: 4202,
+        network: "celo",
+        chainId: 42220,
         urls: {
-          apiURL: "https://sepolia-blockscout.lisk.com/api",
-          browserURL: "https://sepolia-blockscout.lisk.com",
+          apiURL: "https://api.celoscan.io/api",
+          browserURL: "https://celoscan.io"
         },
       },
     ],
