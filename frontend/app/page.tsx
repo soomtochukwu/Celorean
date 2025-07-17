@@ -7,7 +7,7 @@ import { AnimatedBackground } from "@/components/animated-background";
 export default function Home() {
   return (
     <div className="min-h-screen flex flex-col">
-      <AnimatedBackground />
+      {/* <AnimatedBackground /> */}
 
       {/* Header */}
       <header className="w-full py-4 px-6 glass border-b border-primary/10 sticky top-0 z-10">

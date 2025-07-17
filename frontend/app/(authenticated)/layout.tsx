@@ -9,7 +9,7 @@ export default function AuthenticatedLayout({
 }) {
   return (
     <div className="min-h-screen flex">
-      <AnimatedBackground />
+      {/* <AnimatedBackground /> */}
 
       <SidebarNavigation />
       <div className="flex-1 md:ml-64">{children}</div>

@@ -1,27 +1,44 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import Link from "next/link"
 import { usePathname } from "next/navigation"
 import { cn } from "@/lib/utils"
 import { Button } from "@/components/ui/button"
-import { LayoutDashboard, Shield, User, LogOut, Menu, X, Zap, BookOpen, Award, Settings, Users } from "lucide-react"
-import { useDisconnect } from "wagmi"
+import { LayoutDashboard, Shield, User, LogOut, Menu, X, Zap, BookOpen, Award, Settings, Users, UserCog } from "lucide-react"
+import { useDisconnect, useAccount } from "wagmi"
 import ConnectWalletButton from "./ConnectWalletButton"
-
+import useCeloreanContract from "@/hooks/useCeloreanContract"
 
 interface SidebarNavigationProps {
   className?: string
 }
 
 export function SidebarNavigation({ className }: SidebarNavigationProps) {
-  const
-    // 
-    pathname = usePathname(),
-    { disconnect } = useDisconnect();
+  const pathname = usePathname()
+  const { disconnect } = useDisconnect()
+  const { address } = useAccount()
+  const { owner } = useCeloreanContract()
+  
+  // Call isLecturer hook at the top level with proper fallback
+  const { data: isLecturerData } = useCeloreanContract().isLecturer(address || "0x0000000000000000000000000000000000000000")
+  
   const [isOpen, setIsOpen] = useState(false)
+  const [isAdmin, setIsAdmin] = useState(false)
 
-  const routes = [
+  // Check if current user is admin
+  useEffect(() => {
+    if (address && owner) {
+      setIsAdmin(address.toLowerCase() === String(owner).toLowerCase())
+    } else {
+      setIsAdmin(false)
+    }
+  }, [address, owner])
+
+  // Check if current user is lecturer
+  const isUserLecturer = Boolean(isLecturerData && address)
+
+  const baseRoutes = [
     {
       name: "Dashboard",
       href: "/dashboard",
@@ -58,6 +75,18 @@ export function SidebarNavigation({ className }: SidebarNavigationProps) {
       icon: Settings,
     },
   ]
+
+  // Create routes array with conditional admin route
+  const routes = [...baseRoutes]
+  
+  // Add admin route if user is admin or lecturer (insert before Profile and Settings)
+  if ((isAdmin || isUserLecturer) && address) {
+    routes.splice(-2, 0, {
+      name: "Admin",
+      href: "/admin",
+      icon: UserCog,
+    })
+  }
 
   return (
     <>

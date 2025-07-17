@@ -3,6 +3,10 @@ import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardFooter } from "@/components/ui/card"
 import { Progress } from "@/components/ui/progress"
 import { cn } from "@/lib/utils"
+import { useAccount } from "wagmi"
+import useCeloreanContract from "@/hooks/useCeloreanContract"
+import { useState, useEffect } from "react"
+import { toast } from "@/hooks/use-toast"
 
 interface CourseCardProps {
   id: number
@@ -19,6 +23,9 @@ interface CourseCardProps {
   price?: string
   tokenReward?: string
   className?: string
+  isEnrolled?: boolean
+  onEnrollmentSuccess?: () => void
+  thumbnail?: string // Add thumbnail support
 }
 
 export function CourseCard({
@@ -36,15 +43,100 @@ export function CourseCard({
   price,
   tokenReward,
   className,
+  isEnrolled: initialIsEnrolled,
+  onEnrollmentSuccess,
+  thumbnail,
 }: CourseCardProps) {
-  const isEnrolled = progress !== undefined
+  const { address, isConnected } = useAccount()
+  const { registerForCourse, isPending, isConfirming, isConfirmed, error } = useCeloreanContract()
+  const [isEnrolled, setIsEnrolled] = useState(initialIsEnrolled || progress !== undefined)
+  const [isEnrolling, setIsEnrolling] = useState(false)
+
+  const handleEnrollment = async () => {
+    if (!isConnected) {
+      toast({
+        title: "Wallet not connected",
+        description: "Please connect your wallet to enroll in courses.",
+        variant: "destructive",
+      })
+      return
+    }
+
+    try {
+      setIsEnrolling(true)
+      await registerForCourse(id)
+
+      toast({
+        title: "Enrollment initiated",
+        description: "Please confirm the transaction in your wallet.",
+      })
+    } catch (err) {
+      console.error('Enrollment error:', err)
+      toast({
+        title: "Enrollment failed",
+        description: "There was an error enrolling in the course. Please try again.",
+        variant: "destructive",
+      })
+      setIsEnrolling(false)
+    }
+  }
+
+  // Handle successful enrollment
+  useEffect(() => {
+    if (isConfirmed && isEnrolling) {
+      setIsEnrolled(true)
+      setIsEnrolling(false)
+      toast({
+        title: "Successfully enrolled!",
+        description: `You are now enrolled in ${title}.`,
+      })
+      onEnrollmentSuccess?.()
+    }
+  }, [isConfirmed, isEnrolling, title, onEnrollmentSuccess])
+
+  // Handle enrollment error
+  useEffect(() => {
+    if (error && isEnrolling) {
+      setIsEnrolling(false)
+      toast({
+        title: "Enrollment failed",
+        description: error.message || "There was an error enrolling in the course.",
+        variant: "destructive",
+      })
+    }
+  }, [error, isEnrolling])
+
+  const buttonLoading = isPending || isConfirming || isEnrolling
 
   return (
     <Card
       className={cn("glass border-primary/10 overflow-hidden hover:border-primary/30 transition-colors", className)}
     >
-      <div className="relative h-48 overflow-hidden">
-        <img src={image || "/placeholder.svg"} alt={title} className="w-full h-full object-cover" />
+      <div className="relative h-48 overflow-hidden rounded-t-lg">
+        <img
+          src={thumbnail || image || "/placeholder.jpg"}
+          alt={title}
+          className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105"
+          onError={(e) => {
+            const target = e.target as HTMLImageElement;
+            const currentSrc = target.src;
+            
+            // Try different IPFS gateways if the current one fails
+            if (currentSrc.includes('ipfs.io/ipfs/')) {
+              const cid = currentSrc.split('/ipfs/')[1];
+              target.src = `https://gateway.pinata.cloud/ipfs/${cid}`;
+            } else if (currentSrc.includes('gateway.pinata.cloud/ipfs/')) {
+              const cid = currentSrc.split('/ipfs/')[1];
+              target.src = `https://cloudflare-ipfs.com/ipfs/${cid}`;
+            } else if (thumbnail && currentSrc !== thumbnail) {
+              target.src = thumbnail;
+            } else if (image && currentSrc !== image) {
+              target.src = image;
+            } else {
+              target.src = "/placeholder.jpg";
+            }
+          }}
+        />
         <div className="absolute top-2 right-2 bg-background/80 backdrop-blur-sm px-2 py-1 rounded text-xs font-medium">
           {level}
         </div>
@@ -94,9 +186,9 @@ export function CourseCard({
           <div className="mb-3">
             <div className="flex justify-between text-xs mb-1">
               <span>Progress</span>
-              <span>{progress}%</span>
+              <span>{progress || 0}%</span>
             </div>
-            <Progress value={progress} className="h-1.5" />
+            <Progress value={progress || 0} className="h-1.5" />
           </div>
         )}
       </CardContent>
@@ -108,8 +200,15 @@ export function CourseCard({
             <span className="font-bold">{price ? price : "Free"}</span>
           )}
         </div>
-        <Button size="sm" variant={isEnrolled ? "outline" : "default"}>
-          {isEnrolled ? (
+        <Button
+          size="sm"
+          variant={isEnrolled ? "outline" : "default"}
+          onClick={isEnrolled ? undefined : handleEnrollment}
+          disabled={buttonLoading}
+        >
+          {buttonLoading ? (
+            "Processing..."
+          ) : isEnrolled ? (
             <>
               <BookOpen className="h-4 w-4 mr-1" /> Continue
             </>
