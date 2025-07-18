@@ -2,11 +2,13 @@ import { Clock, Users, Star, BookOpen } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardFooter } from "@/components/ui/card"
 import { Progress } from "@/components/ui/progress"
+import { Badge } from "@/components/ui/badge"
 import { cn } from "@/lib/utils"
 import { useAccount } from "wagmi"
 import useCeloreanContract from "@/hooks/useCeloreanContract"
 import { useState, useEffect } from "react"
 import { toast } from "@/hooks/use-toast"
+import { useRouter } from "next/navigation"
 
 interface CourseCardProps {
   id: number
@@ -47,10 +49,41 @@ export function CourseCard({
   onEnrollmentSuccess,
   thumbnail,
 }: CourseCardProps) {
+  const router = useRouter()
   const { address, isConnected } = useAccount()
-  const { registerForCourse, isPending, isConfirming, isConfirmed, error } = useCeloreanContract()
+  const { registerForCourse, isPending, isConfirming, isConfirmed, error, getCourse, isStudentEnrolled } = useCeloreanContract()
   const [isEnrolled, setIsEnrolled] = useState(initialIsEnrolled || progress !== undefined)
   const [isEnrolling, setIsEnrolling] = useState(false)
+  const [coursePrice, setCoursePrice] = useState('0')
+
+  // Check enrollment status from blockchain - only if address is available
+  const enrollmentQuery = address ? isStudentEnrolled(id, address) : null
+  const enrollmentStatus = enrollmentQuery?.data
+
+  // Update enrollment status when blockchain data changes
+  useEffect(() => {
+    if (typeof enrollmentStatus === 'boolean') {
+      setIsEnrolled(enrollmentStatus)
+    }
+  }, [enrollmentStatus])
+
+  // Fetch course details to get the actual price in wei
+  const { data: courseData } = getCourse(id)
+
+  useEffect(() => {
+    if (courseData && (courseData as any).price) {
+      setCoursePrice((courseData as any).price.toString())
+    }
+  }, [courseData])
+
+  const handleCardClick = () => {
+    router.push(`/course/${id}`)
+  }
+
+  const handleEnrollmentClick = (e: React.MouseEvent) => {
+    e.stopPropagation() // Prevent card click when clicking enroll button
+    handleEnrollment()
+  }
 
   const handleEnrollment = async () => {
     if (!isConnected) {
@@ -62,21 +95,51 @@ export function CourseCard({
       return
     }
 
+    if (!address) {
+      toast({
+        title: "Address not available",
+        description: "Please ensure your wallet is properly connected.",
+        variant: "destructive",
+      })
+      return
+    }
+
+    // Check if already enrolled before attempting enrollment
+    if (isEnrolled || enrollmentStatus) {
+      toast({
+        title: "Already enrolled",
+        description: "You are already enrolled in this course.",
+        variant: "destructive",
+      })
+      return
+    }
+
     try {
       setIsEnrolling(true)
-      await registerForCourse(id)
+      await registerForCourse(id, address, coursePrice)
 
       toast({
         title: "Enrollment initiated",
         description: "Please confirm the transaction in your wallet.",
       })
-    } catch (err) {
+    } catch (err: any) {
       console.error('Enrollment error:', err)
-      toast({
-        title: "Enrollment failed",
-        description: "There was an error enrolling in the course. Please try again.",
-        variant: "destructive",
-      })
+
+      // Handle specific error for duplicate enrollment
+      if (err.message?.includes("already enrolled")) {
+        toast({
+          title: "Already enrolled",
+          description: "You are already enrolled in this course.",
+          variant: "destructive",
+        })
+        setIsEnrolled(true)
+      } else {
+        toast({
+          title: "Enrollment failed",
+          description: "There was an error enrolling in the course. Please try again.",
+          variant: "destructive",
+        })
+      }
       setIsEnrolling(false)
     }
   }
@@ -110,7 +173,11 @@ export function CourseCard({
 
   return (
     <Card
-      className={cn("glass border-primary/10 overflow-hidden hover:border-primary/30 transition-colors", className)}
+      className={cn(
+        "group cursor-pointer transition-all duration-200 hover:shadow-lg hover:scale-[1.02] border-border bg-card",
+        className
+      )}
+      onClick={handleCardClick}
     >
       <div className="relative h-48 overflow-hidden rounded-t-lg">
         <img
@@ -120,7 +187,7 @@ export function CourseCard({
           onError={(e) => {
             const target = e.target as HTMLImageElement;
             const currentSrc = target.src;
-            
+
             // Try different IPFS gateways if the current one fails
             if (currentSrc.includes('ipfs.io/ipfs/')) {
               const cid = currentSrc.split('/ipfs/')[1];
@@ -192,30 +259,34 @@ export function CourseCard({
           </div>
         )}
       </CardContent>
-      <CardFooter className="px-4 py-3 border-t border-primary/10 flex justify-between items-center">
-        <div className="text-sm">
-          {isEnrolled ? (
-            <span className="font-medium">Instructor: {instructor}</span>
+      <CardFooter className="p-4 pt-0">
+        <div className="flex items-center justify-between w-full">
+          <div className="flex items-center gap-2">
+            <Badge variant="outline" className="text-xs">
+              {level}
+            </Badge>
+            {tokenReward && (
+              <Badge variant="secondary" className="text-xs">
+                🪙 {tokenReward}
+              </Badge>
+            )}
+          </div>
+
+          {!isEnrolled ? (
+            <Button
+              size="sm"
+              onClick={handleEnrollmentClick}
+              disabled={buttonLoading}
+              className="bg-primary hover:bg-primary/90"
+            >
+              {buttonLoading ? "Processing..." : "Enroll Now"}
+            </Button>
           ) : (
-            <span className="font-bold">{price ? price : "Free"}</span>
+            <Badge className="bg-green-500/20 text-green-700 border-green-500/30">
+              ✓ Enrolled
+            </Badge>
           )}
         </div>
-        <Button
-          size="sm"
-          variant={isEnrolled ? "outline" : "default"}
-          onClick={isEnrolled ? undefined : handleEnrollment}
-          disabled={buttonLoading}
-        >
-          {buttonLoading ? (
-            "Processing..."
-          ) : isEnrolled ? (
-            <>
-              <BookOpen className="h-4 w-4 mr-1" /> Continue
-            </>
-          ) : (
-            "Enroll Now"
-          )}
-        </Button>
       </CardFooter>
     </Card>
   )

@@ -14,19 +14,24 @@ import { CourseCard } from "@/components/course-card"
 import { useCourses } from "@/hooks/useCourses"
 import { useAccount } from "wagmi"
 import { ConnectButton } from "@rainbow-me/rainbowkit"
+import useCeloreanContract from "@/hooks/useCeloreanContract"
 
 export default function LearningPage() {
   const [searchTerm, setSearchTerm] = useState("")
   const [selectedLevel, setSelectedLevel] = useState<string>("all")
   const [sortBy, setSortBy] = useState<string>("title")
   const { courses, loading } = useCourses()
-  const { isConnected } = useAccount()
+  const { isConnected, address } = useAccount()
+  const { getStudentCourses } = useCeloreanContract()
+
+  // Get enrolled courses for the current user
+  const { data: enrolledCourseIds } = getStudentCourses(address as string)
 
   const filteredAndSortedCourses = useMemo(() => {
     let filtered = courses.filter((course) => {
       const matchesSearch = course.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                           course.description.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                           course.tags.some(tag => tag.toLowerCase().includes(searchTerm.toLowerCase()))
+        course.description.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        course.tags.some(tag => tag.toLowerCase().includes(searchTerm.toLowerCase()))
       const matchesLevel = selectedLevel === "all" || course.level === selectedLevel
       return matchesSearch && matchesLevel
     })
@@ -52,8 +57,8 @@ export default function LearningPage() {
   }, [courses, searchTerm, selectedLevel, sortBy])
 
   const handleEnrollmentSuccess = () => {
-    // Optionally refresh courses or show success message
-    window.location.reload() // Simple refresh, you might want to implement a more elegant solution
+    // Refresh the page or refetch data
+    window.location.reload()
   }
 
   if (!isConnected) {
@@ -74,7 +79,7 @@ export default function LearningPage() {
         <div className="lg:w-1/4">
           <div className="glass p-6 rounded-lg border border-primary/10">
             <h2 className="text-xl font-bold mb-4">Filters</h2>
-            
+
             <div className="space-y-4">
               <div>
                 <label className="text-sm font-medium mb-2 block">Search</label>
@@ -88,7 +93,7 @@ export default function LearningPage() {
                   />
                 </div>
               </div>
-              
+
               <div>
                 <label className="text-sm font-medium mb-2 block">Level</label>
                 <DropdownMenu>
@@ -108,7 +113,7 @@ export default function LearningPage() {
                   </DropdownMenuContent>
                 </DropdownMenu>
               </div>
-              
+
               <div>
                 <label className="text-sm font-medium mb-2 block">Sort By</label>
                 <DropdownMenu>
@@ -116,9 +121,9 @@ export default function LearningPage() {
                     <Button variant="outline" className="w-full justify-between">
                       <span className="flex items-center">
                         <SortAsc className="h-4 w-4 mr-2" />
-                        {sortBy === "title" ? "Title" : 
-                         sortBy === "rating" ? "Rating" :
-                         sortBy === "students" ? "Students" : "Level"}
+                        {sortBy === "title" ? "Title" :
+                          sortBy === "rating" ? "Rating" :
+                            sortBy === "students" ? "Students" : "Level"}
                       </span>
                     </Button>
                   </DropdownMenuTrigger>
@@ -133,7 +138,7 @@ export default function LearningPage() {
             </div>
           </div>
         </div>
-        
+
         <div className="lg:w-3/4">
           <div className="flex justify-between items-center mb-6">
             <h1 className="text-3xl font-bold">Available Courses</h1>
@@ -141,7 +146,7 @@ export default function LearningPage() {
               {loading ? "Loading..." : `${filteredAndSortedCourses.length} courses found`}
             </p>
           </div>
-          
+
           {loading ? (
             <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
               {[...Array(6)].map((_, i) => (
@@ -150,16 +155,22 @@ export default function LearningPage() {
             </div>
           ) : (
             <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
-              {filteredAndSortedCourses.map((course) => (
-                <CourseCard
-                  key={course.id}
-                  {...course}
-                  onEnrollmentSuccess={handleEnrollmentSuccess}
-                />
-              ))}
+              {filteredAndSortedCourses.map((course) => {
+                // Check if user is enrolled in this course
+                const isEnrolled = Array.isArray(enrolledCourseIds) && enrolledCourseIds.includes(course.id) || false
+
+                return (
+                  <CourseCard
+                    key={course.id}
+                    {...course}
+                    isEnrolled={isEnrolled}
+                    onEnrollmentSuccess={handleEnrollmentSuccess}
+                  />
+                )
+              })}
             </div>
           )}
-          
+
           {!loading && filteredAndSortedCourses.length === 0 && (
             <div className="text-center py-12">
               <p className="text-muted-foreground">No courses found matching your criteria.</p>

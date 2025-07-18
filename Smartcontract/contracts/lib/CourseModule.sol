@@ -21,7 +21,7 @@ contract CourseModule is Initializable {
     uint256 public courseCount;
     mapping(uint256 => Course) public courses;
     mapping(string => uint256) public courseNameToId;
-    
+
     event CourseCreated(
         uint256 indexed courseId,
         string title,
@@ -29,11 +29,30 @@ contract CourseModule is Initializable {
         uint256 price,
         string metadataUri
     );
-    
+
+    event CourseMetadataUpdated(
+        uint256 indexed courseId,
+        string newMetadataUri
+    );
+
+    function updateCourseMetadata(
+        uint256 courseId,
+        string memory newMetadataUri
+    ) public virtual {
+        require(courseId > 0 && courseId <= courseCount, "Invalid course ID");
+        require(
+            courses[courseId].instructor == msg.sender,
+            "Only course instructor can update metadata"
+        );
+
+        courses[courseId].metadataUri = newMetadataUri;
+        emit CourseMetadataUpdated(courseId, newMetadataUri);
+    }
+
     function __CourseModule_init() internal onlyInitializing {
         // Initialization logic without ownership
     }
-    
+
     function createCourse(
         string memory title,
         uint256 duration,
@@ -45,7 +64,7 @@ contract CourseModule is Initializable {
     ) public virtual returns (uint256) {
         courseCount++;
         uint256 courseId = courseCount;
-        
+
         courses[courseId] = Course({
             id: courseId,
             title: title,
@@ -59,24 +78,27 @@ contract CourseModule is Initializable {
             instructor: msg.sender,
             metadataUri: metadataUri
         });
-        
+
         courseNameToId[title] = courseId;
-        
+
         emit CourseCreated(courseId, title, msg.sender, price, metadataUri);
         return courseId;
     }
-    
+
     function getCourse(uint256 courseId) external view returns (Course memory) {
         require(courseId > 0 && courseId <= courseCount, "Invalid course ID");
         return courses[courseId];
     }
-    
+
     function incrementEnrollment(uint256 courseId) public virtual {
         require(courseId > 0 && courseId <= courseCount, "Invalid course ID");
         courses[courseId].enrolledCount++;
     }
-    
-    function updateCourseRating(uint256 courseId, uint256 newRating) public virtual {
+
+    function updateCourseRating(
+        uint256 courseId,
+        uint256 newRating
+    ) public virtual {
         require(courseId > 0 && courseId <= courseCount, "Invalid course ID");
         require(newRating <= 50, "Rating must be between 0 and 50");
         courses[courseId].rating = newRating;

@@ -65,6 +65,16 @@ export function useCeloreanContract() {
     });
   };
 
+  // Check if student is enrolled in a course
+  const isStudentEnrolled = (courseId: number, studentAddress: string) => {
+    return useReadContract({
+      address: CELOREAN_CONTRACT_ADDRESS as `0x${string}`,
+      abi: CeloreanABI.abi,
+      functionName: "isStudentEnrolled",
+      args: [courseId, studentAddress],
+    });
+  };
+
   // Get contract owner
   const { data: owner } = useReadContract({
     address: CELOREAN_CONTRACT_ADDRESS as `0x${string}`,
@@ -80,13 +90,18 @@ export function useCeloreanContract() {
   });
 
   // Write functions
-  const registerForCourse = async (courseId: number) => {
+  const registerForCourse = async (
+    courseId: number,
+    studentAddress: string,
+    priceInWei: string = "0"
+  ) => {
     try {
       await writeContract({
         address: CELOREAN_CONTRACT_ADDRESS as `0x${string}`,
         abi: CeloreanABI.abi,
         functionName: "registerForCourse",
-        args: [courseId],
+        args: [courseId, studentAddress],
+        value: BigInt(priceInWei), // Send the course price as payment
       });
     } catch (err) {
       console.error("Error registering for course:", err);
@@ -135,14 +150,31 @@ export function useCeloreanContract() {
     metadataUri: string
   ) => {
     if (!writeContract) {
-      throw new Error('Contract not available');
+      throw new Error("Contract not available");
     }
-    
+
     return writeContract({
       address: CELOREAN_CONTRACT_ADDRESS as `0x${string}`,
       abi: CeloreanABI.abi,
-      functionName: 'createCourse',
+      functionName: "createCourse",
       args: [title, duration, description, price, tags, level, metadataUri],
+    });
+  };
+
+  // Lecturer function: Update course metadata
+  const updateCourseMetadata = async (
+    courseId: number,
+    newMetadataUri: string
+  ) => {
+    if (!writeContract) {
+      throw new Error("Contract not available");
+    }
+
+    return writeContract({
+      address: CELOREAN_CONTRACT_ADDRESS as `0x${string}`,
+      abi: CeloreanABI.abi,
+      functionName: "updateCourseMetadata",
+      args: [courseId, newMetadataUri],
     });
   };
 
@@ -153,6 +185,7 @@ export function useCeloreanContract() {
     getStudentCourses,
     isStudent,
     isLecturer,
+    isStudentEnrolled,
     owner,
     lecturerList,
 
@@ -161,6 +194,7 @@ export function useCeloreanContract() {
     employLecturer,
     admitStudent,
     createCourse,
+    updateCourseMetadata,
 
     // Transaction states
     isPending,

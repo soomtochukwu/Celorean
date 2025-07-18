@@ -34,7 +34,7 @@ export default function Home() {
               className="bg-green-700 text-white p-2 rounded-lg text-center"
               href={"/login"}
             >
-              Login / Signup
+              Start Learning
             </Link>
           </div>
         </div>
@@ -57,7 +57,7 @@ export default function Home() {
                 className="bg-green-700 text-white p-2 rounded-lg text-center"
                 href={"/login"}
               >
-                Login / Signup
+                Start Learning
               </Link>
 
               <Button variant="outline" size="lg" asChild>

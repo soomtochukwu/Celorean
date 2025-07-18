@@ -89,6 +89,11 @@ contract Celorean is
     ) public payable override nonReentrant {
         require(courseId > 0 && courseId <= courseCount, "Invalid course ID");
         require(isStudent[student], "Address is not a registered student");
+        // Add duplicate enrollment check
+        require(
+            !isEnrolled[courseId][student],
+            "Student already enrolled in this course"
+        );
 
         Course memory course = courses[courseId];
         require(msg.value >= course.price, "Insufficient payment");

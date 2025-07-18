@@ -5,7 +5,7 @@ import Link from "next/link"
 import { usePathname } from "next/navigation"
 import { cn } from "@/lib/utils"
 import { Button } from "@/components/ui/button"
-import { LayoutDashboard, Shield, User, LogOut, Menu, X, Zap, BookOpen, Award, Settings, Users, UserCog } from "lucide-react"
+import { LayoutDashboard, Shield, User, LogOut, Menu, X, Zap, BookOpen, Award, Settings, Users, UserCog, Activity } from "lucide-react"
 import { useDisconnect, useAccount } from "wagmi"
 import ConnectWalletButton from "./ConnectWalletButton"
 import useCeloreanContract from "@/hooks/useCeloreanContract"
@@ -19,10 +19,10 @@ export function SidebarNavigation({ className }: SidebarNavigationProps) {
   const { disconnect } = useDisconnect()
   const { address } = useAccount()
   const { owner } = useCeloreanContract()
-  
+
   // Call isLecturer hook at the top level with proper fallback
   const { data: isLecturerData } = useCeloreanContract().isLecturer(address || "0x0000000000000000000000000000000000000000")
-  
+
   const [isOpen, setIsOpen] = useState(false)
   const [isAdmin, setIsAdmin] = useState(false)
 
@@ -48,6 +48,11 @@ export function SidebarNavigation({ className }: SidebarNavigationProps) {
       name: "Learning",
       href: "/learning",
       icon: BookOpen,
+    },
+    {
+      name: "Activity",
+      href: "/activity",
+      icon: Activity,
     },
     {
       name: "Community",
@@ -78,7 +83,7 @@ export function SidebarNavigation({ className }: SidebarNavigationProps) {
 
   // Create routes array with conditional admin route
   const routes = [...baseRoutes]
-  
+
   // Add admin route if user is admin or lecturer (insert before Profile and Settings)
   if ((isAdmin || isUserLecturer) && address) {
     routes.splice(-2, 0, {
