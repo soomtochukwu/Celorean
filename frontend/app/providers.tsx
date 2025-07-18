@@ -3,11 +3,11 @@ import "@rainbow-me/rainbowkit/styles.css";
 
 import * as React from "react";
 import {
-    RainbowKitProvider,
-    getDefaultWallets,
-    getDefaultConfig,
-    lightTheme,
-    darkTheme,
+  RainbowKitProvider,
+  getDefaultWallets,
+  getDefaultConfig,
+  lightTheme,
+  darkTheme,
 } from "@rainbow-me/rainbowkit";
 import { metaMaskWallet, okxWallet, trustWallet } from "@rainbow-me/rainbowkit/wallets";
 import { celo, celoAlfajores } from "wagmi/chains";
@@ -48,46 +48,46 @@ const getInitialChain = () => {
 const { wallets } = getDefaultWallets();
 
 const config = getDefaultConfig({
-    appName: "Celorean",
-    projectId: "b7cfcf662095cd0ee1e06aa9eebd146a",
-    wallets: [
-        {
-            groupName: "Other",
-            wallets: [metaMaskWallet, okxWallet, trustWallet],
-        },
-        ...wallets,
-    ],
-    chains: [
-        celoAlfajores,
-        celo,
-        localhost, // Add localhost chain
-        ...(process.env.NEXT_PUBLIC_ENABLE_TESTNETS === "true"
-            ? [celoAlfajores]
-            : []),
-    ],
-    ssr: true,
+  appName: "Celorean",
+  projectId: "b7cfcf662095cd0ee1e06aa9eebd146a",
+  wallets: [
+    {
+      groupName: "Other",
+      wallets: [metaMaskWallet, okxWallet, trustWallet],
+    },
+    ...wallets,
+  ],
+  chains: [
+    celoAlfajores,
+    celo,
+    localhost, // Add localhost chain
+    ...(process.env.NEXT_PUBLIC_ENABLE_TESTNETS === "true"
+      ? [celoAlfajores]
+      : []),
+  ],
+  ssr: true,
 });
 
 const queryClient = new QueryClient();
 
 export function Providers({ children }: { children: React.ReactNode }) {
-    return (
-        <WagmiProvider config={config}>
-            <QueryClientProvider client={queryClient}>
-                <RainbowKitProvider
-                    theme={darkTheme({
-                        accentColor: "#005500",
-                        accentColorForeground: "white",
-                        fontStack: "system",
-                        overlayBlur: "small",
-                        borderRadius: "large",
-                    })}
-                    modalSize="compact"
-                    initialChain={getInitialChain()}
-                >
-                    {children}
-                </RainbowKitProvider>
-            </QueryClientProvider>
-        </WagmiProvider>
-    );
+  return (
+    <WagmiProvider config={config}>
+      <QueryClientProvider client={queryClient}>
+        <RainbowKitProvider
+          theme={darkTheme({
+            accentColor: "#005500",
+            accentColorForeground: "white",
+            fontStack: "system",
+            overlayBlur: "small",
+            borderRadius: "large",
+          })}
+          modalSize="compact"
+          initialChain={getInitialChain()}
+        >
+          {children}
+        </RainbowKitProvider>
+      </QueryClientProvider>
+    </WagmiProvider>
+  );
 }

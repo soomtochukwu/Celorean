@@ -2,12 +2,12 @@
 import Link from "next/link";
 import { ArrowRight, Shield, Zap, Brain, Lock } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { AnimatedBackground } from "@/components/animated-background";
+import { AnimatedGridBackground } from "@/components/animated-grid-background";
 
 export default function Home() {
   return (
     <div className="min-h-screen flex flex-col">
-      {/* <AnimatedBackground /> */}
+      <AnimatedGridBackground />
 
       {/* Header */}
       <header className="w-full py-4 px-6 glass border-b border-primary/10 sticky top-0 z-10">
@@ -42,7 +42,6 @@ export default function Home() {
 
       {/* Hero Section */}
       <section className="relative py-20 md:py-32 overflow-hidden">
-        <div className="absolute inset-0 grid-pattern opacity-20"></div>
         <div className="container mx-auto px-6 relative z-10">
           <div className="max-w-3xl mx-auto text-center">
             <h1 className="text-4xl md:text-6xl font-bold mb-6 gradient-text">
