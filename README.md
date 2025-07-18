@@ -1,13 +1,13 @@
-# Celorean: Personalized Learning with Blockchain and AI (MVP)
+# Celorean: Personalised Learning with Blockchain and AI (MVP)
 
-([Celorean ](https://celo-alfajores.blockscout.com/address/0x7b9F4dffd02aB01453e5A886720Cd30b5c50d122#code)) is a revolutionary personalized learning system that is undergoing active development in the [Celo ](https://celo.org/) ecosystem ([Check it out on karmaGap](/)). It leverages the power of blockchain and AI to create an engaging and **rewarding/incentivised** educational experience. Our Minimum Viable Product (MVP) focuses on core functionalities to validate the concept and gather user feedback for future iterations.
+([Celorean ](https://www.celorean.school/)) It is a revolutionary personalised learning system that is undergoing active development in the [Celo ](https://celo.org/) ecosystem ([Check it out on karmaGap](https://gap.karmahq.xyz/project/celorean)). It leverages the power of blockchain and AI to create an engaging and **rewarding/incentivised** educational experience. Our Minimum Viable Product (MVP) focuses on core functionalities to validate the concept and gather user feedback for future iterations.
 
 ## Key Features:
 
-### Personalized Learning Paths:
+### Personalised Learning Paths:
 
-- AI analyzes student performance data (stored securely on the blockchain) to identify strengths, weaknesses, and learning styles.
-- Based on this analysis, the system recommends personalized learning paths with curated content (text, videos, quizzes) tailored to individual needs.
+- AI analyses student performance data (stored securely on the blockchain) to identify strengths, weaknesses, and learning styles.
+- Based on this analysis, the system recommends personalised learning paths with curated content (text, videos, quizzes) tailored to individual needs.
 
 ### Interactive Learning Modules:
 
@@ -16,13 +16,13 @@
 
 ### Secure Blockchain Ledger:
 
-- Student performance data, including completed modules, scores, and achievements, are stored immutably on a blockchain ledger.
+- Student performance data, including completed modules, scores, and achievements, is stored immutably on a blockchain ledger.
 - This ensures data security, transparency, and tamper-proof records.
 
 ### Checkpoints and Attendance:
 
 - The system incorporates checkpoints at strategic points within the learning path.
-- Students must successfully complete checkpoints to progress further, ensuring mastery of key concepts.
+- Students must complete checkpoints to progress further, ensuring mastery of key concepts.
 - Attendance is recorded using a secure verification method (e.g., facial recognition, unique access codes).
 
 ### Performance Calculation and Rewards:
@@ -49,19 +49,19 @@
 
 ## Benefits:
 
-- **Personalized Learning:** Cater to individual student needs and learning styles.
+- **Personalised Learning:** Cater to individual student needs and learning styles.
 - **Improved Engagement:** Gamification elements and interactive modules boost motivation.
 - **Secure and Transparent Data:** Blockchain ensures tamper-proof records and data security.
 - **Measurable Progress:** Track performance with clear checkpoints and progress reports.
-- **Reward-Driven Learning:** Motivate students with a rewarding system that recognizes achievements.
+- **Reward-Driven Learning:** Motivate students with a rewarding system that recognises achievements.
 
 ## Next Steps:
 
 1. Develop a user-friendly interface for students, educators, and administrators.
-2. Integrate AI algorithms for personalized learning path generation.
+2. Integrate AI algorithms for personalised learning path generation.
 3. Pilot test the MVP with a small group of students and educators.
 4. Gather feedback and iterate based on user experience to improve the platform.
 
-Celorean's personalized learning system has the potential to revolutionize education by creating a dynamic, secure, and rewarding learning environment for all.
+Celorean's personalised learning system has the potential to revolutionise education by creating a dynamic, secure, and rewarding learning environment for all.
 
 ...
