@@ -1,5 +1,5 @@
 // Auto-generated file - Do not edit manually
-// Generated on: 2025-07-17T17:33:46.246Z
+// Generated on: 2025-07-18T18:28:49.311Z
 // Network: alfajores
 
 export interface ContractAddresses {
@@ -11,15 +11,15 @@ export interface ContractAddresses {
 }
 
 export const contractAddresses: ContractAddresses = {
-  proxyAddress: "0x4c2aaa9224c24739f11dE4a93C777C2C95701Dd6",
-  implementationAddress: "0x46306198eC75e714689DC8Cd411c35a8287E28A0",
+  proxyAddress: "0x8CB97c5eD4Dae06c9452ebCcef157718804DeA15",
+  implementationAddress: "0xEf51b7B34F843348C726C912FeDa16802072090D",
   network: "alfajores",
-  deployedAt: "2025-07-17T17:33:46.246Z",
+  deployedAt: "2025-07-18T18:28:49.311Z",
   deployer: "0x8a371e00cd51E2BE005B86EF73C5Ee9Ef6d23FeB"
 };
 
 // Export individual addresses for convenience
-export const CELOREAN_PROXY_ADDRESS = "0x4c2aaa9224c24739f11dE4a93C777C2C95701Dd6";
-export const CELOREAN_IMPLEMENTATION_ADDRESS = "0x46306198eC75e714689DC8Cd411c35a8287E28A0";
+export const CELOREAN_PROXY_ADDRESS = "0x8CB97c5eD4Dae06c9452ebCcef157718804DeA15";
+export const CELOREAN_IMPLEMENTATION_ADDRESS = "0xEf51b7B34F843348C726C912FeDa16802072090D";
 
 export default contractAddresses;
