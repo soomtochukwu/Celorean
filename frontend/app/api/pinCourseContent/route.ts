@@ -20,8 +20,17 @@ export async function POST(request: NextRequest) {
       const courseId = formData.get("courseId") as string;
 
       if (file) {
-        // Upload file to IPFS
-        const upload = await pinata.upload.public.file(file);
+        // Upload file to IPFS with metadata tags
+        const upload = await pinata.upload.public.file(file, {
+          metadata: {
+            name: `${title}_${Date.now()}`,
+            keyvalues: {
+              courseId: courseId || "0",
+              contentType: type,
+              uploadType: "individual",
+            },
+          },
+        });
 
         // Create metadata for the content with courseId
         const metadata = {
@@ -35,7 +44,7 @@ export async function POST(request: NextRequest) {
           uploadedAt: new Date().toISOString(),
         };
 
-        // Create metadata file and upload
+        // Create metadata file and upload with tags
         const metadataFile = new File(
           [JSON.stringify(metadata, null, 2)],
           `content_metadata_${title.replace(
@@ -44,7 +53,17 @@ export async function POST(request: NextRequest) {
           )}_${Date.now()}.json`,
           { type: "application/json" }
         );
-        const metadataUpload = await pinata.upload.public.file(metadataFile);
+
+        const metadataUpload = await pinata.upload.public.file(metadataFile, {
+          metadata: {
+            name: `content_metadata_${title}_${Date.now()}`,
+            keyvalues: {
+              courseId: courseId || "0",
+              contentType: "metadata",
+              uploadType: "individual",
+            },
+          },
+        });
 
         return NextResponse.json({
           success: true,
@@ -65,13 +84,23 @@ export async function POST(request: NextRequest) {
         uploadedAt: new Date().toISOString(),
       };
 
-      // Create JSON file and upload
+      // Create JSON file and upload with metadata tags
       const contentFile = new File(
         [JSON.stringify(contentWithCourseId, null, 2)],
         `course_content_${courseId}_${Date.now()}.json`,
         { type: "application/json" }
       );
-      const upload = await pinata.upload.public.file(contentFile);
+
+      const upload = await pinata.upload.public.file(contentFile, {
+        metadata: {
+          name: `course_content_${courseId}_${Date.now()}`,
+          keyvalues: {
+            courseId: courseId?.toString() || "0",
+            contentType: "bulk_content",
+            uploadType: "bulk",
+          },
+        },
+      });
 
       return NextResponse.json({
         success: true,

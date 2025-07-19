@@ -24,6 +24,7 @@ export default function AdminPage() {
         employLecturer,
         admitStudent,
         createCourse,
+        addMultipleCourseContent, // ✅ Use this instead of updateCourseContent
         isLecturer,
         isPending,
         isConfirming,
@@ -77,14 +78,7 @@ export default function AdminPage() {
         setContentItems(content)
     }
 
-    // Add missing updateCourseMetadata function
-    const updateCourseMetadata = async (courseId: number, metadataUri: string) => {
-        // This function should call the smart contract to update course metadata
-        // For now, we'll just log it as the smart contract function may need to be implemented
-        console.log(`Updating course ${courseId} with metadata URI: ${metadataUri}`)
-        // TODO: Implement actual smart contract call when the function is available
-    }
-
+    // ✅ Add the missing uploadThumbnailToIPFS function
     const uploadThumbnailToIPFS = async (file: File, courseTitle: string): Promise<string | null> => {
         try {
             setIsUploadingThumbnail(true)
@@ -116,6 +110,7 @@ export default function AdminPage() {
         }
     }
 
+    // ✅ Add the missing uploadCourseMetadata function
     const uploadCourseMetadata = async (courseData: any, thumbnailCid: string | null): Promise<string | null> => {
         try {
             const response = await fetch('/api/pinCourseMetadata', {
@@ -146,43 +141,52 @@ export default function AdminPage() {
         }
     }
 
+    // ✅ Remove the local updateCourseMetadata function and replace handleUpdateCourseContent
+    // ✅ Update handleUpdateCourseContent to use array
     const handleUpdateCourseContent = async (courseId: number) => {
         try {
-            // Upload content metadata to IPFS
-            const response = await fetch('/api/pinCourseContent', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
-                body: JSON.stringify({
-                    courseId,
-                    content: contentItems,
-                }),
-            })
-
-            if (!response.ok) {
-                throw new Error('Failed to upload content metadata')
+            // Upload each content item to IPFS and collect URIs
+            const contentUris: string[] = [];
+            
+            for (const item of contentItems) {
+                const response = await fetch('/api/pinCourseContent', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        courseId,
+                        content: [item], // Upload individual item
+                    }),
+                });
+        
+                if (!response.ok) {
+                    throw new Error(`Failed to upload content item: ${item.title}`);
+                }
+        
+                const data = await response.json();
+                contentUris.push(data.cid);
             }
-
-            const data = await response.json()
-            const newMetadataUri = `https://gateway.pinata.cloud/ipfs/${data.cid}`
-
-            // Update course metadata on blockchain
-            await updateCourseMetadata(courseId, newMetadataUri)
-
+    
+            // ✅ Use addMultipleCourseContent with array of URIs
+            await addMultipleCourseContent(courseId, contentUris);
+    
             toast({
                 title: "Content updated",
-                description: "Course content has been updated successfully.",
-            })
+                description: `Successfully added ${contentUris.length} content items to the course.`,
+            });
+    
+            // Clear the content items after successful upload
+            setContentItems([]);
         } catch (error) {
-            console.error('Error updating course content:', error)
+            console.error('Error updating course content:', error);
             toast({
                 title: "Error",
                 description: "Failed to update course content.",
                 variant: "destructive",
-            })
+            });
         }
-    }
+    };
 
     if (!isConnected) {
         return (

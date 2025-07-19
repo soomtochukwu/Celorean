@@ -5,10 +5,13 @@ import { ArrowLeft, Shield, Brain, Lock, CheckCircle, Award, Users, BookOpen, Za
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { AnimatedGridBackground } from "@/components/animated-grid-background";
 
 export default function DocsPage() {
     return (
         <div className="min-h-screen flex flex-col">
+            <AnimatedGridBackground />
+
             {/* Header */}
             <header className="w-full py-4 px-6 glass border-b border-primary/10 sticky top-0 z-10">
                 <div className="container mx-auto flex justify-between items-center">

@@ -3,7 +3,7 @@ import {
   useWriteContract,
   useWaitForTransactionReceipt,
 } from "wagmi";
-import { parseEther } from "viem";
+// import { parseEther } from "viem";
 import CeloreanABI from "../contracts/Celorean.json";
 import contractAddresses from "@/contracts/addresses";
 
@@ -178,6 +178,76 @@ export function useCeloreanContract() {
     });
   };
 
+  // ✅ Add new functions for content management
+  const addCourseContent = async (
+    courseId: number,
+    newContentUri: string
+  ) => {
+    if (!writeContract) {
+      throw new Error("Contract not available");
+    }
+
+    return writeContract({
+      address: CELOREAN_CONTRACT_ADDRESS as `0x${string}`,
+      abi: CeloreanABI.abi,
+      functionName: "addCourseContent",
+      args: [courseId, newContentUri],
+    });
+  };
+
+  const addMultipleCourseContent = async (
+    courseId: number,
+    newContentUris: string[]
+  ) => {
+    if (!writeContract) {
+      throw new Error("Contract not available");
+    }
+
+    return writeContract({
+      address: CELOREAN_CONTRACT_ADDRESS as `0x${string}`,
+      abi: CeloreanABI.abi,
+      functionName: "addMultipleCourseContent",
+      args: [courseId, newContentUris],
+    });
+  };
+
+  // ✅ Get course content URIs
+  const getCourseContentUris = (courseId: number) => {
+    return useReadContract({
+      address: CELOREAN_CONTRACT_ADDRESS as `0x${string}`,
+      abi: CeloreanABI.abi,
+      functionName: "getCourseContentUris",
+      args: [courseId],
+    });
+  };
+
+  // ✅ Get course content count
+  const getCourseContentCount = (courseId: number) => {
+    return useReadContract({
+      address: CELOREAN_CONTRACT_ADDRESS as `0x${string}`,
+      abi: CeloreanABI.abi,
+      functionName: "getCourseContentCount",
+      args: [courseId],
+    });
+  };
+
+  // ✅ Update the existing updateCourseContent function
+  const updateCourseContent = async (
+    courseId: number,
+    newContentUris: string[]
+  ) => {
+    if (!writeContract) {
+      throw new Error("Contract not available");
+    }
+
+    return writeContract({
+      address: CELOREAN_CONTRACT_ADDRESS as `0x${string}`,
+      abi: CeloreanABI.abi,
+      functionName: "updateCourseContent",
+      args: [courseId, newContentUris],
+    });
+  };
+
   return {
     // Read functions
     courseCount,
@@ -188,6 +258,8 @@ export function useCeloreanContract() {
     isStudentEnrolled,
     owner,
     lecturerList,
+    getCourseContentUris, // ✅ Add this
+    getCourseContentCount, // ✅ Add this
 
     // Write functions
     registerForCourse,
@@ -195,6 +267,9 @@ export function useCeloreanContract() {
     admitStudent,
     createCourse,
     updateCourseMetadata,
+    updateCourseContent, // ✅ Updated to handle arrays
+    addCourseContent, // ✅ Add this
+    addMultipleCourseContent, // ✅ Add this
 
     // Transaction states
     isPending,

@@ -16,7 +16,21 @@ contract CourseModule is Initializable {
         uint256 enrolledCount;
         address instructor;
         string metadataUri; // IPFS URI for course metadata
+        // ✅ Change to array of content URIs
+        string[] contentUris; // Array of IPFS URIs for course content
     }
+
+    // ✅ Updated event for content updates
+    event CourseContentAdded(
+        uint256 indexed courseId,
+        string newContentUri,
+        uint256 contentIndex
+    );
+
+    event CourseContentUpdated(
+        uint256 indexed courseId,
+        string[] newContentUris
+    );
 
     uint256 public courseCount;
     mapping(uint256 => Course) public courses;
@@ -53,36 +67,75 @@ contract CourseModule is Initializable {
         // Initialization logic without ownership
     }
 
-    function createCourse(
-        string memory title,
-        uint256 duration,
-        string memory description,
-        uint256 price,
-        string[] memory tags,
-        string memory level,
-        string memory metadataUri
-    ) public virtual returns (uint256) {
-        courseCount++;
-        uint256 courseId = courseCount;
+    // ✅ New function to add single content URI
+    function addCourseContent(
+        uint256 courseId,
+        string memory newContentUri
+    ) public virtual {
+        require(courseId > 0 && courseId <= courseCount, "Invalid course ID");
+        require(
+            courses[courseId].instructor == msg.sender,
+            "Only course instructor can add content"
+        );
+        require(bytes(newContentUri).length > 0, "Content URI cannot be empty");
 
-        courses[courseId] = Course({
-            id: courseId,
-            title: title,
-            description: description,
-            duration: duration,
-            price: price,
-            tags: tags,
-            level: level,
-            rating: 0,
-            enrolledCount: 0,
-            instructor: msg.sender,
-            metadataUri: metadataUri
-        });
+        courses[courseId].contentUris.push(newContentUri);
+        emit CourseContentAdded(courseId, newContentUri, courses[courseId].contentUris.length - 1);
+    }
 
-        courseNameToId[title] = courseId;
+    // ✅ New function to add multiple content URIs
+    function addMultipleCourseContent(
+        uint256 courseId,
+        string[] memory newContentUris
+    ) public virtual {
+        require(courseId > 0 && courseId <= courseCount, "Invalid course ID");
+        require(
+            courses[courseId].instructor == msg.sender,
+            "Only course instructor can add content"
+        );
+        require(newContentUris.length > 0, "Content URIs array cannot be empty");
 
-        emit CourseCreated(courseId, title, msg.sender, price, metadataUri);
-        return courseId;
+        for (uint256 i = 0; i < newContentUris.length; i++) {
+            require(bytes(newContentUris[i]).length > 0, "Content URI cannot be empty");
+            courses[courseId].contentUris.push(newContentUris[i]);
+        }
+        
+        emit CourseContentUpdated(courseId, courses[courseId].contentUris);
+    }
+
+    // ✅ Function to get all content URIs for a course
+    function getCourseContentUris(uint256 courseId) external view returns (string[] memory) {
+        require(courseId > 0 && courseId <= courseCount, "Invalid course ID");
+        return courses[courseId].contentUris;
+    }
+
+    // ✅ Function to get content URI count
+    function getCourseContentCount(uint256 courseId) external view returns (uint256) {
+        require(courseId > 0 && courseId <= courseCount, "Invalid course ID");
+        return courses[courseId].contentUris.length;
+    }
+
+    // ✅ Replace the old updateCourseContent function
+    function updateCourseContent(
+        uint256 courseId,
+        string[] memory newContentUris
+    ) public virtual {
+        require(courseId > 0 && courseId <= courseCount, "Invalid course ID");
+        require(
+            courses[courseId].instructor == msg.sender,
+            "Only course instructor can update content"
+        );
+
+        // Clear existing content URIs
+        delete courses[courseId].contentUris;
+        
+        // Add new content URIs
+        for (uint256 i = 0; i < newContentUris.length; i++) {
+            require(bytes(newContentUris[i]).length > 0, "Content URI cannot be empty");
+            courses[courseId].contentUris.push(newContentUris[i]);
+        }
+        
+        emit CourseContentUpdated(courseId, newContentUris);
     }
 
     function getCourse(uint256 courseId) external view returns (Course memory) {

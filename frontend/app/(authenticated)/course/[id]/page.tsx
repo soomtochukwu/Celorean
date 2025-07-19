@@ -45,7 +45,7 @@ export default function CourseDetailPage() {
     const router = useRouter()
     const courseId = parseInt(params.id as string)
     const { address, isConnected } = useAccount()
-    const { getCourse, registerForCourse, isPending } = useCeloreanContract()
+    const { getCourse, registerForCourse, getCourseContentUris, isPending } = useCeloreanContract()
 
     const [course, setCourse] = useState<CourseDetails | null>(null)
     const [courseContent, setCourseContent] = useState<ContentItem[]>([])
@@ -107,18 +107,140 @@ export default function CourseDetailPage() {
         fetchCourseDetails()
     }, [courseData, courseLoading, address, courseId])
 
+    // ✅ Get course content URIs from smart contract
+    const { data: contentUris, isLoading: contentLoading } = getCourseContentUris(courseId)
+
     const loadCourseContent = async (courseId: number) => {
         try {
-            // This would typically fetch from your backend or IPFS
-            // For now, we'll load from localStorage as a temporary solution
-            const storedContent = localStorage.getItem(`course_${courseId}_content`)
+            // ✅ First try to get content URIs from smart contract
+            if (contentUris && contentUris.length > 0) {
+                const allContent: ContentItem[] = [];
+                
+                for (let i = 0; i < contentUris.length; i++) {
+                    try {
+                        const contentResponse = await fetch(`https://gateway.pinata.cloud/ipfs/${contentUris[i]}`);
+                        const contentData = await contentResponse.json();
+                        
+                        // Handle both single content item and array
+                        if (Array.isArray(contentData.content)) {
+                            allContent.push(...contentData.content);
+                        } else if (contentData.content) {
+                            allContent.push(contentData.content);
+                        } else {
+                            allContent.push(contentData);
+                        }
+                    } catch (error) {
+                        console.warn(`Failed to load content from URI ${contentUris[i]}:`, error);
+                    }
+                }
+                
+                if (allContent.length > 0) {
+                    setCourseContent(allContent);
+                    return;
+                }
+            }
+    
+            // Fallback to API search by courseId
+            const response = await fetch(`/api/getCourseContent?courseId=${courseId}`);
+    
+            if (response.ok) {
+                const data = await response.json();
+                if (data.success && data.content.length > 0) {
+                    setCourseContent(data.content);
+                    return;
+                }
+            }
+    
+            // Final fallback to localStorage
+            const storedContent = localStorage.getItem(`course_${courseId}_content`);
             if (storedContent) {
-                setCourseContent(JSON.parse(storedContent))
+                const parsedContent = JSON.parse(storedContent);
+                setCourseContent(parsedContent);
+    
+                // Migrate to smart contract if instructor
+                if (parsedContent.length > 0 && isInstructor) {
+                    await migrateContentToIPFS(courseId, parsedContent);
+                }
             }
         } catch (error) {
-            console.error('Error loading course content:', error)
+            console.error('Error loading course content:', error);
+    
+            // Final fallback to localStorage
+            const storedContent = localStorage.getItem(`course_${courseId}_content`);
+            if (storedContent) {
+                setCourseContent(JSON.parse(storedContent));
+            }
         }
-    }
+    };
+
+    // ✅ Update useEffect to depend on contentUris
+    useEffect(() => {
+        if (courseId && !contentLoading) {
+            loadCourseContent(courseId);
+        }
+    }, [courseId, contentUris, contentLoading, isInstructor]);
+
+    // Helper function to migrate localStorage data to IPFS
+    const migrateContentToIPFS = async (courseId: number, content: ContentItem[]) => {
+        try {
+            const response = await fetch('/api/pinCourseContent', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    courseId,
+                    content,
+                }),
+            });
+
+            if (response.ok) {
+                // Clear localStorage after successful migration
+                localStorage.removeItem(`course_${courseId}_content`);
+                console.log('Content successfully migrated to IPFS');
+            }
+        } catch (error) {
+            console.error('Error migrating content to IPFS:', error);
+        }
+    };
+
+    const handleContentUploaded = async (content: ContentItem[]) => {
+        // Associate content with course
+        const contentWithCourseId = content.map(item => ({ ...item, courseId }));
+        setCourseContent(contentWithCourseId);
+
+        // Save to IPFS instead of localStorage
+        try {
+            const response = await fetch('/api/pinCourseContent', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    courseId,
+                    content: contentWithCourseId,
+                }),
+            });
+
+            if (response.ok) {
+                toast({
+                    title: "Success",
+                    description: "Course content uploaded to IPFS successfully.",
+                });
+            } else {
+                throw new Error('Failed to upload to IPFS');
+            }
+        } catch (error) {
+            console.error('Error uploading to IPFS:', error);
+            // Fallback to localStorage
+            localStorage.setItem(`course_${courseId}_content`, JSON.stringify(contentWithCourseId));
+            toast({
+                title: "Warning",
+                description: "Content saved locally. IPFS upload failed.",
+                variant: "destructive",
+            });
+        }
+    };
 
     const handleEnrollment = async () => {
         if (!isConnected || !course) return
@@ -139,14 +261,14 @@ export default function CourseDetailPage() {
         }
     }
 
-    const handleContentUploaded = (content: ContentItem[]) => {
-        // Associate content with course and save
-        const contentWithCourseId = content.map(item => ({ ...item, courseId }))
-        setCourseContent(contentWithCourseId)
-
-        // Save to localStorage (in production, this would be saved to your backend)
-        localStorage.setItem(`course_${courseId}_content`, JSON.stringify(contentWithCourseId))
-    }
+    // Remove the duplicate handleContentUploaded function that was here
+    // const handleContentUploaded = (content: ContentItem[]) => {
+    //     // Associate content with course and save
+    //     const contentWithCourseId = content.map(item => ({ ...item, courseId }))
+    //     setCourseContent(contentWithCourseId)
+    //     // Save to localStorage (in production, this would be saved to your backend)
+    //     localStorage.setItem(`course_${courseId}_content`, JSON.stringify(contentWithCourseId))
+    // }
 
     const renderContentItem = (item: ContentItem) => {
         const getIcon = () => {

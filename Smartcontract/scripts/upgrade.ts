@@ -4,12 +4,25 @@ import * as fs from "fs";
 import * as path from "path";
 import "dotenv/config";
 
-// Import existing addresses - use default import or add fallback
+// Import existing addresses dynamically based on current network
+let contractAddresses: any = null;
 try {
-  var { contractAddresses } = require("../addresses/localhost-addresses.ts");
+  const addressesPath = path.join(
+    __dirname,
+    `../addresses/${network.name}-addresses.ts`
+  );
+  if (fs.existsSync(addressesPath)) {
+    contractAddresses = require(addressesPath).contractAddresses;
+    console.log(`Loaded addresses for network: ${network.name}`);
+  } else {
+    console.log(`No addresses file found for network: ${network.name}`);
+    console.log(`Expected file: ${addressesPath}`);
+  }
 } catch (error) {
-  console.log("Warning: Could not load existing addresses, will create new deployment");
-  var contractAddresses = null;
+  console.log(
+    `Warning: Could not load existing addresses for ${network.name}, will check for deployment`
+  );
+  contractAddresses = null;
 }
 
 // Import verify function with proper typing
@@ -18,6 +31,7 @@ const { verify } = require("../utils/verify.js");
 async function upgradeContract() {
   const [deployer] = await ethers.getSigners();
   console.log("Upgrading contracts with the account:", deployer.address);
+  console.log("Network:", network.name);
   console.log(
     "Account balance:",
     (await deployer.provider!.getBalance(deployer.address)).toString()
@@ -26,8 +40,13 @@ async function upgradeContract() {
 
   // Check if we have existing addresses
   if (!contractAddresses) {
-    console.error("❌ No existing contract addresses found!");
+    console.error(
+      `❌ No existing contract addresses found for network: ${network.name}!`
+    );
     console.error("Please deploy the contract first using the deploy script.");
+    console.error(
+      `Expected file: ${network.name}-addresses.ts in the addresses directory`
+    );
     process.exit(1);
   }
 
@@ -64,7 +83,7 @@ async function upgradeContract() {
     proxyAddress: proxyAddress,
     implementationAddress: newImplementationAddress,
     network: network.name,
-    deployedAt: new Date().toISOString(),
+    deployedAt: contractAddresses.deployedAt,
     deployer: deployer.address,
     previousImplementation: contractAddresses.implementationAddress,
     upgradedAt: new Date().toISOString(),
@@ -164,9 +183,7 @@ export default contractAddresses;
 
   console.log("");
   console.log("✅ Upgrade completed successfully!");
-  console.log(
-    "📝 The proxy contract now uses the new implementation with metadataUri support"
-  );
+  console.log("📝 The proxy contract now uses the new implementation");
   console.log("🔗 Proxy Address (unchanged):", proxyAddress);
   console.log("🆕 New Implementation:", newImplementationAddress);
 }
