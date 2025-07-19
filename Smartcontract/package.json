@@ -35,22 +35,6 @@
   "author": "Celorean Team",
   "license": "MIT",
   "devDependencies": {
-<<<<<<< HEAD
-    "@nomicfoundation/hardhat-toolbox": "^5.0.0",
-    "@nomicfoundation/hardhat-verify": "^2.0.11",
-    "@openzeppelin/hardhat-upgrades": "^3.4.0",
-    "hardhat": "^2.22.2"
-  },
-  "dependencies": {
-    "@openzeppelin/contracts-upgradeable": "^5.0.2",
-    "@openzeppelin/contracts": "^5.0.2",
-    "dotenv": "^16.5.0",
-    "ethers": "^6.14.3",
-    "hardhat-deploy": "^0.12.4",
-    "solc": "^0.8.30"
-  }
-}
-=======
     "@nomicfoundation/hardhat-chai-matchers": "^2.0.2",
     "@nomicfoundation/hardhat-ethers": "^3.0.4",
     "@nomicfoundation/hardhat-network-helpers": "^1.0.9",
@@ -92,4 +76,3 @@
   },
   "homepage": "https://celorean.vercel.app"
 }
->>>>>>> 1c6a884 (___)
