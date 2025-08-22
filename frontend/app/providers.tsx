@@ -12,8 +12,9 @@ import {
 import { metaMaskWallet, okxWallet, trustWallet } from "@rainbow-me/rainbowkit/wallets";
 import { celo, celoAlfajores } from "wagmi/chains";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { WagmiProvider } from "wagmi";
+import { WagmiProvider, http, createConfig } from "wagmi";
 import { defineChain } from "viem";
+import { farcasterMiniApp as miniAppConnector } from '@farcaster/miniapp-wagmi-connector'
 
 // Define localhost hardhat chain
 const localhost = defineChain({
@@ -47,10 +48,13 @@ const getInitialChain = () => {
 
 const { wallets } = getDefaultWallets();
 
+
 const config = getDefaultConfig({
   appName: "Celorean",
   projectId: "b7cfcf662095cd0ee1e06aa9eebd146a",
-
+  wallets: [
+    ...wallets
+  ],
   chains: [
     celoAlfajores,
     celo,
@@ -61,6 +65,16 @@ const config = getDefaultConfig({
   ],
   ssr: true,
 });
+/* const config = createConfig({
+  chains: [celoAlfajores, celo],
+  transports: {
+    [celoAlfajores.id]: http(),
+    [celo.id]: http(),
+  },
+  connectors: [
+    miniAppConnector()
+  ]
+}) */
 
 const queryClient = new QueryClient();
 
