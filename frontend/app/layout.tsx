@@ -24,7 +24,7 @@ const
         url: "https://www.celorean.school/",
         name: "Celorean",
         splashImageUrl: "https://www.celorean.school/farcaster/celorean.png",
-        splashBackgroundColor: "#006600"
+        splashBackgroundColor: "#002200"
       }
     }
   };
