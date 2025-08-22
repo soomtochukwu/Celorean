@@ -23,7 +23,7 @@ const miniapp = {
     "buttonTitle": "Start Learning",
     "splashImageUrl": "https://https://www.celorean.school/farcaster/celorean.png",
     "splashBackgroundColor": "#006600",
-    "webhookUrl": "https://https://www.celorean.school//api/webhook",
+    "webhookUrl": "https://https://www.celorean.school/api/webhook",
     "subtitle": "Revolutionizing Education with Blockchain & AI",
     "description": "Celorean leverages the power of blockchain and AI to create a dynamic, secure, and rewarding learning experience for all.",
     "primaryCategory": "education",
