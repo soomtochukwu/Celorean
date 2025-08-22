@@ -13,28 +13,21 @@ export const metadata: Metadata = {
   generator: 'v0.dev'
 }
 
-const miniapp = {
-  "frame": {
-    "name": "Celorean",
-    "version": "1",
-    "iconUrl": "https://www.celorean.school/farcaster/celorean.png",
-    "homeUrl": "https://www.celorean.school/",
-    "imageUrl": "https://www.celorean.school/farcaster/landingEmbed1.png",
-    "buttonTitle": "Start Learning",
-    "splashImageUrl": "https://www.celorean.school/farcaster/celorean.png",
-    "splashBackgroundColor": "#006600",
-    "webhookUrl": "https://www.celorean.school/api/webhook",
-    "subtitle": "Revolutionizing Education with Blockchain & AI",
-    "description": "Celorean leverages the power of blockchain and AI to create a dynamic, secure, and rewarding learning experience for all.",
-    "primaryCategory": "education",
-    "heroImageUrl": "https://www.celorean.school/farcaster/landingEmbed1.png",
-    "tags": [
-      "education",
-      "defi"
-    ],
-    "tagline": "grow, learn"
-  }
-}
+const
+  miniappMeta = {
+    version: "1",
+    imageUrl: "https://www.celorean.school/farcaster/landingEmbed1.png",
+    button: {
+      title: "Start Learning",
+      action: {
+        type: "launch_miniapp",
+        url: "https://www.celorean.school/",
+        name: "Celorean",
+        splashImageUrl: "https://www.celorean.school/farcaster/celorean.png",
+        splashBackgroundColor: "#006600"
+      }
+    }
+  };
 
 
 export default function RootLayout({
@@ -44,8 +37,14 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en" suppressHydrationWarning>
-      <meta name="fc:miniapp" content={String(miniapp)} />
-      <meta name="fc:frame" content={String(miniapp)} />
+      <meta
+        name="fc:miniapp"
+        content={JSON.stringify(miniappMeta)}
+      />
+      <meta
+        name="fc:frame"
+        content={JSON.stringify(miniappMeta)}
+      />
 
       <Body>
         <Providers>
