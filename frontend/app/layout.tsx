@@ -15,15 +15,15 @@ export const metadata: Metadata = {
 
 const miniapp = {
   version: "1",
-  imageUrl: "https://www.celorean.school/farcaster/landingEmbed1.png",
+  imageUrl: "farcaster/landingEmbed1.png",
   button: {
     title: "Start Learning",
     action: {
       type: "launch_miniapp",
-      url: "https://www.celorean.school/",
-      name: "Celorean!",
-      splashImageUrl: "https://www.celorean.school/farcaster/celorean.png",
-      splashBackgroundColor: "#006600"
+      url: "https://yoink.party/framesV2",
+      name: "Yoink!",
+      splashImageUrl: "https://yoink.party/logo.png",
+      splashBackgroundColor: "#f5f0ec"
     }
   }
 }
