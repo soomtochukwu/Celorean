@@ -19,7 +19,7 @@ const miniapp = {
     "version": "1",
     "iconUrl": "https://https://www.celorean.school/farcaster/celorean.png",
     "homeUrl": "https://https://www.celorean.school/",
-    "imageUrl": "https://https://www.celorean.school//image.png",
+    "imageUrl": "https://https://www.celorean.school/farcaster/celorean.png",
     "buttonTitle": "Start Learning",
     "splashImageUrl": "https://https://www.celorean.school/farcaster/celorean.png",
     "splashBackgroundColor": "#006600",
