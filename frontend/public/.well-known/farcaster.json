@@ -1,0 +1,27 @@
+{
+    "frame": {
+        "name": "Celorean",
+        "version": "1",
+        "iconUrl": "https://www.celorean.school/farcaster/celorean.png",
+        "homeUrl": "https://www.celorean.school",
+        "imageUrl": "https://www.celorean.school/farcaster/preview.png",
+        "buttonTitle": "Learning, Earn ",
+        "splashImageUrl": "https://www.celorean.school/farcaster/celorean.png",
+        "splashBackgroundColor": "#003300",
+        "webhookUrl": "https://www.celorean.school/api/webhook",
+        "subtitle": "Revolutionizing Education with Blockchain & AI",
+        "description": "Celorean leverages the power of blockchain and AI to create a dynamic, secure, and rewarding learning experience for all.",
+        "primaryCategory": "education",
+        "screenshotUrls": [
+            "https://www.celorean.school/farcaster/preview.png"
+        ],
+        "heroImageUrl": "https://www.celorean.school/farcaster/preview.png",
+        "tags": [
+            "edutech",
+            "education",
+            "learning"
+        ],
+        "tagline": "Grow, Earn, Learn",
+        "ogTitle": "Celorean - (L)earn"
+    }
+}
