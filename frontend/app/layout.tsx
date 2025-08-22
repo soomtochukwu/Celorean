@@ -14,17 +14,25 @@ export const metadata: Metadata = {
 }
 
 const miniapp = {
-  version: "1",
-  imageUrl: "farcaster/landingEmbed1.png",
-  button: {
-    title: "Start Learning",
-    action: {
-      type: "launch_miniapp",
-      url: "https://yoink.party/framesV2",
-      name: "Yoink!",
-      splashImageUrl: "https://yoink.party/logo.png",
-      splashBackgroundColor: "#f5f0ec"
-    }
+  "frame": {
+    "name": "Celorean",
+    "version": "1",
+    "iconUrl": "https://https://www.celorean.school/farcaster/celorean.png",
+    "homeUrl": "https://https://www.celorean.school/",
+    "imageUrl": "https://https://www.celorean.school//image.png",
+    "buttonTitle": "Start Learning",
+    "splashImageUrl": "https://https://www.celorean.school/farcaster/celorean.png",
+    "splashBackgroundColor": "#006600",
+    "webhookUrl": "https://https://www.celorean.school//api/webhook",
+    "subtitle": "Revolutionizing Education with Blockchain & AI",
+    "description": "Celorean leverages the power of blockchain and AI to create a dynamic, secure, and rewarding learning experience for all.",
+    "primaryCategory": "education",
+    "heroImageUrl": "https://https://www.celorean.school/farcaster/landingEmbed1.png",
+    "tags": [
+      "education",
+      "defi"
+    ],
+    "tagline": "grow, learn"
   }
 }
 
