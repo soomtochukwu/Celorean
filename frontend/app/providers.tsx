@@ -50,9 +50,7 @@ const { wallets } = getDefaultWallets();
 const config = getDefaultConfig({
   appName: "Celorean",
   projectId: "b7cfcf662095cd0ee1e06aa9eebd146a",
-  wallets: [
-    ...wallets,
-  ],
+
   chains: [
     celoAlfajores,
     celo,
