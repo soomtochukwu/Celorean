@@ -15,6 +15,9 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { WagmiProvider } from "wagmi";
 import { defineChain } from "viem";
 
+import { http, createConfig } from 'wagmi'
+import { farcasterMiniApp as miniAppConnector } from '@farcaster/miniapp-wagmi-connector'
+
 // Define localhost hardhat chain
 const localhost = defineChain({
   id: 1337,
@@ -64,6 +67,21 @@ const config = getDefaultConfig({
   ],
   ssr: true,
 });
+
+const _config = createConfig({
+  chains: [celo, celoAlfajores],
+  transports: {
+    [celoAlfajores.id]: http(),
+    [celo.id]: http(),
+  },
+  connectors: [
+    miniAppConnector()
+  ]
+})
+const mergedConfig = {
+  ...config,
+  ..._config, // values in _config override config if same keys exist
+};
 
 const queryClient = new QueryClient();
 
