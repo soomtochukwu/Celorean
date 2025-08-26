@@ -11,15 +11,17 @@ export interface ContractAddresses {
 }
 
 export const contractAddresses: ContractAddresses = {
-  proxyAddress: "0xB581C9264f59BF0289fA76D61B2D0746dCE3C30D",
-  implementationAddress: "0x73511669fd4dE447feD18BB79bAFeAC93aB7F31f",
-  network: "localhost",
+  proxyAddress: "0x8CB97c5eD4Dae06c9452ebCcef157718804DeA15",
+  implementationAddress: "0xEf51b7B34F843348C726C912FeDa16802072090D",
+  network: "alfajores",
   deployedAt: "2025-07-19T15:50:11.128Z",
-  deployer: "0x8626f6940E2eb28930eFb4CeF49B2d1F2C9C1199"
+  deployer: "0x8626f6940E2eb28930eFb4CeF49B2d1F2C9C1199",
 };
 
 // Export individual addresses for convenience
-export const CELOREAN_PROXY_ADDRESS = "0xB581C9264f59BF0289fA76D61B2D0746dCE3C30D";
-export const CELOREAN_IMPLEMENTATION_ADDRESS = "0x73511669fd4dE447feD18BB79bAFeAC93aB7F31f";
+export const CELOREAN_PROXY_ADDRESS =
+  "0x8CB97c5eD4Dae06c9452ebCcef157718804DeA15";
+export const CELOREAN_IMPLEMENTATION_ADDRESS =
+  "0xEf51b7B34F843348C726C912FeDa16802072090D";
 
 export default contractAddresses;
