@@ -9,7 +9,7 @@ import {
   lightTheme,
   darkTheme,
 } from "@rainbow-me/rainbowkit";
-import { metaMaskWallet, okxWallet, trustWallet } from "@rainbow-me/rainbowkit/wallets";
+import { metaMaskWallet, okxWallet, trustWallet, frameWallet } from "@rainbow-me/rainbowkit/wallets";
 import { celo, celoAlfajores } from "wagmi/chains";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { WagmiProvider, http, createConfig } from "wagmi";
@@ -53,6 +53,10 @@ const config = getDefaultConfig({
   appName: "Celorean",
   projectId: "b7cfcf662095cd0ee1e06aa9eebd146a",
   wallets: [
+    {
+      groupName: "Other",
+      wallets: [frameWallet],
+    },
     ...wallets
   ],
   chains: [
