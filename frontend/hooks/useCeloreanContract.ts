@@ -5,12 +5,29 @@ import {
 } from "wagmi";
 // import { parseEther } from "viem";
 import CeloreanABI from "../contracts/Celorean.json";
-import contractAddresses from "@/contracts/addresses";
-
-// Contract address - you'll need to update this with your deployed contract address
-const CELOREAN_CONTRACT_ADDRESS = contractAddresses.proxyAddress; // Replace with your actual contract address
+import { useNetworkAddresses } from "@/contexts/NetworkContext";
+import { toast } from "sonner";
+import { handleNetworkError, createContractAddressError } from '@/utils/network-error-handler';
 
 export function useCeloreanContract() {
+  // Get current network addresses dynamically
+  let currentAddresses;
+  try {
+    currentAddresses = useNetworkAddresses();
+  } catch (error) {
+    // Handle case where no addresses are available for current network
+    handleNetworkError(error);
+    throw error;
+  }
+
+  const CELOREAN_CONTRACT_ADDRESS = currentAddresses?.proxyAddress;
+  
+  if (!CELOREAN_CONTRACT_ADDRESS) {
+    const addressError = createContractAddressError('Celorean');
+    toast.error(addressError.message);
+    throw addressError;
+  }
+  
   const { writeContract, data: hash, error, isPending } = useWriteContract();
 
   const { isLoading: isConfirming, isSuccess: isConfirmed } =

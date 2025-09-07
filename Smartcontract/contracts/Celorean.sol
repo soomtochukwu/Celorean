@@ -70,16 +70,28 @@ contract Celorean is
         string[] memory tags,
         string memory level,
         string memory metadataUri
-    ) public override onlyLecturer returns (uint256) {
-        uint256 courseId = super.createCourse(
-            title,
-            duration,
-            description,
-            price,
-            tags,
-            level,
-            metadataUri
-        );
+    ) public onlyLecturer returns (uint256) {
+        courseCount++;
+        uint256 courseId = courseCount;
+        
+        courses[courseId] = Course({
+            id: courseId,
+            title: title,
+            description: description,
+            duration: duration,
+            price: price,
+            tags: tags,
+            level: level,
+            rating: 0,
+            enrolledCount: 0,
+            instructor: msg.sender,
+            metadataUri: metadataUri,
+            contentUris: new string[](0)
+        });
+        
+        courseNameToId[title] = courseId;
+        
+        emit CourseCreated(courseId, title, msg.sender, price, metadataUri);
 
         // Mint NFT for course creation
         _tokenIdCounter++;

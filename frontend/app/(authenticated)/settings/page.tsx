@@ -20,6 +20,7 @@ import {
   DialogTrigger,
 } from "@/components/ui/dialog"
 import ConnectWalletButton from "@/components/ConnectWalletButton"
+import NetworkSwitcher from "@/components/network-switcher"
 
 export default function Settings() {
   const [theme, setTheme] = useState("dark")
@@ -633,45 +634,7 @@ export default function Settings() {
               </CardContent>
             </Card>
 
-            <Card className="glass border-primary/10">
-              <CardHeader>
-                <CardTitle>Network Settings</CardTitle>
-                <CardDescription>Configure blockchain network preferences</CardDescription>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                <div className="space-y-2">
-                  <Label htmlFor="default-network">Default Network</Label>
-                  <Select defaultValue="ethereum">
-                    <SelectTrigger className="glass border-primary/20">
-                      <SelectValue placeholder="Select network" />
-                    </SelectTrigger>
-                    <SelectContent className="glass border-primary/20">
-                      <SelectItem value="ethereum">Ethereum Mainnet</SelectItem>
-                      <SelectItem value="polygon">Polygon</SelectItem>
-                      <SelectItem value="optimism">Optimism</SelectItem>
-                      <SelectItem value="arbitrum">Arbitrum</SelectItem>
-                      <SelectItem value="base">Base</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-
-                <div className="space-y-2">
-                  <Label htmlFor="rpc-url">Custom RPC URL (Optional)</Label>
-                  <Input id="rpc-url" placeholder="https://" className="glass border-primary/20" />
-                  <p className="text-xs text-muted-foreground">Use your own RPC endpoint for blockchain interactions</p>
-                </div>
-
-                <div className="flex items-center justify-between">
-                  <div>
-                    <Label htmlFor="auto-network" className="block mb-1">
-                      Auto-switch Networks
-                    </Label>
-                    <p className="text-xs text-muted-foreground">Automatically switch networks when required</p>
-                  </div>
-                  <Switch id="auto-network" defaultChecked />
-                </div>
-              </CardContent>
-            </Card>
+            <NetworkSwitcher />
 
             <Card className="glass border-primary/10 lg:col-span-2">
               <CardHeader>

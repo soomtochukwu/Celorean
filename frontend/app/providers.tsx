@@ -14,7 +14,9 @@ import { celo, celoAlfajores } from "wagmi/chains";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { WagmiProvider, http, createConfig } from "wagmi";
 import { defineChain } from "viem";
-import { farcasterMiniApp as miniAppConnector } from '@farcaster/miniapp-wagmi-connector'
+import { farcasterMiniApp as miniAppConnector } from '@farcaster/miniapp-wagmi-connector';
+import { NetworkProvider } from "@/contexts/NetworkContext";
+import { Toaster } from "sonner";
 
 // Define localhost hardhat chain
 const localhost = defineChain({
@@ -82,7 +84,17 @@ const config = getDefaultConfig({
 
 const queryClient = new QueryClient();
 
+// Enhanced Providers component with network management
 export function Providers({ children }: { children: React.ReactNode }) {
+  // Determine preferred environment based on build mode
+  const getPreferredEnvironment = (): 'localhost' | 'testnet' | 'mainnet' => {
+    if (process.env.NODE_ENV === 'development') {
+      return 'localhost';
+    }
+    // For production builds, prefer testnet unless explicitly set to mainnet
+    return process.env.NEXT_PUBLIC_NETWORK === 'mainnet' ? 'mainnet' : 'testnet';
+  };
+
   return (
     <WagmiProvider config={config}>
       <QueryClientProvider client={queryClient}>
@@ -97,7 +109,20 @@ export function Providers({ children }: { children: React.ReactNode }) {
           modalSize="compact"
           initialChain={getInitialChain()}
         >
-          {children}
+          <NetworkProvider
+            enableAutoSwitching={false} // Disable auto-switching to let users choose
+            preferredEnvironment={getPreferredEnvironment()}
+            showNetworkToasts={true}
+          >
+            {children}
+            <Toaster
+              position="top-right"
+              expand={false}
+              richColors
+              closeButton
+              duration={4000}
+            />
+          </NetworkProvider>
         </RainbowKitProvider>
       </QueryClientProvider>
     </WagmiProvider>

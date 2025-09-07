@@ -1,25 +1,63 @@
 // Auto-generated file - Do not edit manually
-// Generated on: 2025-07-19T15:50:11.128Z
+// Generated on: 2025-09-04 11:04:20 UTC
 // Network: localhost
+// Environment: localhost
+// Deployment Type: Upgrade
+// Upgraded from: 0x73511669fd4dE447feD18BB79bAFeAC93aB7F31f
 
 export interface ContractAddresses {
   proxyAddress: string;
   implementationAddress: string;
   network: string;
+  environment: string;
   deployedAt: string;
+  deployedAtFormatted?: string;
   deployer: string;
+  previousImplementation?: string;
+  upgradedAt?: string;
+  upgradedAtFormatted?: string;
+  gasUsed: string;
+  blockNumber: number;
 }
 
+export interface EnvironmentAddresses {
+  localhost?: ContractAddresses;
+  testnet?: ContractAddresses;
+  mainnet?: ContractAddresses;
+}
+
+// Current deployment addresses
 export const contractAddresses: ContractAddresses = {
-  proxyAddress: "0xB581C9264f59BF0289fA76D61B2D0746dCE3C30D",
+  proxyAddress: "0x5095d3313C76E8d29163e40a0223A5816a8037D8",
   implementationAddress: "0x73511669fd4dE447feD18BB79bAFeAC93aB7F31f",
   network: "localhost",
-  deployedAt: "2025-07-19T15:50:11.128Z",
-  deployer: "0x8626f6940E2eb28930eFb4CeF49B2d1F2C9C1199"
+  environment: "localhost",
+  deployedAt: "2025-09-04T11:03:17.705Z",
+  deployedAtFormatted: "2025-09-04 11:03:17 UTC",
+  deployer: "0x8626f6940E2eb28930eFb4CeF49B2d1F2C9C1199",
+  previousImplementation: "0x73511669fd4dE447feD18BB79bAFeAC93aB7F31f",
+  upgradedAt: "2025-09-04T11:04:20.951Z",
+  upgradedAtFormatted: "2025-09-04 11:04:20 UTC",
+  gasUsed: "N/A",
+  blockNumber: 0
+};
+
+// Environment-specific addresses (will be populated as deployments occur)
+export const environmentAddresses: EnvironmentAddresses = {
+  localhost: contractAddresses
 };
 
 // Export individual addresses for convenience
-export const CELOREAN_PROXY_ADDRESS = "0xB581C9264f59BF0289fA76D61B2D0746dCE3C30D";
+export const CELOREAN_PROXY_ADDRESS = "0x5095d3313C76E8d29163e40a0223A5816a8037D8";
 export const CELOREAN_IMPLEMENTATION_ADDRESS = "0x73511669fd4dE447feD18BB79bAFeAC93aB7F31f";
+
+// Environment-specific getters
+export function getAddressesForEnvironment(env: 'localhost' | 'testnet' | 'mainnet'): ContractAddresses | undefined {
+  return environmentAddresses[env];
+}
+
+export function getCurrentEnvironmentAddresses(): ContractAddresses {
+  return contractAddresses;
+}
 
 export default contractAddresses;
