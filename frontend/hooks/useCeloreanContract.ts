@@ -5,9 +5,10 @@ import {
 } from "wagmi";
 // import { parseEther } from "viem";
 import CeloreanABI from "../contracts/Celorean.json";
-import { useNetworkAddresses } from "@/contexts/NetworkContext";
+import { useNetworkAddresses, useNetworkConfig } from "@/contexts/NetworkContext";
 import { toast } from "sonner";
 import { handleNetworkError, createContractAddressError } from '@/utils/network-error-handler';
+import { useEffect, useRef } from "react";
 
 export function useCeloreanContract() {
   // Get current network addresses dynamically
@@ -19,6 +20,9 @@ export function useCeloreanContract() {
     handleNetworkError(error);
     throw error;
   }
+
+  const networkConfig = useNetworkConfig();
+  const explorerBase = networkConfig?.blockExplorer || "";
 
   const CELOREAN_CONTRACT_ADDRESS = currentAddresses?.proxyAddress;
   
@@ -34,6 +38,86 @@ export function useCeloreanContract() {
     useWaitForTransactionReceipt({
       hash,
     });
+
+  // Track last action label to present meaningful messages
+  const lastActionLabelRef = useRef<string | null>(null);
+
+  // Derive explorer URL for a given tx hash
+  const getTxUrl = (txHash?: `0x${string}` | undefined) => {
+    if (!txHash || !explorerBase) return undefined;
+    // Assume standard path /tx/<hash>
+    const base = explorerBase.replace(/\/$/, "");
+    return `${base}/tx/${txHash}`;
+  };
+
+  // Toast lifecycle for transaction hash + receipt states
+  useEffect(() => {
+    if (!hash) return;
+
+    const url = getTxUrl(hash as `0x${string}`);
+    const label = lastActionLabelRef.current || "Transaction";
+
+    if (isConfirmed) {
+      toast.success(`${label} confirmed`, {
+        id: hash,
+        action: url
+          ? {
+              label: "View",
+              onClick: () => window.open(url, "_blank"),
+            }
+          : undefined,
+      });
+      return;
+    }
+
+    if (isConfirming) {
+      toast.info(`${label} pending...`, {
+        id: hash,
+        action: url
+          ? {
+              label: "View",
+              onClick: () => window.open(url, "_blank"),
+            }
+          : undefined,
+      });
+      return;
+    }
+
+    // Initial submission state
+    toast.message(`${label} submitted`, {
+      id: hash,
+      action: url
+        ? {
+            label: "View",
+            onClick: () => window.open(url, "_blank"),
+          }
+        : undefined,
+    });
+  }, [hash, isConfirming, isConfirmed]);
+
+  // Centralize write submission with label
+  const runTransaction = async (
+    label: string,
+    {
+      functionName,
+      args = [],
+      value,
+    }: { functionName: string; args?: any[]; value?: bigint }
+  ) => {
+    try {
+      lastActionLabelRef.current = label;
+      await writeContract({
+        address: CELOREAN_CONTRACT_ADDRESS as `0x${string}`,
+        abi: CeloreanABI.abi,
+        functionName,
+        args: args as any,
+        value,
+      } as any);
+    } catch (err) {
+      handleNetworkError(err);
+      throw err;
+    }
+  };
 
   // Read functions
   const { data: courseCount } = useReadContract({
@@ -112,48 +196,27 @@ export function useCeloreanContract() {
     studentAddress: string,
     priceInWei: string = "0"
   ) => {
-    try {
-      await writeContract({
-        address: CELOREAN_CONTRACT_ADDRESS as `0x${string}`,
-        abi: CeloreanABI.abi,
-        functionName: "registerForCourse",
-        args: [courseId, studentAddress],
-        value: BigInt(priceInWei), // Send the course price as payment
-      });
-    } catch (err) {
-      console.error("Error registering for course:", err);
-      throw err;
-    }
+    return runTransaction("Register for course", {
+      functionName: "registerForCourse",
+      args: [courseId, studentAddress],
+      value: BigInt(priceInWei),
+    });
   };
 
   // Admin function: Employ lecturer
   const employLecturer = async (lecturerAddress: string, value: number) => {
-    try {
-      await writeContract({
-        address: CELOREAN_CONTRACT_ADDRESS as `0x${string}`,
-        abi: CeloreanABI.abi,
-        functionName: "employLecturer",
-        args: [lecturerAddress, value],
-      });
-    } catch (err) {
-      console.error("Error employing lecturer:", err);
-      throw err;
-    }
+    return runTransaction("Employ lecturer", {
+      functionName: "employLecturer",
+      args: [lecturerAddress, value],
+    });
   };
 
   // Admin function: Admit student
   const admitStudent = async (studentAddress: string, value: number) => {
-    try {
-      await writeContract({
-        address: CELOREAN_CONTRACT_ADDRESS as `0x${string}`,
-        abi: CeloreanABI.abi,
-        functionName: "admitStudent",
-        args: [studentAddress, value],
-      });
-    } catch (err) {
-      console.error("Error admitting student:", err);
-      throw err;
-    }
+    return runTransaction("Admit student", {
+      functionName: "admitStudent",
+      args: [studentAddress, value],
+    });
   };
 
   // Lecturer function: Create course
@@ -166,13 +229,7 @@ export function useCeloreanContract() {
     level: string,
     metadataUri: string
   ) => {
-    if (!writeContract) {
-      throw new Error("Contract not available");
-    }
-
-    return writeContract({
-      address: CELOREAN_CONTRACT_ADDRESS as `0x${string}`,
-      abi: CeloreanABI.abi,
+    return runTransaction("Create course", {
       functionName: "createCourse",
       args: [title, duration, description, price, tags, level, metadataUri],
     });
@@ -183,13 +240,7 @@ export function useCeloreanContract() {
     courseId: number,
     newMetadataUri: string
   ) => {
-    if (!writeContract) {
-      throw new Error("Contract not available");
-    }
-
-    return writeContract({
-      address: CELOREAN_CONTRACT_ADDRESS as `0x${string}`,
-      abi: CeloreanABI.abi,
+    return runTransaction("Update course", {
       functionName: "updateCourseMetadata",
       args: [courseId, newMetadataUri],
     });
@@ -200,13 +251,7 @@ export function useCeloreanContract() {
     courseId: number,
     newContentUri: string
   ) => {
-    if (!writeContract) {
-      throw new Error("Contract not available");
-    }
-
-    return writeContract({
-      address: CELOREAN_CONTRACT_ADDRESS as `0x${string}`,
-      abi: CeloreanABI.abi,
+    return runTransaction("Add course content", {
       functionName: "addCourseContent",
       args: [courseId, newContentUri],
     });
@@ -216,13 +261,7 @@ export function useCeloreanContract() {
     courseId: number,
     newContentUris: string[]
   ) => {
-    if (!writeContract) {
-      throw new Error("Contract not available");
-    }
-
-    return writeContract({
-      address: CELOREAN_CONTRACT_ADDRESS as `0x${string}`,
-      abi: CeloreanABI.abi,
+    return runTransaction("Add multiple contents", {
       functionName: "addMultipleCourseContent",
       args: [courseId, newContentUris],
     });
@@ -248,20 +287,60 @@ export function useCeloreanContract() {
     });
   };
 
-  // ✅ Update the existing updateCourseContent function
+  // ✅ Update existing updateCourseContent function using centralized runner
   const updateCourseContent = async (
     courseId: number,
     newContentUris: string[]
   ) => {
-    if (!writeContract) {
-      throw new Error("Contract not available");
-    }
-
-    return writeContract({
-      address: CELOREAN_CONTRACT_ADDRESS as `0x${string}`,
-      abi: CeloreanABI.abi,
+    return runTransaction("Update course content", {
       functionName: "updateCourseContent",
       args: [courseId, newContentUris],
+    });
+  };
+
+  // =======================
+  // Credentials Module APIs
+  // =======================
+
+  // Read: get a single credential by ID
+  const getCredential = (credentialId: number) => {
+    return useReadContract({
+      address: CELOREAN_CONTRACT_ADDRESS as `0x${string}`,
+      abi: CeloreanABI.abi,
+      functionName: "getCredential",
+      args: [credentialId],
+    });
+  };
+
+  // Read: get credential IDs owned by a student
+  const getStudentCredentialIds = (studentAddress: string) => {
+    return useReadContract({
+      address: CELOREAN_CONTRACT_ADDRESS as `0x${string}`,
+      abi: CeloreanABI.abi,
+      functionName: "getStudentCredentialIds",
+      args: [studentAddress],
+    });
+  };
+
+  // Read: get full credentials for a student
+  const getCredentialsByStudent = (studentAddress: string) => {
+    return useReadContract({
+      address: CELOREAN_CONTRACT_ADDRESS as `0x${string}`,
+      abi: CeloreanABI.abi,
+      functionName: "getCredentialsByStudent",
+      args: [studentAddress],
+    });
+  };
+
+  // Write: issue credential for a student (lecturer-only)
+  const issueCredentialForStudent = async (
+    studentAddress: string,
+    courseId: number,
+    metadataUri: string
+  ) => {
+    return runTransaction("Issue credential", {
+      functionName: "issueCredentialForStudent",
+      args: [studentAddress, courseId, metadataUri],
     });
   };
 
@@ -275,8 +354,12 @@ export function useCeloreanContract() {
     isStudentEnrolled,
     owner,
     lecturerList,
-    getCourseContentUris, // ✅ Add this
-    getCourseContentCount, // ✅ Add this
+    getCourseContentUris,
+    getCourseContentCount,
+    // Credentials reads
+    getCredential,
+    getStudentCredentialIds,
+    getCredentialsByStudent,
 
     // Write functions
     registerForCourse,
@@ -284,9 +367,11 @@ export function useCeloreanContract() {
     admitStudent,
     createCourse,
     updateCourseMetadata,
-    updateCourseContent, // ✅ Updated to handle arrays
-    addCourseContent, // ✅ Add this
-    addMultipleCourseContent, // ✅ Add this
+    updateCourseContent,
+    addCourseContent,
+    addMultipleCourseContent,
+    // Credentials writes
+    issueCredentialForStudent,
 
     // Transaction states
     isPending,

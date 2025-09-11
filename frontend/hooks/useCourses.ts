@@ -2,9 +2,8 @@ import { useEffect, useState } from 'react'
 import { useAccount } from 'wagmi'
 import { useReadContract } from 'wagmi'
 import CeloreanABI from '../contracts/Celorean.json'
-import contractAddresses from '@/contracts/addresses'
-
-const CELOREAN_CONTRACT_ADDRESS = contractAddresses.proxyAddress
+import { useNetworkAddresses } from '@/contexts/NetworkContext'
+import { formatEther } from 'viem'
 
 export interface Course {
   id: number
@@ -18,6 +17,7 @@ export interface Course {
   level: 'Beginner' | 'Intermediate' | 'Advanced'
   tags: string[]
   price?: string
+  priceWei?: string // NEW: raw price in wei for contract calls
   tokenReward?: string
   isEnrolled?: boolean
   thumbnail?: string // Add thumbnail field
@@ -27,23 +27,25 @@ export function useCourses() {
   const [courses, setCourses] = useState<Course[]>([])
   const [loading, setLoading] = useState(true)
   const { address } = useAccount()
+  const currentAddresses = useNetworkAddresses()
+  const CELOREAN_CONTRACT_ADDRESS = currentAddresses.proxyAddress
   
   // Get course count at the top level
   const { data: courseCount, isLoading: courseCountLoading } = useReadContract({
     address: CELOREAN_CONTRACT_ADDRESS as `0x${string}`,
     abi: CeloreanABI.abi,
-    functionName: "courseCount",
+    functionName: 'courseCount',
   })
   
   // Get student courses at the top level
   const { data: studentCourses } = useReadContract({
     address: CELOREAN_CONTRACT_ADDRESS as `0x${string}`,
     abi: CeloreanABI.abi,
-    functionName: "getStudentCourses",
+    functionName: 'getStudentCourses',
     args: address ? [address] : undefined,
     query: {
-      enabled: !!address
-    }
+      enabled: !!address,
+    },
   })
 
   useEffect(() => {
@@ -53,11 +55,8 @@ export function useCourses() {
         return
       }
       
-      console.log('Course count from blockchain:', courseCount)
-      
       // If courseCount is 0 or undefined, set empty courses and stop loading
       if (!courseCount || Number(courseCount) === 0) {
-        console.log('No courses found on blockchain')
         setCourses([])
         setLoading(false)
         return
@@ -69,8 +68,6 @@ export function useCourses() {
       // Convert student courses to array of numbers
       const enrolledCourses: number[] = (studentCourses as number[]) || []
       
-      console.log(`Fetching ${Number(courseCount)} courses from blockchain...`)
-      
       // Fetch all courses using the API route
       for (let i = 1; i <= Number(courseCount); i++) {
         try {
@@ -81,13 +78,16 @@ export function useCourses() {
             },
             body: JSON.stringify({ 
               courseId: i,
-              network: contractAddresses.network
+              network: currentAddresses.network,
+              viewer: address || null,
             }),
           })
           
           if (response.ok) {
             const courseData = await response.json()
             
+            const priceWei = courseData.price?.toString?.() ?? '0'
+            const priceEth = priceWei === '0' ? '0' : formatEther(BigInt(priceWei))
             // Transform blockchain data to our Course interface
             const course: Course = {
               id: Number(courseData.id),
@@ -101,13 +101,12 @@ export function useCourses() {
               rating: Number(courseData.rating) / 10,
               level: courseData.level as 'Beginner' | 'Intermediate' | 'Advanced',
               tags: courseData.tags || [],
-              price: courseData.price === '0' ? 'Free' : `${courseData.price} wei`,
+              price: priceWei === '0' ? 'Free' : `${priceEth} ETH`,
+              priceWei,
               tokenReward: '10',
-              isEnrolled: enrolledCourses.includes(i)
+              isEnrolled: enrolledCourses.includes(i),
             }
             coursesData.push(course)
-          } else {
-            console.error(`Failed to fetch course ${i}:`, response.statusText)
           }
         } catch (error) {
           console.error(`Error fetching course ${i}:`, error)
@@ -119,7 +118,7 @@ export function useCourses() {
     }
 
     fetchCourses()
-  }, [courseCount, courseCountLoading, studentCourses])
+  }, [courseCount, courseCountLoading, studentCourses, currentAddresses.network, address])
 
   return { courses, loading }
 }
@@ -127,13 +126,13 @@ export function useCourses() {
 // Helper function to fetch thumbnail from IPFS metadata
 const fetchThumbnailFromMetadata = async (metadataUri: string): Promise<string> => {
   try {
-    const response = await fetch(metadataUri);
+    const response = await fetch(metadataUri)
     if (response.ok) {
-      const metadata = await response.json();
-      return metadata.thumbnail || '/placeholder.jpg';
+      const metadata = await response.json()
+      return metadata.thumbnail || '/placeholder.jpg'
     }
   } catch (error) {
-    console.error('Error fetching course metadata:', error);
+    console.error('Error fetching course metadata:', error)
   }
-  return '/placeholder.jpg';
-};
+  return '/placeholder.jpg'
+}

@@ -70,16 +70,11 @@ export function NetworkProvider({
     }
   }, [currentEnvironment, preferredEnvironment, isConnected, enableAutoSwitching, switchToEnvironment, showNetworkToasts]);
 
-  // Handle network errors
+  // Handle network errors via centralized handler; avoid double toasts by only delegating
   useEffect(() => {
     if (error && showNetworkToasts) {
-      toast.error(error, {
-        duration: 5000,
-        action: {
-          label: 'Dismiss',
-          onClick: clearError,
-        },
-      });
+      handleNetworkError(new Error(error));
+      clearError();
     }
   }, [error, showNetworkToasts, clearError]);
 

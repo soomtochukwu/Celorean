@@ -9,14 +9,15 @@ import {
   lightTheme,
   darkTheme,
 } from "@rainbow-me/rainbowkit";
-import { metaMaskWallet, okxWallet, trustWallet, frameWallet } from "@rainbow-me/rainbowkit/wallets";
+import { metaMaskWallet, okxWallet, trustWallet, frameWallet, walletConnectWallet, valoraWallet, injectedWallet } from "@rainbow-me/rainbowkit/wallets";
 import { celo, celoAlfajores } from "wagmi/chains";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { WagmiProvider, http, createConfig } from "wagmi";
 import { defineChain } from "viem";
 import { farcasterMiniApp as miniAppConnector } from '@farcaster/miniapp-wagmi-connector';
-import { NetworkProvider } from "@/contexts/NetworkContext";
+import { NetworkProvider, useNetwork } from "@/contexts/NetworkContext";
 import { Toaster } from "sonner";
+import ErrorBoundary from "@/components/ErrorBoundary";
 
 // Define localhost hardhat chain
 const localhost = defineChain({
@@ -48,19 +49,25 @@ const getInitialChain = () => {
   return celoAlfajores; // or celo for mainnet
 };
 
-const { wallets } = getDefaultWallets();
+const { wallets: defaultWallets } = getDefaultWallets();
 
+// Prioritize Valora and WalletConnect for Celo users
+const wallets = [
+  {
+    groupName: "Celo Preferred",
+    wallets: [valoraWallet, walletConnectWallet],
+  },
+  {
+    groupName: "Browser",
+    wallets: [injectedWallet, metaMaskWallet, trustWallet, okxWallet, frameWallet],
+  },
+  ...defaultWallets,
+];
 
 const config = getDefaultConfig({
   appName: "Celorean",
   projectId: "b7cfcf662095cd0ee1e06aa9eebd146a",
-  wallets: [
-    {
-      groupName: "Other",
-      wallets: [frameWallet],
-    },
-    ...wallets
-  ],
+  wallets,
   chains: [
     celoAlfajores,
     celo,
@@ -83,6 +90,26 @@ const config = getDefaultConfig({
 }) */
 
 const queryClient = new QueryClient();
+
+function NetworkSync() {
+  const { refreshAddresses } = useNetwork();
+
+  React.useEffect(() => {
+    const handleVisibility = () => {
+      if (document.visibilityState === 'visible') {
+        refreshAddresses();
+      }
+    };
+    document.addEventListener('visibilitychange', handleVisibility);
+    window.addEventListener('focus', handleVisibility);
+    return () => {
+      document.removeEventListener('visibilitychange', handleVisibility);
+      window.removeEventListener('focus', handleVisibility);
+    };
+  }, [refreshAddresses]);
+
+  return null;
+}
 
 // Enhanced Providers component with network management
 export function Providers({ children }: { children: React.ReactNode }) {
@@ -109,20 +136,23 @@ export function Providers({ children }: { children: React.ReactNode }) {
           modalSize="compact"
           initialChain={getInitialChain()}
         >
-          <NetworkProvider
-            enableAutoSwitching={false} // Disable auto-switching to let users choose
-            preferredEnvironment={getPreferredEnvironment()}
-            showNetworkToasts={true}
-          >
-            {children}
-            <Toaster
-              position="top-right"
-              expand={false}
-              richColors
-              closeButton
-              duration={4000}
-            />
-          </NetworkProvider>
+          <ErrorBoundary>
+            <NetworkProvider
+              enableAutoSwitching={false} // Disable auto-switching to let users choose
+              preferredEnvironment={getPreferredEnvironment()}
+              showNetworkToasts={true}
+            >
+              {children}
+              <NetworkSync />
+              <Toaster
+                position="top-right"
+                expand={false}
+                richColors
+                closeButton
+                duration={4000}
+              />
+            </NetworkProvider>
+          </ErrorBoundary>
         </RainbowKitProvider>
       </QueryClientProvider>
     </WagmiProvider>

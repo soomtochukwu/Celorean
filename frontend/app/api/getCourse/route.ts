@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { createPublicClient, http } from "viem";
 import { localhost, celoAlfajores, celo, lisk, liskSepolia } from "viem/chains";
 import CeloreanABI from "@/contracts/Celorean.json";
-import contractAddresses from "@/contracts/addresses";
+import { getAddressesForEnvironment } from "@/contracts";
 
 // Network configuration mapping
 const NETWORK_CONFIGS = {
@@ -14,7 +14,15 @@ const NETWORK_CONFIGS = {
     chain: celoAlfajores,
     rpcUrl: "https://alfajores-forno.celo-testnet.org",
   },
+  "celo-alfajores": {
+    chain: celoAlfajores,
+    rpcUrl: "https://alfajores-forno.celo-testnet.org",
+  },
   celo: {
+    chain: celo,
+    rpcUrl: "https://forno.celo.org",
+  },
+  "celo-mainnet": {
     chain: celo,
     rpcUrl: "https://forno.celo.org",
   },
@@ -30,46 +38,45 @@ const NETWORK_CONFIGS = {
 
 type NetworkName = keyof typeof NETWORK_CONFIGS;
 
-function getNetworkConfig(networkName?: string) {
-  // Priority: 1. Frontend request, 2. Environment variable, 3. Contract addresses, 4. Default to localhost
-  const network =
-    networkName ||
-    process.env.NEXT_PUBLIC_NETWORK ||
-    contractAddresses.network ||
-    "localhost";
+type Environment = 'localhost' | 'testnet' | 'mainnet';
 
-  const config = NETWORK_CONFIGS[network as NetworkName];
-  if (!config) {
-    console.warn(`Unknown network: ${network}, falling back to localhost`);
-    return NETWORK_CONFIGS.localhost;
-  }
-
-  return config;
+function getNetworkConfig(name?: string) {
+  const key = (name || "localhost") as NetworkName;
+  return NETWORK_CONFIGS[key] || NETWORK_CONFIGS.localhost;
 }
 
-// Helper function to convert BigInt values to strings for JSON serialization
-function serializeBigInt(obj: any): any {
-  if (typeof obj === "bigint") {
-    return obj.toString();
+function mapNetworkToEnvironment(name?: string): Environment {
+  switch (name) {
+    case "celo":
+    case "celo-mainnet":
+      return "mainnet";
+    case "alfajores":
+    case "celo-alfajores":
+      return "testnet";
+    default:
+      return "localhost";
   }
-  if (Array.isArray(obj)) {
-    return obj.map(serializeBigInt);
-  }
-  if (obj && typeof obj === "object") {
-    const serialized: any = {};
-    for (const [key, value] of Object.entries(obj)) {
-      serialized[key] = serializeBigInt(value);
-    }
-    return serialized;
-  }
-  return obj;
+}
+
+function isAddressLike(val: any): val is `0x${string}` {
+  return typeof val === "string" && /^0x[a-fA-F0-9]{40}$/.test(val);
 }
 
 export async function POST(request: NextRequest) {
   try {
-    const { courseId, network: requestNetwork } = await request.json();
+    const { courseId, network: requestNetwork, viewer } = await request.json();
 
-    // Prioritize network from frontend request
+    // Determine environment and addresses based on network
+    const env = mapNetworkToEnvironment(requestNetwork);
+    const addresses = getAddressesForEnvironment(env);
+
+    if (!addresses) {
+      return NextResponse.json(
+        { error: `No contract addresses configured for ${env}` },
+        { status: 400 }
+      );
+    }
+
     const selectedNetworkConfig = getNetworkConfig(requestNetwork);
 
     const client = createPublicClient({
@@ -77,22 +84,41 @@ export async function POST(request: NextRequest) {
       transport: http(selectedNetworkConfig.rpcUrl),
     });
 
+    const account = isAddressLike(viewer) ? (viewer as `0x${string}`) : undefined;
+
     const courseData = await client.readContract({
-      address: contractAddresses.proxyAddress as `0x${string}`,
+      address: addresses.proxyAddress as `0x${string}`,
       abi: CeloreanABI.abi,
       functionName: "getCourse",
       args: [courseId],
-    });
+      account,
+    } as any);
 
     // Serialize BigInt values before returning JSON
     const serializedCourseData = serializeBigInt(courseData);
 
     return NextResponse.json(serializedCourseData);
-  } catch (error) {
+  } catch (error: any) {
     console.error("Error fetching course:", error);
+    const reason = error?.reason || error?.shortMessage || error?.message || "Failed to fetch course";
+    const status = typeof reason === 'string' && reason.includes('Access denied') ? 403 : 500;
     return NextResponse.json(
-      { error: "Failed to fetch course" },
-      { status: 500 }
+      { error: reason },
+      { status }
     );
   }
+}
+
+// Helper to serialize BigInt values
+function serializeBigInt(value: any): any {
+  if (typeof value === 'bigint') return value.toString();
+  if (Array.isArray(value)) return value.map(serializeBigInt);
+  if (value && typeof value === 'object') {
+    const out: any = {};
+    for (const k of Object.keys(value)) {
+      out[k] = serializeBigInt((value as any)[k]);
+    }
+    return out;
+  }
+  return value;
 }

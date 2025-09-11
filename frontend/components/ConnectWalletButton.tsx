@@ -4,8 +4,7 @@ import { useAutoRedirect } from "@/hooks/redirect";
 import { ConnectButton } from "@rainbow-me/rainbowkit";
 import React from "react";
 
-import { useAccount, useConnect } from 'wagmi'
-
+import { useAccount, useConnect } from "wagmi";
 
 /* 
 function ConnectWalletButton() {
@@ -31,7 +30,6 @@ function ConnectWalletButton() {
   )
 } */
 
-
 const ConnectWalletButton = () => {
   useAutoRedirect();
   return (
@@ -41,7 +39,7 @@ const ConnectWalletButton = () => {
           smallScreen: "avatar",
           largeScreen: "full",
         }}
-        chainStatus="icon"
+        chainStatus="none"
         showBalance={{
           smallScreen: false,
           largeScreen: false,
@@ -52,4 +50,3 @@ const ConnectWalletButton = () => {
 };
 
 export default ConnectWalletButton;
-

@@ -6,6 +6,7 @@ import "./globals.css"
 import { ThemeProvider } from "@/components/theme-provider"
 import { Providers } from "./providers";
 import Body from "@/components/Body";
+import { NetworkSwitcher } from "@/components/network-switcher";
 
 export const metadata: Metadata = {
   title: "Celorean | Web3 Education Platform",
@@ -49,6 +50,10 @@ export default function RootLayout({
       <Body>
         <Providers>
           <ThemeProvider attribute="class" defaultTheme="dark" enableSystem={false} disableTransitionOnChange>
+            {/* Global network badge (compact) */}
+            <div className="fixed bottom-4 right-4 z-50">
+              <NetworkSwitcher variant="compact" />
+            </div>
             {children}
           </ThemeProvider>
         </Providers>

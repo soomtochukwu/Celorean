@@ -7,12 +7,10 @@ import {
   environmentAddresses,
   getAddressesForEnvironment,
   getCurrentEnvironmentAddresses,
-  contractAddresses,
   CELOREAN_PROXY_ADDRESS,
   CELOREAN_IMPLEMENTATION_ADDRESS,
   type ContractAddresses,
-  type EnvironmentAddresses
-} from './addresses';
+} from './addresses/index';
 
 // Network configuration interface
 export interface NetworkConfig {
@@ -58,7 +56,7 @@ export interface EnvironmentContracts {
 export const networkConfigs = {
   localhost: {
     name: 'Localhost',
-    chainId: 31337,
+    chainId: 1337,
     rpcUrl: 'http://127.0.0.1:8545',
     blockExplorer: 'http://localhost:8545',
     nativeCurrency: {
@@ -101,7 +99,9 @@ const celoreanArtifacts: ContractArtifacts = {
 
 // Environment utility functions
 export function getCurrentEnvironment(): 'localhost' | 'testnet' | 'mainnet' {
-  return contractAddresses.environment as 'localhost' | 'testnet' | 'mainnet';
+  // Fallback to environment variable or default to localhost
+  const env = (process.env.NEXT_PUBLIC_ENVIRONMENT as 'localhost' | 'testnet' | 'mainnet' | undefined) || 'localhost';
+  return env;
 }
 
 export function getNetworkConfig(env: 'localhost' | 'testnet' | 'mainnet'): NetworkConfig {
@@ -123,7 +123,7 @@ export function getCurrentContracts() {
 
 // Current environment data
 export const currentEnvironment = getCurrentEnvironment();
-export const currentAddresses = getCurrentEnvironmentAddresses();
+export const currentAddresses = getCurrentEnvironmentAddresses(currentEnvironment);
 export const currentNetworkConfig = getNetworkConfig(currentEnvironment);
 
 // Environment-specific contract configurations
@@ -159,16 +159,14 @@ export const celoreanABI = celoreanArtifacts.abi;
 export const celoreanBytecode = celoreanArtifacts.bytecode;
 export { celoreanArtifacts };
 
-// Re-export address utilities from addresses.ts
+// Re-export address utilities from addresses module
 export {
   environmentAddresses,
   getAddressesForEnvironment,
-  contractAddresses,
   CELOREAN_PROXY_ADDRESS,
   CELOREAN_IMPLEMENTATION_ADDRESS,
   getCurrentEnvironmentAddresses,
   type ContractAddresses,
-  type EnvironmentAddresses
 };
 
 // Default export with all contract information
@@ -198,7 +196,6 @@ export default {
   getNetworkConfig,
   
   // Backward compatibility
-  contractAddresses,
   CELOREAN_PROXY_ADDRESS,
   CELOREAN_IMPLEMENTATION_ADDRESS
 };

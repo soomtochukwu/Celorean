@@ -5,11 +5,17 @@ import { defineChain } from 'viem';
 import { toast } from 'sonner';
 import {
   getAddressesForEnvironment,
-  getCurrentEnvironmentAddresses,
   type ContractAddresses,
   networkConfigs,
   type NetworkConfig
 } from '@/contracts';
+import {
+  handleNetworkError,
+  createUnsupportedNetworkError,
+  createContractAddressError,
+  createNetworkError,
+  NetworkErrorType,
+} from '@/utils/network-error-handler';
 
 // Define localhost chain
 const localhost = defineChain({
@@ -86,7 +92,7 @@ export function useNetworkManager(): NetworkState & NetworkActions {
   function detectEnvironmentFromChainId(chainId: number): NetworkEnvironment {
     const env = CHAIN_ID_TO_ENVIRONMENT[chainId as SupportedChainId];
     if (!env) {
-      // Default to localhost for unknown networks in development, testnet otherwise
+      // Unknown/unsupported chain
       return process.env.NODE_ENV === 'development' ? 'localhost' : 'testnet';
     }
     return env;
@@ -114,8 +120,9 @@ export function useNetworkManager(): NetworkState & NetworkActions {
   // Switch to specific environment
   const switchToEnvironment = useCallback(async (env: NetworkEnvironment) => {
     if (!isConnected) {
-      setState(prev => ({ ...prev, error: 'Please connect your wallet first' }));
-      toast.error('Please connect your wallet first');
+      const err = createNetworkError(NetworkErrorType.WALLET_NOT_CONNECTED);
+      handleNetworkError(err);
+      setState(prev => ({ ...prev, error: err.message }));
       return;
     }
 
@@ -129,11 +136,11 @@ export function useNetworkManager(): NetworkState & NetworkActions {
 
     try {
       await switchChain({ chainId: targetChainId });
-      toast.success(`Switched to ${env} network`);
+      setState(prev => ({ ...prev, isSwitching: false }));
     } catch (error: any) {
-      const errorMessage = error?.message || `Failed to switch to ${env} network`;
+      handleNetworkError(error);
+      const errorMessage = (error?.message as string) || `Failed to switch to ${env} network`;
       setState(prev => ({ ...prev, error: errorMessage, isSwitching: false }));
-      toast.error(errorMessage);
     }
   }, [isConnected, chainId, switchChain]);
 
@@ -141,13 +148,21 @@ export function useNetworkManager(): NetworkState & NetworkActions {
   const refreshAddresses = useCallback(() => {
     const currentEnv = detectEnvironmentFromChainId(chainId);
     const addresses = getAddressesForEnvironment(currentEnv);
+    const hasContracts = !!addresses;
+
     setState(prev => ({
       ...prev,
       currentEnvironment: currentEnv,
       currentAddresses: addresses,
       currentNetworkConfig: getNetworkConfigForEnvironment(currentEnv),
+      isCorrectNetwork: hasContracts,
+      error: hasContracts ? null : `No contract addresses found for ${currentEnv} network`,
     }));
-  }, [chainId]);
+
+    if (!hasContracts && isConnected) {
+      handleNetworkError(createContractAddressError(currentEnv));
+    }
+  }, [chainId, isConnected]);
 
   // Clear error state
   const clearError = useCallback(() => {
@@ -156,27 +171,44 @@ export function useNetworkManager(): NetworkState & NetworkActions {
 
   // Handle chain changes
   useEffect(() => {
-    const newEnvironment = detectEnvironmentFromChainId(chainId);
+    const knownEnv = CHAIN_ID_TO_ENVIRONMENT[chainId as SupportedChainId];
+    if (!knownEnv) {
+      // Unsupported chain
+      const err = createUnsupportedNetworkError(chainId);
+      handleNetworkError(err);
+      const fallbackEnv = detectEnvironmentFromChainId(chainId);
+      setState(prev => ({
+        ...prev,
+        currentEnvironment: fallbackEnv,
+        currentChainId: chainId as SupportedChainId,
+        currentAddresses: undefined,
+        currentNetworkConfig: getNetworkConfigForEnvironment(fallbackEnv),
+        isCorrectNetwork: false,
+        isSwitching: false,
+        error: err.message,
+      }));
+      return;
+    }
+
+    const newEnvironment = knownEnv;
     const newAddresses = getAddressesForEnvironment(newEnvironment);
     const newNetworkConfig = getNetworkConfigForEnvironment(newEnvironment);
     
-    // Check if we have addresses for this environment
-    const isCorrectNetwork = !!newAddresses;
-    
+    const hasContracts = !!newAddresses;
+
     setState(prev => ({
       ...prev,
       currentEnvironment: newEnvironment,
       currentChainId: chainId as SupportedChainId,
       currentAddresses: newAddresses,
       currentNetworkConfig: newNetworkConfig,
-      isCorrectNetwork,
+      isCorrectNetwork: hasContracts,
       isSwitching: false,
-      error: isCorrectNetwork ? null : `No contract addresses found for ${newEnvironment} network`,
+      error: hasContracts ? null : `No contract addresses found for ${newEnvironment} network`,
     }));
 
-    // Show warning if no addresses found
-    if (!isCorrectNetwork && isConnected) {
-      toast.warning(`No contract deployed on ${newEnvironment} network`);
+    if (!hasContracts && isConnected) {
+      handleNetworkError(createContractAddressError(newEnvironment));
     }
   }, [chainId, isConnected]);
 

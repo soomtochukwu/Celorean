@@ -63,9 +63,18 @@ export function createNetworkError(
 export function handleNetworkError(error: NetworkError | Error | unknown): void {
   let networkError: NetworkError;
 
+  // Helper to extract EIP-1193 error codes
+  const getProviderCode = (e: any): number | undefined => {
+    if (!e) return undefined;
+    return e.code ?? e?.cause?.code ?? e?.originalError?.code;
+  };
+
   if (error instanceof Error) {
-    // Try to categorize common error types
-    if (error.message.includes('User rejected')) {
+    const anyErr: any = error;
+    const code = getProviderCode(anyErr);
+
+    // EIP-1193: 4001 user rejected request
+    if (code === 4001 || error.message.includes('User rejected')) {
       networkError = createNetworkError(
         NetworkErrorType.NETWORK_SWITCH_FAILED,
         'Network switch was cancelled by user.',
@@ -73,7 +82,32 @@ export function handleNetworkError(error: NetworkError | Error | unknown): void 
         undefined,
         error
       );
-    } else if (error.message.includes('Unsupported chain')) {
+    } else if (code === 4902 || /unsupported chain|unknown chain|Unrecognized chain/i.test(error.message)) {
+      // EIP-1193: 4902 chain not added to wallet
+      networkError = createNetworkError(
+        NetworkErrorType.UNSUPPORTED_NETWORK,
+        'Selected network is not added to your wallet. Please add it and retry.',
+        undefined,
+        undefined,
+        error
+      );
+    } else if (/chain mismatch|wrong network|different network/i.test(error.message)) {
+      networkError = createNetworkError(
+        NetworkErrorType.CHAIN_MISMATCH,
+        undefined,
+        undefined,
+        undefined,
+        error
+      );
+    } else if (/Failed to fetch|NetworkError when attempting to fetch|timeout|ECONNREFUSED|ENOTFOUND/i.test(error.message)) {
+      networkError = createNetworkError(
+        NetworkErrorType.RPC_CONNECTION_FAILED,
+        undefined,
+        undefined,
+        undefined,
+        error
+      );
+    } else if (/Unsupported chain/i.test(error.message)) {
       networkError = createNetworkError(
         NetworkErrorType.UNSUPPORTED_NETWORK,
         undefined,

@@ -1,12 +1,35 @@
-"use client"
+"use client";
 
-import { useState } from "react"
-import { Search, Award, BookOpen, MessageSquare, Filter, ChevronDown } from "lucide-react"
-import { Button } from "@/components/ui/button"
-import { Card, CardContent } from "@/components/ui/card"
-import { Input } from "@/components/ui/input"
-import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
+import { useState, useEffect } from "react";
+import {
+  Search,
+  Award,
+  BookOpen,
+  MessageSquare,
+  Filter,
+  ChevronDown,
+  Lock,
+} from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent } from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Textarea } from "@/components/ui/textarea";
+import { Switch } from "@/components/ui/switch";
+import {
+  Pagination,
+  PaginationContent,
+  PaginationItem,
+  PaginationPrevious,
+  PaginationNext,
+} from "@/components/ui/pagination";
+import { useAccount } from "wagmi";
 
 // Mock data for learners
 const learners = [
@@ -82,35 +105,112 @@ const learners = [
     isVerified: false,
     isOnline: false,
   },
-]
+];
 
 export default function Community() {
-  const [searchQuery, setSearchQuery] = useState("")
-  const [filter, setFilter] = useState("all")
-  const [sortBy, setSortBy] = useState("level")
+  const [searchQuery, setSearchQuery] = useState("");
+  const [filter, setFilter] = useState("all");
+  const [sortBy, setSortBy] = useState("level");
+
+  const { address, isConnected } = useAccount();
+
+  // Messages state
+  const [msgContent, setMsgContent] = useState("");
+  const [msgPrivate, setMsgPrivate] = useState(false);
+  const [messages, setMessages] = useState<any[]>([]);
+  const [loadingMsgs, setLoadingMsgs] = useState(false);
+  const [posting, setPosting] = useState(false);
+  const [offset, setOffset] = useState(0);
+  const limit = 10;
+  const [hasMore, setHasMore] = useState(false);
 
   // Filter and sort learners
   const filteredLearners = learners
     .filter((learner) => {
-      if (filter === "verified" && !learner.isVerified) return false
-      if (filter === "online" && !learner.isOnline) return false
+      if (filter === "verified" && !learner.isVerified) return false;
+      if (filter === "online" && !learner.isOnline) return false;
       return (
         learner.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
         learner.specialty.toLowerCase().includes(searchQuery.toLowerCase())
-      )
+      );
     })
     .sort((a, b) => {
-      if (sortBy === "level") return b.level - a.level
-      if (sortBy === "courses") return b.courses - a.courses
-      if (sortBy === "badges") return b.badges - a.badges
-      return 0
-    })
+      if (sortBy === "level") return b.level - a.level;
+      if (sortBy === "courses") return b.courses - a.courses;
+      if (sortBy === "badges") return b.badges - a.badges;
+      return 0;
+    });
+
+  async function fetchMessages(nextOffset = 0) {
+    try {
+      setLoadingMsgs(true);
+      const params = new URLSearchParams({
+        limit: String(limit),
+        offset: String(nextOffset),
+      });
+      if (address) params.set("viewer", address);
+      const res = await fetch(`/api/community/messages?${params.toString()}`);
+      if (!res.ok) throw new Error(`Failed to fetch messages: ${res.status}`);
+      const data = await res.json();
+      setMessages(nextOffset === 0 ? data.items : [...messages, ...data.items]);
+      setHasMore(Boolean(data?.pagination?.hasMore));
+      setOffset(nextOffset);
+    } catch (e) {
+      // noop for now; could add toast
+    } finally {
+      setLoadingMsgs(false);
+    }
+  }
+
+  async function postMessage() {
+    if (!isConnected || !address) return;
+    if (!msgContent.trim()) return;
+    try {
+      setPosting(true);
+      const res = await fetch("/api/community/messages", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          content: msgContent.trim(),
+          authorAddress: address,
+          isPrivate: msgPrivate,
+        }),
+      });
+      if (!res.ok) throw new Error(`Failed to post message: ${res.status}`);
+      setMsgContent("");
+      setMsgPrivate(false);
+      // reload from beginning to see newest first
+      await fetchMessages(0);
+    } catch (e) {
+      // noop for now; could add toast
+    } finally {
+      setPosting(false);
+    }
+  }
+
+  useEffect(() => {
+    // reload messages when address changes (affects private visibility)
+    fetchMessages(0);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [address]);
+
+  function formatDate(iso?: string) {
+    if (!iso) return "";
+    try {
+      const d = new Date(iso);
+      return d.toLocaleString();
+    } catch {
+      return iso;
+    }
+  }
 
   return (
     <div className="p-6 md:p-8">
       <div className="mb-8">
         <h1 className="text-3xl font-bold">Community</h1>
-        <p className="text-muted-foreground">Connect with other learners in the Celorean ecosystem</p>
+        <p className="text-muted-foreground">
+          Connect with other learners in the Celorean ecosystem
+        </p>
       </div>
 
       <div className="flex flex-col md:flex-row gap-4 mb-8">
@@ -132,9 +232,15 @@ export default function Community() {
             </Button>
           </DropdownMenuTrigger>
           <DropdownMenuContent align="end" className="glass border-primary/20">
-            <DropdownMenuItem onClick={() => setFilter("all")}>All Learners</DropdownMenuItem>
-            <DropdownMenuItem onClick={() => setFilter("verified")}>Verified Only</DropdownMenuItem>
-            <DropdownMenuItem onClick={() => setFilter("online")}>Currently Online</DropdownMenuItem>
+            <DropdownMenuItem onClick={() => setFilter("all")}>
+              All Learners
+            </DropdownMenuItem>
+            <DropdownMenuItem onClick={() => setFilter("verified")}>
+              Verified Only
+            </DropdownMenuItem>
+            <DropdownMenuItem onClick={() => setFilter("online")}>
+              Currently Online
+            </DropdownMenuItem>
           </DropdownMenuContent>
         </DropdownMenu>
         <DropdownMenu>
@@ -145,9 +251,15 @@ export default function Community() {
             </Button>
           </DropdownMenuTrigger>
           <DropdownMenuContent align="end" className="glass border-primary/20">
-            <DropdownMenuItem onClick={() => setSortBy("level")}>Level</DropdownMenuItem>
-            <DropdownMenuItem onClick={() => setSortBy("courses")}>Courses Completed</DropdownMenuItem>
-            <DropdownMenuItem onClick={() => setSortBy("badges")}>Badges Earned</DropdownMenuItem>
+            <DropdownMenuItem onClick={() => setSortBy("level")}>
+              Level
+            </DropdownMenuItem>
+            <DropdownMenuItem onClick={() => setSortBy("courses")}>
+              Courses Completed
+            </DropdownMenuItem>
+            <DropdownMenuItem onClick={() => setSortBy("badges")}>
+              Badges Earned
+            </DropdownMenuItem>
           </DropdownMenuContent>
         </DropdownMenu>
       </div>
@@ -156,6 +268,7 @@ export default function Community() {
         <TabsList className="glass border border-primary/10 mb-6">
           <TabsTrigger value="grid">Grid View</TabsTrigger>
           <TabsTrigger value="list">List View</TabsTrigger>
+          <TabsTrigger value="messages">Messages</TabsTrigger>
         </TabsList>
         <TabsContent value="grid">
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
@@ -196,7 +309,9 @@ export default function Community() {
                           </span>
                         )}
                       </div>
-                      <p className="text-sm text-muted-foreground">{learner.specialty}</p>
+                      <p className="text-sm text-muted-foreground">
+                        {learner.specialty}
+                      </p>
                     </div>
                   </div>
                   <div className="flex items-center justify-between mb-4">
@@ -219,9 +334,14 @@ export default function Community() {
                   </div>
                   <div className="flex justify-between items-center">
                     <p className="text-xs font-mono text-muted-foreground truncate w-32">
-                      {learner.walletAddress.slice(0, 6)}...{learner.walletAddress.slice(-4)}
+                      {learner.walletAddress.slice(0, 6)}...
+                      {learner.walletAddress.slice(-4)}
                     </p>
-                    <Button variant="outline" size="sm" className="flex items-center gap-1">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="flex items-center gap-1"
+                    >
                       <MessageSquare className="h-3 w-3" />
                       Connect
                     </Button>
@@ -234,7 +354,10 @@ export default function Community() {
         <TabsContent value="list">
           <div className="space-y-4">
             {filteredLearners.map((learner) => (
-              <Card key={learner.id} className="glass border-primary/10 hover:border-primary/30 transition-colors">
+              <Card
+                key={learner.id}
+                className="glass border-primary/10 hover:border-primary/30 transition-colors"
+              >
                 <CardContent className="p-4">
                   <div className="flex items-center justify-between">
                     <div className="flex items-center gap-4">
@@ -268,7 +391,9 @@ export default function Community() {
                             </span>
                           )}
                         </div>
-                        <p className="text-sm text-muted-foreground">{learner.specialty}</p>
+                        <p className="text-sm text-muted-foreground">
+                          {learner.specialty}
+                        </p>
                       </div>
                     </div>
                     <div className="hidden md:flex items-center gap-6">
@@ -289,9 +414,14 @@ export default function Community() {
                         <span className="text-muted-foreground">Courses</span>
                       </div>
                       <p className="text-xs font-mono text-muted-foreground truncate w-32">
-                        {learner.walletAddress.slice(0, 6)}...{learner.walletAddress.slice(-4)}
+                        {learner.walletAddress.slice(0, 6)}...
+                        {learner.walletAddress.slice(-4)}
                       </p>
-                      <Button variant="outline" size="sm" className="flex items-center gap-1">
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        className="flex items-center gap-1"
+                      >
                         <MessageSquare className="h-3 w-3" />
                         Connect
                       </Button>
@@ -305,6 +435,113 @@ export default function Community() {
             ))}
           </div>
         </TabsContent>
+        <TabsContent value="messages">
+          <div className="space-y-6">
+            <Card className="glass border-primary/10">
+              <CardContent className="p-4 md:p-6">
+                <div className="flex items-center justify-between mb-3">
+                  <h3 className="font-semibold">Compose a message</h3>
+                  <div className="flex items-center gap-2 text-sm">
+                    <Lock className="h-4 w-4 text-muted-foreground" />
+                    <span className="text-muted-foreground">Private</span>
+                    <Switch
+                      checked={msgPrivate}
+                      onCheckedChange={setMsgPrivate}
+                    />
+                  </div>
+                </div>
+                {!isConnected ? (
+                  <p className="text-sm text-muted-foreground">
+                    Connect your wallet to post messages.
+                  </p>
+                ) : (
+                  <div className="space-y-3">
+                    <Textarea
+                      placeholder="Share something with the community..."
+                      value={msgContent}
+                      onChange={(e) => setMsgContent(e.target.value)}
+                      className="min-h-[100px]"
+                    />
+                    <div className="flex justify-end">
+                      <Button
+                        onClick={postMessage}
+                        disabled={posting || !msgContent.trim()}
+                      >
+                        {posting ? "Posting..." : "Post"}
+                      </Button>
+                    </div>
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+
+            <div className="space-y-3">
+              {messages.length === 0 && !loadingMsgs ? (
+                <p className="text-sm text-muted-foreground">
+                  No messages yet.
+                </p>
+              ) : null}
+
+              {messages.map((m) => (
+                <Card key={m.id} className="glass border-primary/10">
+                  <CardContent className="p-4">
+                    <div className="flex items-start justify-between">
+                      <div className="space-y-1">
+                        <div className="flex items-center gap-2">
+                          <p className="text-xs font-mono text-muted-foreground">
+                            {(m.authorAddress || "").slice(0, 6)}...
+                            {(m.authorAddress || "").slice(-4)}
+                          </p>
+                          {m.isPrivate ? (
+                            <span className="text-xs px-2 py-0.5 rounded-full bg-primary/10 text-primary">
+                              Private
+                            </span>
+                          ) : null}
+                        </div>
+                        <p className="whitespace-pre-wrap">{m.content}</p>
+                      </div>
+                      <span className="text-xs text-muted-foreground ml-4">
+                        {formatDate(m.createdAt)}
+                      </span>
+                    </div>
+                  </CardContent>
+                </Card>
+              ))}
+
+              <div className="flex items-center justify-between">
+                <Pagination>
+                  <PaginationContent>
+                    <PaginationItem>
+                      <PaginationPrevious
+                        onClick={() =>
+                          !loadingMsgs && offset - limit >= 0
+                            ? fetchMessages(offset - limit)
+                            : undefined
+                        }
+                      />
+                    </PaginationItem>
+                    <PaginationItem>
+                      <PaginationNext
+                        onClick={() =>
+                          !loadingMsgs && hasMore
+                            ? fetchMessages(offset + limit)
+                            : undefined
+                        }
+                      />
+                    </PaginationItem>
+                  </PaginationContent>
+                </Pagination>
+                <Button
+                  variant="outline"
+                  onClick={() => fetchMessages(offset)}
+                  disabled={loadingMsgs}
+                >
+                  {loadingMsgs ? "Loading..." : "Refresh"}
+                </Button>
+              </div>
+            </div>
+          </div>
+        </TabsContent>
       </Tabs>
 
       <div className="flex justify-center">
@@ -313,5 +550,5 @@ export default function Community() {
         </Button>
       </div>
     </div>
-  )
+  );
 }

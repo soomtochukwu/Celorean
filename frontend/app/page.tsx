@@ -45,7 +45,7 @@ export default function Home() {
         <div className="container mx-auto px-6 relative z-10">
           <div className="max-w-3xl mx-auto text-center">
             <h1 className="text-4xl md:text-6xl font-bold mb-6 gradient-text">
-              Revolutionizing Education with Blockchain & AI
+              To Incentivize Education with Blockchain & AI
             </h1>
             <p className="text-lg md:text-xl text-muted-foreground mb-8">
               Celorean leverages the power of blockchain and AI to create a

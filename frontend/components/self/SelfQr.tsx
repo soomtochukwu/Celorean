@@ -7,6 +7,7 @@ import { useRouter } from "next/navigation";
 import { selfBase64Logo } from "@/lib/utils";
 import Image from "next/image";
 import Link from "next/link";
+import { Zap } from "lucide-react";
 function SelfQr({
   setIsComplete,
 }: {
@@ -45,14 +46,15 @@ function SelfQr({
       <p>Scan this QR code with the Self app to verify your identity</p>
       <div className="relative p-2 w-fit h-fit rounded-full  flex items-center justify-center mb-6 mx-auto">
         {" "}
-        <Image
+        {/* <div className="absolute animate-ping border-2 border-white w-full h-full"></div> */}
+        <Zap className="  fill-green-700 absolute animate-pulse rounded-full h-12 w-12 text-primary " />
+        {/* <Image
           src={"/logo.svg"}
-          className="bg-gray-300 absolute animate-spin direction-reverse rounded-full"
+          className="bg-gray-300 text-green-700 fill-green-700 absolute rounded-full"
           width={50}
           height={50}
           alt={""}
-        ></Image>
-        <div className="h-14 w-14 absolute rounded-full border-2 border-primary border-t-transparent animate-spin"></div>{" "}
+        ></Image> */}
         <SelfQRcodeWrapper
           selfApp={selfApp}
           onSuccess={async () => {

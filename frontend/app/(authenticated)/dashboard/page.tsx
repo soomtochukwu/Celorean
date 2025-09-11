@@ -123,25 +123,28 @@ export default function Dashboard() {
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-8">
         <StatCard
           title="Learning Progress"
-          value={loading ? "Loading..." : `${userStats.progressPercentage}%`}
-          description={loading ? "Fetching data..." : `${userStats.enrolledCoursesCount} courses enrolled`}
+          value={`${userStats.progressPercentage}%`}
+          description={`${userStats.enrolledCoursesCount} courses enrolled`}
           icon={<BookOpen className="h-5 w-5" />}
           trend={userStats.progressPercentage > 50 ? "up" : "neutral"}
           trendValue={userStats.enrolledCoursesCount > 0 ? `${userStats.completedCoursesCount} completed` : "Start learning!"}
+          loading={loading}
         />
         <StatCard
           title="Tokens Earned"
-          value={loading ? "Loading..." : `${userStats.tokensEarned} CEL`}
+          value={`${userStats.tokensEarned} CEL`}
           description="Lifetime earnings"
           icon={<Coins className="h-5 w-5" />}
           trend={userStats.tokensEarned > 0 ? "up" : "neutral"}
           trendValue={userStats.tokensEarned > 0 ? "Keep learning to earn more!" : "Complete courses to earn tokens"}
+          loading={loading}
         />
         <StatCard
           title="Account Status"
           value={isStudent ? "Student" : isLecturer ? "Instructor" : "Guest"}
           description={isStudent ? "Verified learner" : isLecturer ? "Verified instructor" : "Connect to get started"}
           icon={<Users className="h-5 w-5" />}
+          loading={loading}
         />
       </div>
 

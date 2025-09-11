@@ -12,6 +12,7 @@ import { ArrowLeft, Play, FileText, ExternalLink, Clock, Users, Star, BookOpen }
 import { useAccount } from "wagmi"
 import useCeloreanContract from "@/hooks/useCeloreanContract"
 import { CourseContentUpload } from "@/components/course-content-upload"
+import { formatEther } from "viem"
 
 interface ContentItem {
     id: string
@@ -108,29 +109,32 @@ export default function CourseDetailPage() {
     }, [courseData, courseLoading, address, courseId])
 
     // ✅ Get course content URIs from smart contract
-    const { data: contentUris, isLoading: contentLoading } = getCourseContentUris(courseId)
+    const { data: contentUris, isLoading: contentLoading } = (getCourseContentUris(
+        courseId
+    ) as unknown) as { data?: string[]; isLoading: boolean };
 
     const loadCourseContent = async (courseId: number) => {
         try {
             // ✅ First try to get content URIs from smart contract
-            if (contentUris && contentUris.length > 0) {
+            const uris = Array.isArray(contentUris) ? contentUris : [];
+            if (uris.length > 0) {
                 const allContent: ContentItem[] = [];
                 
-                for (let i = 0; i < contentUris.length; i++) {
+                for (let i = 0; i < uris.length; i++) {
                     try {
-                        const contentResponse = await fetch(`https://gateway.pinata.cloud/ipfs/${contentUris[i]}`);
+                        const contentResponse = await fetch(`https://gateway.pinata.cloud/ipfs/${uris[i]}`);
                         const contentData = await contentResponse.json();
                         
                         // Handle both single content item and array
-                        if (Array.isArray(contentData.content)) {
-                            allContent.push(...contentData.content);
-                        } else if (contentData.content) {
-                            allContent.push(contentData.content);
+                        if (Array.isArray((contentData as any).content)) {
+                            allContent.push(...(contentData as any).content);
+                        } else if ((contentData as any).content) {
+                            allContent.push((contentData as any).content);
                         } else {
-                            allContent.push(contentData);
+                            allContent.push(contentData as any);
                         }
                     } catch (error) {
-                        console.warn(`Failed to load content from URI ${contentUris[i]}:`, error);
+                        console.warn(`Failed to load content from URI ${uris[i]}:`, error);
                     }
                 }
                 
@@ -243,10 +247,10 @@ export default function CourseDetailPage() {
     };
 
     const handleEnrollment = async () => {
-        if (!isConnected || !course) return
+        if (!isConnected || !course || !address) return
 
         try {
-            await registerForCourse(courseId, course.price)
+            await registerForCourse(courseId, address, course.price)
             setIsEnrolled(true)
             toast({
                 title: "Success",
@@ -394,7 +398,7 @@ export default function CourseDetailPage() {
                                     disabled={isPending}
                                     className="w-full"
                                 >
-                                    {isPending ? "Enrolling..." : `Enroll - ${course.price} tokens`}
+                                    {isPending ? "Enrolling..." : (course.price === '0' ? 'Enroll - Free' : `Enroll - ${formatEther(BigInt(course.price))} ETH`)}
                                 </Button>
                             )}
 

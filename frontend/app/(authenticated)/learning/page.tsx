@@ -1,7 +1,7 @@
 "use client"
 
 import { useState, useMemo } from "react"
-import { Search, Filter, SortAsc } from "lucide-react"
+import { Search, Filter, SortAsc, CheckCircle, Lock } from "lucide-react"
 import { Input } from "@/components/ui/input"
 import { Button } from "@/components/ui/button"
 import {
@@ -15,6 +15,7 @@ import { useCourses } from "@/hooks/useCourses"
 import { useAccount } from "wagmi"
 import { ConnectButton } from "@rainbow-me/rainbowkit"
 import useCeloreanContract from "@/hooks/useCeloreanContract"
+import { useUserData } from "@/hooks/useUserData"
 
 export default function LearningPage() {
   const [searchTerm, setSearchTerm] = useState("")
@@ -23,6 +24,7 @@ export default function LearningPage() {
   const { courses, loading } = useCourses()
   const { isConnected, address } = useAccount()
   const { getStudentCourses } = useCeloreanContract()
+  const { isStudent } = useUserData()
 
   // Get enrolled courses for the current user
   const { data: enrolledCourseIds } = getStudentCourses(address as string)
@@ -140,6 +142,28 @@ export default function LearningPage() {
         </div>
 
         <div className="lg:w-3/4">
+          {/* Admission status banner */}
+          <div className={`mb-6 rounded-lg border p-4 flex items-start gap-3 ${isStudent ? "border-green-500/30 bg-green-500/10 text-green-800" : "border-red-500/30 bg-red-500/10 text-red-800"}`}>
+            {isStudent ? (
+              <CheckCircle className="h-5 w-5 mt-0.5" />
+            ) : (
+              <Lock className="h-5 w-5 mt-0.5" />
+            )}
+            <div className="flex-1">
+              <div className="font-semibold text-sm mb-1">
+                {isStudent ? "Admitted student" : "Not admitted"}
+              </div>
+              <p className="text-sm opacity-90">
+                {isStudent
+                  ? "You have full access to enroll and interact with course content."
+                  : "Apply for admission to unlock enrollment and course interactions."}
+              </p>
+            </div>
+            {!isStudent && (
+              <Button size="sm" onClick={() => window.alert("Application flow coming soon. Please contact an administrator to be admitted.")}>Apply for Admission</Button>
+            )}
+          </div>
+
           <div className="flex justify-between items-center mb-6">
             <h1 className="text-3xl font-bold">Available Courses</h1>
             <p className="text-muted-foreground">
@@ -165,6 +189,7 @@ export default function LearningPage() {
                     {...course}
                     isEnrolled={isEnrolled}
                     onEnrollmentSuccess={handleEnrollmentSuccess}
+                    isAdmitted={!!isStudent}
                   />
                 )
               })}

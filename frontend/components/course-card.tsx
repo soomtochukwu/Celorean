@@ -1,4 +1,4 @@
-import { Clock, Users, Star, BookOpen } from "lucide-react"
+import { Clock, Users, Star, BookOpen, Lock, CheckCircle } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardFooter } from "@/components/ui/card"
 import { Progress } from "@/components/ui/progress"
@@ -28,6 +28,7 @@ interface CourseCardProps {
   isEnrolled?: boolean
   onEnrollmentSuccess?: () => void
   thumbnail?: string // Add thumbnail support
+  isAdmitted?: boolean // NEW: admission status from parent
 }
 
 export function CourseCard({
@@ -48,6 +49,7 @@ export function CourseCard({
   isEnrolled: initialIsEnrolled,
   onEnrollmentSuccess,
   thumbnail,
+  isAdmitted = false,
 }: CourseCardProps) {
   const router = useRouter()
   const { address, isConnected } = useAccount()
@@ -77,6 +79,14 @@ export function CourseCard({
   }, [courseData])
 
   const handleCardClick = () => {
+    // Block navigation for non-admitted users who are not enrolled
+    if (!isAdmitted && !(isEnrolled || enrollmentStatus)) {
+      toast({
+        title: "Admission required",
+        description: "Apply for admission to view this course.",
+      })
+      return
+    }
     router.push(`/course/${id}`)
   }
 
@@ -91,6 +101,14 @@ export function CourseCard({
         title: "Wallet not connected",
         description: "Please connect your wallet to enroll in courses.",
         variant: "destructive",
+      })
+      return
+    }
+
+    if (!isAdmitted) {
+      toast({
+        title: "Admission required",
+        description: "Apply for admission to enroll in courses.",
       })
       return
     }
@@ -204,9 +222,28 @@ export function CourseCard({
             }
           }}
         />
-        <div className="absolute top-2 right-2 bg-background/80 backdrop-blur-sm px-2 py-1 rounded text-xs font-medium">
-          {level}
+        <div className="absolute top-2 right-2 bg-background/80 backdrop-blur-sm px-2 py-1 rounded text-xs font-medium flex items-center gap-1">
+          {isAdmitted ? (
+            <>
+              <CheckCircle className="h-3 w-3 text-green-600" />
+              <span>Admitted</span>
+            </>
+          ) : (
+            <>
+              <Lock className="h-3 w-3 text-red-600" />
+              <span>Not admitted</span>
+            </>
+          )}
         </div>
+        {!isAdmitted && (
+          <div
+            className="absolute inset-0 bg-background/50 backdrop-blur-[1px] flex items-center justify-center gap-2 text-sm"
+            onClick={(e) => e.stopPropagation()} // prevent triggering card navigation when clicking overlay
+          >
+            <Lock className="h-4 w-4" />
+            <span>Apply for admission to unlock</span>
+          </div>
+        )}
         {tokenReward && (
           <div className="absolute bottom-2 left-2 bg-primary/80 backdrop-blur-sm px-2 py-1 rounded text-xs font-bold text-primary-foreground flex items-center gap-1">
             <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" className="w-3 h-3">
@@ -273,14 +310,24 @@ export function CourseCard({
           </div>
 
           {!isEnrolled ? (
-            <Button
-              size="sm"
-              onClick={handleEnrollmentClick}
-              disabled={buttonLoading}
-              className="bg-primary hover:bg-primary/90"
-            >
-              {buttonLoading ? "Processing..." : "Enroll Now"}
-            </Button>
+            isAdmitted ? (
+              <Button
+                size="sm"
+                onClick={handleEnrollmentClick}
+                disabled={buttonLoading}
+                className="bg-primary hover:bg-primary/90"
+              >
+                {buttonLoading ? "Processing..." : "Enroll Now"}
+              </Button>
+            ) : (
+              <Button
+                size="sm"
+                variant="secondary"
+                onClick={(e) => { e.stopPropagation(); toast({ title: "Apply for admission", description: "Contact an administrator or submit an application to be admitted." }) }}
+              >
+                Apply for Admission
+              </Button>
+            )
           ) : (
             <Badge className="bg-green-500/20 text-green-700 border-green-500/30">
               ✓ Enrolled
