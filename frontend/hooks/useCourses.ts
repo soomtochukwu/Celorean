@@ -71,7 +71,9 @@ export function useCourses() {
       // Fetch all courses using the API route
       for (let i = 1; i <= Number(courseCount); i++) {
         try {
-          const response = await fetch('/api/getCourse', {
+          // Try authorized getCourse first
+          let courseData: any | null = null
+          let response = await fetch('/api/getCourse', {
             method: 'POST',
             headers: {
               'Content-Type': 'application/json',
@@ -82,24 +84,43 @@ export function useCourses() {
               viewer: address || null,
             }),
           })
-          
+
           if (response.ok) {
-            const courseData = await response.json()
-            
+            courseData = await response.json()
+          } else if (response.status === 403 || response.status === 404) {
+            // Fallback to public preview via logs
+            const publicRes = await fetch('/api/getCoursePublic', {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json',
+              },
+              body: JSON.stringify({
+                courseId: i,
+                network: currentAddresses.network,
+              }),
+            })
+            if (publicRes.ok) {
+              courseData = await publicRes.json()
+            }
+          }
+          
+          if (courseData) {
             const priceWei = courseData.price?.toString?.() ?? '0'
             const priceEth = priceWei === '0' ? '0' : formatEther(BigInt(priceWei))
-            // Transform blockchain data to our Course interface
+            const inferredThumb = courseData.metadataUri ? await fetchThumbnailFromMetadata(courseData.metadataUri) : '/placeholder.jpg'
+
+            // Transform blockchain or preview data to our Course interface
             const course: Course = {
-              id: Number(courseData.id),
-              title: courseData.title,
-              description: courseData.description,
-              image: courseData.metadataUri ? await fetchThumbnailFromMetadata(courseData.metadataUri) : '/placeholder.jpg',
-              thumbnail: courseData.metadataUri ? await fetchThumbnailFromMetadata(courseData.metadataUri) : undefined,
-              instructor: courseData.instructor,
-              duration: `${courseData.duration} weeks`,
-              students: Number(courseData.enrolledCount),
-              rating: Number(courseData.rating) / 10,
-              level: courseData.level as 'Beginner' | 'Intermediate' | 'Advanced',
+              id: Number(courseData.id ?? i),
+              title: courseData.title ?? `Course ${i}`,
+              description: courseData.description ?? '',
+              image: inferredThumb,
+              thumbnail: courseData.metadataUri ? inferredThumb : undefined,
+              instructor: courseData.instructor ?? '0x0000000000000000000000000000000000000000',
+              duration: `${courseData.duration ?? 0} weeks`,
+              students: Number(courseData.enrolledCount ?? 0),
+              rating: Number(courseData.rating ?? 0) / 10,
+              level: (courseData.level as 'Beginner' | 'Intermediate' | 'Advanced') ?? 'Beginner',
               tags: courseData.tags || [],
               price: priceWei === '0' ? 'Free' : `${priceEth} ETH`,
               priceWei,
