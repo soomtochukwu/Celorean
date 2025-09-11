@@ -19,38 +19,38 @@ const ENVIRONMENT_CONFIGS: Record<string, EnvironmentConfig> = {
     name: "localhost",
     requiresVerification: false,
     confirmationBlocks: 1,
-    gasLimit: 8000000
+    gasLimit: 8000000,
   },
   hardhat: {
     name: "hardhat",
     requiresVerification: false,
     confirmationBlocks: 1,
-    gasLimit: 8000000
+    gasLimit: 8000000,
   },
   testnet: {
     name: "testnet",
     requiresVerification: true,
     confirmationBlocks: 6,
-    gasLimit: 5000000
+    gasLimit: 5000000,
   },
-  "celo-alfajores": {
-    name: "celo-alfajores",
+  alfajores: {
+    name: "alfajores",
     requiresVerification: true,
     confirmationBlocks: 6,
-    gasLimit: 5000000
+    gasLimit: 5000000,
   },
   mainnet: {
     name: "mainnet",
     requiresVerification: true,
     confirmationBlocks: 12,
-    gasLimit: 3000000
+    gasLimit: 3000000,
   },
   "celo-mainnet": {
     name: "celo-mainnet",
     requiresVerification: true,
     confirmationBlocks: 12,
-    gasLimit: 3000000
-  }
+    gasLimit: 3000000,
+  },
 };
 
 // Environment validation function
@@ -58,7 +58,9 @@ function validateEnvironment(networkName: string): EnvironmentConfig {
   const config = ENVIRONMENT_CONFIGS[networkName];
   if (!config) {
     console.error(`❌ Unsupported network: ${networkName}`);
-    console.error(`Supported networks: ${Object.keys(ENVIRONMENT_CONFIGS).join(", ")}`);
+    console.error(
+      `Supported networks: ${Object.keys(ENVIRONMENT_CONFIGS).join(", ")}`
+    );
     process.exit(1);
   }
   return config;
@@ -67,7 +69,7 @@ function validateEnvironment(networkName: string): EnvironmentConfig {
 // Network-specific validation
 function validateNetworkRequirements(config: EnvironmentConfig, deployer: any) {
   console.log(`🔍 Validating requirements for ${config.name} environment...`);
-  
+
   if (config.name === "mainnet" || config.name === "celo-mainnet") {
     console.log("⚠️  MAINNET UPGRADE DETECTED!");
     console.log("Please ensure you have:");
@@ -77,8 +79,12 @@ function validateNetworkRequirements(config: EnvironmentConfig, deployer: any) {
     console.log("- Backup and rollback procedures in place");
     console.log("- Sufficient funds for upgrade transaction");
   }
-  
-  if (config.requiresVerification && !process.env.ETHERSCAN_API_KEY && !process.env.CELOSCAN_API_KEY) {
+
+  if (
+    config.requiresVerification &&
+    !process.env.ETHERSCAN_API_KEY &&
+    !process.env.CELOSCAN_API_KEY
+  ) {
     console.warn("⚠️  No API key found for contract verification");
     console.warn("Set ETHERSCAN_API_KEY or CELOSCAN_API_KEY in your .env file");
   }
@@ -86,7 +92,10 @@ function validateNetworkRequirements(config: EnvironmentConfig, deployer: any) {
 
 // Helper function for consistent timestamp formatting
 function formatTimestamp(date: Date): string {
-  return date.toISOString().replace('T', ' ').replace(/\.\d{3}Z$/, ' UTC');
+  return date
+    .toISOString()
+    .replace("T", " ")
+    .replace(/\.\d{3}Z$/, " UTC");
 }
 
 // Import existing addresses dynamically based on current network
@@ -115,29 +124,31 @@ const { verify } = require("../utils/verify.js");
 
 async function upgradeContract() {
   const [deployer] = await ethers.getSigners();
-  
+
   // Validate environment and get configuration
   const envConfig = validateEnvironment(network.name);
-  
+
   console.log("=".repeat(60));
-  console.log(`🔄 CELOREAN UPGRADE - ${envConfig.name.toUpperCase()} ENVIRONMENT`);
+  console.log(
+    `🔄 CELOREAN UPGRADE - ${envConfig.name.toUpperCase()} ENVIRONMENT`
+  );
   console.log("=".repeat(60));
   console.log("Upgrading contracts with the account:", deployer.address);
   console.log("Network:", network.name);
   console.log("Environment:", envConfig.name);
-  
+
   // Validate network requirements
   validateNetworkRequirements(envConfig, deployer);
-  
+
   // Check deployer balance
   const balance = await deployer.provider!.getBalance(deployer.address);
   console.log("Account balance:", ethers.formatEther(balance), "ETH");
-  
+
   if (balance === 0n) {
     console.error("❌ Deployer account has no funds!");
     process.exit(1);
   }
-  
+
   console.log("");
 
   // Check if we have existing addresses
@@ -154,7 +165,7 @@ async function upgradeContract() {
 
   // Get the existing proxy address
   const proxyAddress = contractAddresses.proxyAddress;
-  
+
   // Snapshot pre-upgrade state and block for diagnostics
   const preBlockNumber = await deployer.provider!.getBlockNumber();
   let ownerBefore: string = "";
@@ -169,19 +180,26 @@ async function upgradeContract() {
       versionBefore = "";
     }
   } catch (e) {
-    console.log("⚠️  Could not read pre-upgrade state (owner/version):", (e as Error).message || e);
+    console.log(
+      "⚠️  Could not read pre-upgrade state (owner/version):",
+      (e as Error).message || e
+    );
   }
 
   // Enhanced Pre-Upgrade Logging
   console.log("📋 PRE-UPGRADE CONTRACT STATUS");
   console.log("=".repeat(50));
   console.log(`🏠 Existing Proxy Address:        ${proxyAddress}`);
-  console.log(`🔧 Current Implementation:        ${contractAddresses.implementationAddress}`);
+  console.log(
+    `🔧 Current Implementation:        ${contractAddresses.implementationAddress}`
+  );
   console.log(`👤 Upgrading Account:             ${deployer.address}`);
   console.log(`🌐 Network:                       ${network.name}`);
   console.log(`🏷️  Environment:                   ${envConfig.name}`);
-  if (ownerBefore) console.log(`🔒 Owner (pre-upgrade):            ${ownerBefore}`);
-  if (versionBefore) console.log(`🔖 Version (pre-upgrade):          ${versionBefore}`);
+  if (ownerBefore)
+    console.log(`🔒 Owner (pre-upgrade):            ${ownerBefore}`);
+  if (versionBefore)
+    console.log(`🔖 Version (pre-upgrade):          ${versionBefore}`);
   console.log("=".repeat(50));
   console.log("");
 
@@ -200,7 +218,7 @@ async function upgradeContract() {
   // Get the new implementation address
   const newImplementationAddress =
     await upgrades.erc1967.getImplementationAddress(proxyAddress);
-  
+
   // Attempt to compute tx metrics from Upgraded event logs
   let upgradeGasUsed: string = "N/A";
   let upgradeBlockNumber: number = 0;
@@ -214,21 +232,29 @@ async function upgradeContract() {
     const logs = await deployer.provider!.getLogs(filter);
     if (logs.length > 0) {
       const last = logs[logs.length - 1];
-      const receipt = await deployer.provider!.getTransactionReceipt(last.transactionHash);
+      const receipt = await deployer.provider!.getTransactionReceipt(
+        last.transactionHash
+      );
       if (receipt) {
-        upgradeGasUsed = receipt.gasUsed?.toString?.() || String(receipt.gasUsed ?? "N/A");
+        upgradeGasUsed =
+          receipt.gasUsed?.toString?.() || String(receipt.gasUsed ?? "N/A");
         upgradeBlockNumber = receipt.blockNumber ?? 0;
       }
     }
   } catch (e) {
-    console.log("⚠️  Could not fetch upgrade tx receipt:", (e as Error).message || e);
+    console.log(
+      "⚠️  Could not fetch upgrade tx receipt:",
+      (e as Error).message || e
+    );
   }
-  
+
   // Enhanced Post-Upgrade Logging
   console.log("📋 POST-UPGRADE CONTRACT STATUS");
   console.log("=".repeat(50));
   console.log(`🏠 Proxy Address (unchanged):     ${proxyAddress}`);
-  console.log(`🔧 Previous Implementation:       ${contractAddresses.implementationAddress}`);
+  console.log(
+    `🔧 Previous Implementation:       ${contractAddresses.implementationAddress}`
+  );
   console.log(`🆕 New Implementation:            ${newImplementationAddress}`);
   console.log(`👤 Upgrader Account:              ${deployer.address}`);
   console.log("=".repeat(50));
@@ -246,10 +272,19 @@ async function upgradeContract() {
       versionAfter = "";
     }
   } catch (e) {
-    console.log("⚠️  Could not read post-upgrade state (owner/version):", (e as Error).message || e);
+    console.log(
+      "⚠️  Could not read post-upgrade state (owner/version):",
+      (e as Error).message || e
+    );
   }
-  if (ownerBefore && ownerAfter && ownerBefore.toLowerCase() !== ownerAfter.toLowerCase()) {
-    console.error("❌ Owner changed across upgrade! This indicates state corruption.");
+  if (
+    ownerBefore &&
+    ownerAfter &&
+    ownerBefore.toLowerCase() !== ownerAfter.toLowerCase()
+  ) {
+    console.error(
+      "❌ Owner changed across upgrade! This indicates state corruption."
+    );
     process.exit(1);
   } else if (ownerAfter) {
     console.log(`✅ Owner preserved across upgrade: ${ownerAfter}`);
@@ -266,7 +301,9 @@ async function upgradeContract() {
     network: network.name,
     environment: envConfig.name,
     deployedAt: contractAddresses.deployedAt,
-    deployedAtFormatted: contractAddresses.deployedAtFormatted || formatTimestamp(new Date(contractAddresses.deployedAt)),
+    deployedAtFormatted:
+      contractAddresses.deployedAtFormatted ||
+      formatTimestamp(new Date(contractAddresses.deployedAt)),
     deployer: deployer.address,
     previousImplementation: contractAddresses.implementationAddress,
     upgradedAt: upgradeTime.toISOString(),
@@ -328,7 +365,7 @@ export const contractAddresses: ContractAddresses = {
 
 // Environment-specific addresses (will be populated as deployments occur)
 export const environmentAddresses: EnvironmentAddresses = {
-  ${envConfig.name === 'localhost' || envConfig.name === 'hardhat' ? 'localhost' : envConfig.name === 'testnet' || envConfig.name === 'celo-alfajores' ? 'testnet' : 'mainnet'}: contractAddresses
+  ${envConfig.name === "localhost" || envConfig.name === "hardhat" ? "localhost" : envConfig.name === "testnet" || envConfig.name === "alfajores" ? "testnet" : "mainnet"}: contractAddresses
 };
 
 // Export individual addresses for convenience
@@ -390,23 +427,39 @@ export default contractAddresses;
     // Load or initialize unified addresses.json
     let unified: any = {
       _metadata: {
-        description: "Unified contract addresses for all deployment environments",
+        description:
+          "Unified contract addresses for all deployment environments",
         lastUpdated: new Date().toISOString(),
         version: "1.0.0",
         note: "This file is auto-generated by deployment/upgrade scripts",
       },
       environments: {},
       networks: {
-        localhost: { chainId: 31337, rpcUrl: "http://127.0.0.1:8545", blockExplorer: null },
-        "celo-alfajores": { chainId: 44787, rpcUrl: "https://alfajores-forno.celo-testnet.org", blockExplorer: "https://alfajores.celoscan.io" },
-        "celo-mainnet": { chainId: 42220, rpcUrl: "https://forno.celo.org", blockExplorer: "https://celoscan.io" },
+        localhost: {
+          chainId: 31337,
+          rpcUrl: "http://127.0.0.1:8545",
+          blockExplorer: null,
+        },
+        alfajores: {
+          chainId: 44787,
+          rpcUrl: "https://alfajores-forno.celo-testnet.org",
+          blockExplorer: "https://alfajores.celoscan.io",
+        },
+        "celo-mainnet": {
+          chainId: 42220,
+          rpcUrl: "https://forno.celo.org",
+          blockExplorer: "https://celoscan.io",
+        },
       },
     };
     if (fs.existsSync(addressesJsonPath)) {
       try {
         unified = JSON.parse(fs.readFileSync(addressesJsonPath, "utf8"));
       } catch (e) {
-        console.log("⚠️  Failed to parse existing addresses.json; re-initializing:", (e as Error).message || e);
+        console.log(
+          "⚠️  Failed to parse existing addresses.json; re-initializing:",
+          (e as Error).message || e
+        );
       }
     }
     if (!unified.environments) unified.environments = {};
@@ -414,15 +467,17 @@ export default contractAddresses;
     unified._metadata.lastUpdated = new Date().toISOString();
 
     // Map current env to key used by unified file
-    const envKey = (envConfig.name === "localhost" || envConfig.name === "hardhat")
-      ? "localhost"
-      : (envConfig.name === "testnet" || envConfig.name === "celo-alfajores")
-        ? "testnet"
-        : "mainnet";
+    const envKey =
+      envConfig.name === "localhost" || envConfig.name === "hardhat"
+        ? "localhost"
+        : envConfig.name === "testnet" || envConfig.name === "alfajores"
+          ? "testnet"
+          : "mainnet";
 
     // Preserve original deployedAt if present
     const prev = unified.environments[envKey] || {};
-    const deployedAtPreserved = prev.deployedAt || contractAddresses.deployedAt || null;
+    const deployedAtPreserved =
+      prev.deployedAt || contractAddresses.deployedAt || null;
 
     unified.environments[envKey] = {
       proxyAddress: proxyAddress,
@@ -436,18 +491,29 @@ export default contractAddresses;
       upgradedAt: updatedContractAddresses.upgradedAt,
     };
 
-    fs.writeFileSync(addressesJsonPath, JSON.stringify(unified, null, 2), "utf8");
+    fs.writeFileSync(
+      addressesJsonPath,
+      JSON.stringify(unified, null, 2),
+      "utf8"
+    );
     console.log(`📦 Updated unified addresses file: ${addressesJsonPath}`);
 
     // Sync per-env JSON to frontend/contracts/addresses
-    const frontendAddressesDir = path.join(__dirname, "../../frontend/contracts/addresses");
-    if (!fs.existsSync(frontendAddressesDir)) fs.mkdirSync(frontendAddressesDir, { recursive: true });
+    const frontendAddressesDir = path.join(
+      __dirname,
+      "../../frontend/contracts/addresses"
+    );
+    if (!fs.existsSync(frontendAddressesDir))
+      fs.mkdirSync(frontendAddressesDir, { recursive: true });
     const envFilenameMap: Record<string, string> = {
       localhost: "localhost-addresses.json",
       testnet: "alfajores-addresses.json",
       mainnet: "mainnet-addresses.json",
     };
-    const outPath = path.join(frontendAddressesDir, envFilenameMap[envKey] || `${envKey}-addresses.json`);
+    const outPath = path.join(
+      frontendAddressesDir,
+      envFilenameMap[envKey] || `${envKey}-addresses.json`
+    );
     const frontendOut = {
       proxyAddress: proxyAddress,
       implementationAddress: newImplementationAddress,
@@ -463,10 +529,17 @@ export default contractAddresses;
     console.log(`📦 Synced frontend addresses JSON: ${outPath}`);
 
     // Copy ABI to frontend/contracts
-    const artifactsAbiPath = path.join(__dirname, "../artifacts/contracts/Celorean.sol/Celorean.json");
-    const frontendContractsDir = path.join(__dirname, "../../frontend/contracts");
+    const artifactsAbiPath = path.join(
+      __dirname,
+      "../artifacts/contracts/Celorean.sol/Celorean.json"
+    );
+    const frontendContractsDir = path.join(
+      __dirname,
+      "../../frontend/contracts"
+    );
     if (fs.existsSync(artifactsAbiPath)) {
-      if (!fs.existsSync(frontendContractsDir)) fs.mkdirSync(frontendContractsDir, { recursive: true });
+      if (!fs.existsSync(frontendContractsDir))
+        fs.mkdirSync(frontendContractsDir, { recursive: true });
       const frontendAbiPath = path.join(frontendContractsDir, "Celorean.json");
       fs.copyFileSync(artifactsAbiPath, frontendAbiPath);
       console.log(`📦 Copied ABI to frontend:        ${frontendAbiPath}`);
@@ -474,12 +547,17 @@ export default contractAddresses;
       console.log("⚠️  ABI artifact not found at:", artifactsAbiPath);
     }
   } catch (e) {
-    console.log("⚠️  Post-upgrade resource sync failed:", (e as Error).message || e);
+    console.log(
+      "⚠️  Post-upgrade resource sync failed:",
+      (e as Error).message || e
+    );
   }
 
   // Verify the new implementation contract based on environment configuration
   if (envConfig.requiresVerification) {
-    console.log(`Waiting for ${envConfig.confirmationBlocks} block confirmations...`);
+    console.log(
+      `Waiting for ${envConfig.confirmationBlocks} block confirmations...`
+    );
     await upgraded.deploymentTransaction()?.wait(envConfig.confirmationBlocks);
 
     console.log("Verifying new implementation contract...");
@@ -497,7 +575,9 @@ export default contractAddresses;
         console.log("⚠️  Verification failed:", String(error));
       }
       console.log("You can verify manually later using:");
-      console.log(`npx hardhat verify --network ${network.name} ${newImplementationAddress}`);
+      console.log(
+        `npx hardhat verify --network ${network.name} ${newImplementationAddress}`
+      );
     }
   } else {
     console.log(`Skipping verification on ${envConfig.name} environment`);
@@ -512,18 +592,28 @@ export default contractAddresses;
   console.log("─".repeat(50));
   console.log(`🏷️  Environment:                   ${envConfig.name}`);
   console.log(`🌐 Network:                       ${network.name}`);
-  console.log(`📅 Upgraded At:                   ${formatTimestamp(new Date())}`);
+  console.log(
+    `📅 Upgraded At:                   ${formatTimestamp(new Date())}`
+  );
   console.log("");
   console.log("📍 CONTRACT ADDRESSES:");
   console.log(`🏠 Proxy Contract (unchanged):    ${proxyAddress}`);
-  console.log(`🔧 Previous Implementation:       ${contractAddresses.implementationAddress}`);
+  console.log(
+    `🔧 Previous Implementation:       ${contractAddresses.implementationAddress}`
+  );
   console.log(`🆕 New Implementation:            ${newImplementationAddress}`);
   console.log(`👤 Upgrading Account:             ${deployer.address}`);
   console.log("");
   console.log("⛽ TRANSACTION DETAILS:");
-  console.log(`💨 Gas Used:                      ${updatedContractAddresses.gasUsed}`);
-  console.log(`🧱 Block Number:                  ${updatedContractAddresses.blockNumber}`);
-  console.log(`⏰ Upgrade Timestamp:             ${formatTimestamp(new Date(updatedContractAddresses.upgradedAt))}`);
+  console.log(
+    `💨 Gas Used:                      ${updatedContractAddresses.gasUsed}`
+  );
+  console.log(
+    `🧱 Block Number:                  ${updatedContractAddresses.blockNumber}`
+  );
+  console.log(
+    `⏰ Upgrade Timestamp:             ${formatTimestamp(new Date(updatedContractAddresses.upgradedAt))}`
+  );
   console.log("");
   console.log("📝 IMPORTANT NOTES:");
   console.log("   • The proxy contract now uses the new implementation");

@@ -9,7 +9,7 @@ abstract contract AccessControlManager is AccessControlUpgradeable {
 
     function __AccessControlManager_init(address admin) internal onlyInitializing {
         __AccessControl_init();
-        _setupRole(DEFAULT_ADMIN_ROLE, admin);
+        _grantRole(DEFAULT_ADMIN_ROLE, admin);
     }
 
     modifier onlyInstructor() {

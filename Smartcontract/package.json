@@ -8,13 +8,13 @@
     "test": "hardhat test",
     "deploy": "hardhat run scripts/deploy.ts",
     "deploy:localhost": "hardhat run scripts/deploy.ts --network localhost",
-    "deploy:testnet": "hardhat run scripts/deploy.ts --network celo-alfajores",
+    "deploy:testnet": "hardhat run scripts/deploy.ts --network alfajores",
     "deploy:mainnet": "hardhat run scripts/deploy.ts --network celo-mainnet",
     "verify": "hardhat verify",
     "upgrade": "hardhat run scripts/upgrade.ts",
     "upgrade:localhost": "hardhat run scripts/upgrade.ts --network localhost",
-    "upgrade:testnet": "hardhat run scripts/upgrade.ts --network celo-alfajores",
-    "upgrade:mainnet": "hardhat run scripts/upgrade.ts --network celo-mainnet",
+    "upgrade:testnet": "hardhat run scripts/upgrade.ts --network alfajores",
+    "upgrade:mainnet": "hardhat run scripts/upgrade.ts --network celo",
     "sync-addresses": "ts-node scripts/sync-addresses.ts",
     "deploy:localhost:sync": "npm run deploy:localhost && npm run sync-addresses",
     "deploy:testnet:sync": "npm run deploy:testnet && npm run sync-addresses",
@@ -67,8 +67,8 @@
     "typescript": "^5.2.2"
   },
   "dependencies": {
-    "@openzeppelin/contracts": "^4.9.3",
-    "@openzeppelin/contracts-upgradeable": "^4.9.3",
+    "@openzeppelin/contracts": "^5.0.0",
+    "@openzeppelin/contracts-upgradeable": "^5.0.0",
     "@openzeppelin/hardhat-upgrades": "^2.2.1",
     "dotenv": "^16.3.1"
   },

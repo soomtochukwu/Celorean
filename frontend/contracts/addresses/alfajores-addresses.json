@@ -1,8 +1,11 @@
 {
   "proxyAddress": "0x8CB97c5eD4Dae06c9452ebCcef157718804DeA15",
-  "implementationAddress": "0xEf51b7B34F843348C726C912FeDa16802072090D",
-  "network": "celo-alfajores",
+  "implementationAddress": "0x9147b5B39a7bD179749ABc55C43A359106c090FB",
+  "network": "testnet",
   "environment": "testnet",
   "deployedAt": "2025-07-18T18:28:49.311Z",
-  "deployer": "0x8a371e00cd51E2BE005B86EF73C5Ee9Ef6d23FeB"
+  "deployedAtFormatted": "2025-07-18 18:28:49 UTC",
+  "deployer": "0x8a371e00cd51E2BE005B86EF73C5Ee9Ef6d23FeB",
+  "gasUsed": "38087",
+  "blockNumber": 56652342
 }

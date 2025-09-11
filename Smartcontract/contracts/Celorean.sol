@@ -1,11 +1,11 @@
 // SPDX-License-Identifier: MIT
-pragma solidity ^0.8.19;
+pragma solidity ^0.8.20;
 
 import "@openzeppelin/contracts-upgradeable/token/ERC721/ERC721Upgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol";
 import "@openzeppelin/contracts-upgradeable/proxy/utils/UUPSUpgradeable.sol";
-import "@openzeppelin/contracts-upgradeable/security/ReentrancyGuardUpgradeable.sol";
+import "@openzeppelin/contracts-upgradeable/utils/ReentrancyGuardUpgradeable.sol";
 
 import "./lib/CourseModule.sol";
 import "./lib/InstructorModule.sol";
@@ -48,7 +48,7 @@ contract Celorean is
         address owner
     ) public initializer {
         __ERC721_init(name, symbol);
-        __Ownable_init();
+        __Ownable_init(owner);
         __UUPSUpgradeable_init();
         __ReentrancyGuard_init();
         __CourseModule_init();
@@ -59,10 +59,7 @@ contract Celorean is
         __CredentialModule_init();
         _tokenIdCounter = 0;
 
-        // Transfer ownership to the specified owner if different from deployer
-        if (owner != msg.sender) {
-            _transferOwnership(owner);
-        }
+        // Ownership initialized via __Ownable_init(owner)
     }
 
     function createCourse(

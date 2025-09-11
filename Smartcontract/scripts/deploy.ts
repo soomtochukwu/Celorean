@@ -37,8 +37,8 @@ const ENVIRONMENT_CONFIGS: Record<string, EnvironmentConfig> = {
     confirmationBlocks: 6,
     gasLimit: 5000000,
   },
-  "celo-alfajores": {
-    name: "celo-alfajores",
+  alfajores: {
+    name: "alfajores",
     requiresVerification: true,
     confirmationBlocks: 6,
     gasLimit: 5000000,
@@ -378,7 +378,7 @@ export const contractAddresses: ContractAddresses = {
 
 // Environment-specific addresses (will be populated as deployments occur)
 export const environmentAddresses: EnvironmentAddresses = {
-  ${envConfig.name === "localhost" || envConfig.name === "hardhat" ? "localhost" : envConfig.name === "testnet" || envConfig.name === "celo-alfajores" ? "testnet" : "mainnet"}: contractAddresses
+  ${envConfig.name === "localhost" || envConfig.name === "hardhat" ? "localhost" : envConfig.name === "testnet" || envConfig.name === "alfajores" ? "testnet" : "mainnet"}: contractAddresses
 };
 
 // Export individual addresses for convenience
