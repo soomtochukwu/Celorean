@@ -1,9 +1,8 @@
 // Auto-generated file - Do not edit manually
-// Generated on: 2025-09-04 11:04:20 UTC
+// Generated on: 2025-09-11 14:27:59 UTC
 // Network: localhost
 // Environment: localhost
-// Deployment Type: Upgrade
-// Upgraded from: 0x73511669fd4dE447feD18BB79bAFeAC93aB7F31f
+// Deployment Type: Initial Deployment
 
 export interface ContractAddresses {
   proxyAddress: string;
@@ -11,11 +10,8 @@ export interface ContractAddresses {
   network: string;
   environment: string;
   deployedAt: string;
-  deployedAtFormatted?: string;
+  deployedAtFormatted: string;
   deployer: string;
-  previousImplementation?: string;
-  upgradedAt?: string;
-  upgradedAtFormatted?: string;
   gasUsed: string;
   blockNumber: number;
 }
@@ -28,18 +24,15 @@ export interface EnvironmentAddresses {
 
 // Current deployment addresses
 export const contractAddresses: ContractAddresses = {
-  proxyAddress: "0x5095d3313C76E8d29163e40a0223A5816a8037D8",
+  proxyAddress: "0xB581C9264f59BF0289fA76D61B2D0746dCE3C30D",
   implementationAddress: "0x73511669fd4dE447feD18BB79bAFeAC93aB7F31f",
   network: "localhost",
   environment: "localhost",
-  deployedAt: "2025-09-04T11:03:17.705Z",
-  deployedAtFormatted: "2025-09-04 11:03:17 UTC",
+  deployedAt: "2025-09-11T14:27:59.943Z",
+  deployedAtFormatted: "2025-09-11 14:27:59 UTC",
   deployer: "0x8626f6940E2eb28930eFb4CeF49B2d1F2C9C1199",
-  previousImplementation: "0x73511669fd4dE447feD18BB79bAFeAC93aB7F31f",
-  upgradedAt: "2025-09-04T11:04:20.951Z",
-  upgradedAtFormatted: "2025-09-04 11:04:20 UTC",
-  gasUsed: "N/A",
-  blockNumber: 0
+  gasUsed: "30000000",
+  blockNumber: 2
 };
 
 // Environment-specific addresses (will be populated as deployments occur)
@@ -48,7 +41,7 @@ export const environmentAddresses: EnvironmentAddresses = {
 };
 
 // Export individual addresses for convenience
-export const CELOREAN_PROXY_ADDRESS = "0x5095d3313C76E8d29163e40a0223A5816a8037D8";
+export const CELOREAN_PROXY_ADDRESS = "0xB581C9264f59BF0289fA76D61B2D0746dCE3C30D";
 export const CELOREAN_IMPLEMENTATION_ADDRESS = "0x73511669fd4dE447feD18BB79bAFeAC93aB7F31f";
 
 // Environment-specific getters

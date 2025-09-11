@@ -11,29 +11,32 @@ const config = {
         settings: {
           optimizer: {
             enabled: true,
-            runs: 200
-          }
-        }
+            runs: 50,
+          },
+          viaIR: true,
+        },
       },
       {
         version: "0.8.20",
         settings: {
           optimizer: {
             enabled: true,
-            runs: 200
-          }
-        }
+            runs: 50,
+          },
+          viaIR: true,
+        },
       },
       {
         version: "0.8.22",
         settings: {
           optimizer: {
             enabled: true,
-            runs: 200
-          }
-        }
-      }
-    ]
+            runs: 50,
+          },
+          viaIR: true,
+        },
+      },
+    ],
   },
   networks: {
     alfajores: {
@@ -90,7 +93,7 @@ const config = {
         chainId: 42220,
         urls: {
           apiURL: "https://api.celoscan.io/api",
-          browserURL: "https://celoscan.io"
+          browserURL: "https://celoscan.io",
         },
       },
       {
@@ -98,7 +101,7 @@ const config = {
         chainId: 1135,
         urls: {
           apiURL: "https://blockscout.lisk.com/api",
-          browserURL: "https://blockscout.lisk.com"
+          browserURL: "https://blockscout.lisk.com",
         },
       },
       {
@@ -106,7 +109,7 @@ const config = {
         chainId: 4202,
         urls: {
           apiURL: "https://sepolia-blockscout.lisk.com/api",
-          browserURL: "https://sepolia-blockscout.lisk.com"
+          browserURL: "https://sepolia-blockscout.lisk.com",
         },
       },
     ],

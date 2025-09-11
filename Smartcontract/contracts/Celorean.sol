@@ -12,6 +12,7 @@ import "./lib/InstructorModule.sol";
 import "./lib/StudentModule.sol";
 import "./lib/EnrollmentModule.sol";
 import "./lib/AttendanceModule.sol";
+import "./lib/CredentialModule.sol";
 
 contract Celorean is
     Initializable,
@@ -23,7 +24,8 @@ contract Celorean is
     InstructorModule,
     StudentModule,
     EnrollmentModule,
-    AttendanceModule
+    AttendanceModule,
+    CredentialModule
 {
     uint256 private _tokenIdCounter;
 
@@ -54,6 +56,7 @@ contract Celorean is
         __StudentModule_init();
         __EnrollmentModule_init();
         __AttendanceModule_init();
+        __CredentialModule_init();
         _tokenIdCounter = 0;
 
         // Transfer ownership to the specified owner if different from deployer
@@ -151,7 +154,21 @@ contract Celorean is
         address student
     ) public override onlyLecturer {
         require(isStudent[student], "Address is not a registered student");
+        // Ensure the student is enrolled in the course for this session
+        uint256 courseIdForSession = classSessions[sessionId].courseId;
+        require(courseIdForSession > 0, "Session not found");
+        require(isEnrolled[courseIdForSession][student], "Student not enrolled in this course");
         super.markAttendance(sessionId, student);
+    }
+
+    // Credential issuance: restricted to lecturers (or owner)
+    function issueCredentialForStudent(
+        address student,
+        string memory title,
+        string memory metadataUri
+    ) external onlyLecturer returns (uint256) {
+        require(isStudent[student], "Not a registered student");
+        return _issueCredential(student, msg.sender, title, metadataUri);
     }
 
     function withdraw() external onlyOwner {
@@ -163,6 +180,38 @@ contract Celorean is
     function _authorizeUpgrade(
         address newImplementation
     ) internal override onlyOwner {}
+
+    // Authorization: only instructor or admitted+enrolled student can view course data/materials
+    function _isAuthorizedToViewCourse(uint256 courseId, address viewer)
+        internal
+        view
+        override
+        returns (bool)
+    {
+        // Basic bounds check
+        if (courseId == 0 || courseId > courseCount) {
+            return false;
+        }
+        // Instructor always authorized
+        if (courses[courseId].instructor == viewer) {
+            return true;
+        }
+        // Require the viewer to be an admitted student AND enrolled in the course
+        if (isStudent[viewer] && isEnrolled[courseId][viewer]) {
+            return true;
+        }
+        return false;
+    }
+
+    // Only enrolled students can update course rating
+    function updateCourseRating(
+        uint256 courseId,
+        uint256 newRating
+    ) public override {
+        require(courseId > 0 && courseId <= courseCount, "Invalid course ID");
+        require(isEnrolled[courseId][msg.sender], "Only enrolled students can rate");
+        super.updateCourseRating(courseId, newRating);
+    }
 
     function version() external pure returns (string memory) {
         return "1.0.0";

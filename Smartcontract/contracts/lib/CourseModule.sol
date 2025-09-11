@@ -16,11 +16,19 @@ contract CourseModule is Initializable {
         uint256 enrolledCount;
         address instructor;
         string metadataUri; // IPFS URI for course metadata
-        // ✅ Change to array of content URIs
         string[] contentUris; // Array of IPFS URIs for course content
     }
 
-    // ✅ Updated event for content updates
+    // Authorization hook to be overridden by inheriting contract (default: open)
+    function _isAuthorizedToViewCourse(uint256 /*courseId*/, address /*viewer*/)
+        internal
+        view
+        virtual
+        returns (bool)
+    {
+        return true;
+    }
+
     event CourseContentAdded(
         uint256 indexed courseId,
         string newContentUri,
@@ -33,7 +41,7 @@ contract CourseModule is Initializable {
     );
 
     uint256 public courseCount;
-    mapping(uint256 => Course) public courses;
+    mapping(uint256 => Course) internal courses;
     mapping(string => uint256) public courseNameToId;
 
     event CourseCreated(
@@ -63,11 +71,8 @@ contract CourseModule is Initializable {
         emit CourseMetadataUpdated(courseId, newMetadataUri);
     }
 
-    function __CourseModule_init() internal onlyInitializing {
-        // Initialization logic without ownership
-    }
+    function __CourseModule_init() internal onlyInitializing {}
 
-    // ✅ New function to add single content URI
     function addCourseContent(
         uint256 courseId,
         string memory newContentUri
@@ -83,7 +88,6 @@ contract CourseModule is Initializable {
         emit CourseContentAdded(courseId, newContentUri, courses[courseId].contentUris.length - 1);
     }
 
-    // ✅ New function to add multiple content URIs
     function addMultipleCourseContent(
         uint256 courseId,
         string[] memory newContentUris
@@ -103,19 +107,18 @@ contract CourseModule is Initializable {
         emit CourseContentUpdated(courseId, courses[courseId].contentUris);
     }
 
-    // ✅ Function to get all content URIs for a course
     function getCourseContentUris(uint256 courseId) external view returns (string[] memory) {
         require(courseId > 0 && courseId <= courseCount, "Invalid course ID");
+        require(_isAuthorizedToViewCourse(courseId, msg.sender), "Access denied: not authorized");
         return courses[courseId].contentUris;
     }
 
-    // ✅ Function to get content URI count
     function getCourseContentCount(uint256 courseId) external view returns (uint256) {
         require(courseId > 0 && courseId <= courseCount, "Invalid course ID");
+        require(_isAuthorizedToViewCourse(courseId, msg.sender), "Access denied: not authorized");
         return courses[courseId].contentUris.length;
     }
 
-    // ✅ Replace the old updateCourseContent function
     function updateCourseContent(
         uint256 courseId,
         string[] memory newContentUris
@@ -126,10 +129,7 @@ contract CourseModule is Initializable {
             "Only course instructor can update content"
         );
 
-        // Clear existing content URIs
         delete courses[courseId].contentUris;
-        
-        // Add new content URIs
         for (uint256 i = 0; i < newContentUris.length; i++) {
             require(bytes(newContentUris[i]).length > 0, "Content URI cannot be empty");
             courses[courseId].contentUris.push(newContentUris[i]);
@@ -140,6 +140,7 @@ contract CourseModule is Initializable {
 
     function getCourse(uint256 courseId) external view returns (Course memory) {
         require(courseId > 0 && courseId <= courseCount, "Invalid course ID");
+        require(_isAuthorizedToViewCourse(courseId, msg.sender), "Access denied: not authorized");
         return courses[courseId];
     }
 
