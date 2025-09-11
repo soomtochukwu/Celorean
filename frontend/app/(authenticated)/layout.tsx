@@ -16,7 +16,8 @@ export default function AuthenticatedLayout({
       <SidebarNavigation />
       <div className="flex-1 md:ml-64">
         {/* Top-right controls for authenticated pages */}
-        <div className="sticky top-0 z-40 flex items-center justify-end gap-2 p-2 bg-background/70 backdrop-blur supports-[backdrop-filter]:bg-background/60">
+        <div className="sticky top-0 z-40 flex items-center justify-between gap-2 p-2 bg-background/70 backdrop-blur supports-[backdrop-filter]:bg-background/60">
+          <div className="flex-1" />
           <NetworkSwitcher variant="minimal" />
           <ConnectWalletButton />
         </div>

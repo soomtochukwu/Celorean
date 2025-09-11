@@ -33,13 +33,13 @@ function ConnectWalletButton() {
 const ConnectWalletButton = () => {
   useAutoRedirect();
   return (
-    <div>
+    <div className="fixed bottom-4 left-4 z-50 md:static md:bottom-auto md:left-auto">
       <ConnectButton
         accountStatus={{
           smallScreen: "avatar",
           largeScreen: "full",
         }}
-        chainStatus="none"
+        chainStatus="icon"
         showBalance={{
           smallScreen: false,
           largeScreen: false,
