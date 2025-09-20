@@ -12,9 +12,10 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Badge } from "@/components/ui/badge"
 import ConnectWalletButton from "@/components/ConnectWalletButton"
-import { useAccount, useChainId, useSignMessage } from "wagmi"
+import { useAccount, useChainId, useSignMessage, useConnect } from "wagmi"
 import { toast } from "sonner"
 import { useGlobalLoading } from "@/app/providers"
+import MiniAppSDK, { sdk } from "@farcaster/miniapp-sdk"
 
 const DASHBOARD_PAGE = "/dashboard"
 
@@ -32,6 +33,45 @@ export default function Login() {
   const { signMessageAsync } = useSignMessage()
   const verifyingRef = useRef(false)
   const { withLoading } = useGlobalLoading()
+
+  // Farcaster Mini App detection and auto-connect
+  const [isMiniApp, setIsMiniApp] = useState<boolean | null>(null)
+  const { connect, connectors, status: connectStatus, error: connectError } = useConnect()
+  const autoTriedRef = useRef(false)
+
+  useEffect(() => {
+    let mounted = true
+    ;(async () => {
+      try {
+        await sdk.actions.ready()
+        const inMini = await MiniAppSDK.isInMiniApp()
+        if (mounted) setIsMiniApp(inMini)
+      } catch {
+        if (mounted) setIsMiniApp(false)
+      }
+    })()
+    return () => {
+      mounted = false
+    }
+  }, [])
+
+  useEffect(() => {
+    if (!isMiniApp) return
+    if (sessionStatus !== "none") return
+    if (isConnected) return
+    if (autoTriedRef.current) return
+    const far = connectors?.find((c) => c.id === "farcasterMiniApp" || c.name?.toLowerCase?.().includes("farcaster"))
+    if (far) {
+      autoTriedRef.current = true
+      connect({ connector: far })
+    }
+  }, [isMiniApp, sessionStatus, isConnected, connectors, connect])
+
+  useEffect(() => {
+    if (connectError) {
+      toast.error("Wallet connection failed", { description: connectError.message })
+    }
+  }, [connectError])
 
   // Lightweight client-side session check (matches providers.tsx key)
   function readStoredSession(): { address?: string; expiresAt?: number } | null {
@@ -250,7 +290,7 @@ export default function Login() {
                   <Button type="submit" className="w-full" disabled>
                     <>
                       Start Learning
-                      <ArrowRight className="ml-2 h-4 w-4" />
+                      <ArrowRight className="mr-2 h-4 w-4" />
                     </>
                   </Button>
                 </form>
