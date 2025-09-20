@@ -16,6 +16,7 @@ import { useAccount } from "wagmi"
 import { ConnectButton } from "@rainbow-me/rainbowkit"
 import useCeloreanContract from "@/hooks/useCeloreanContract"
 import { useUserData } from "@/hooks/useUserData"
+import Link from "next/link"
 
 export default function LearningPage() {
   const [searchTerm, setSearchTerm] = useState("")
@@ -26,8 +27,12 @@ export default function LearningPage() {
   const { getStudentCourses } = useCeloreanContract()
   const { isStudent } = useUserData()
 
-  // Get enrolled courses for the current user
-  const { data: enrolledCourseIds } = getStudentCourses(address as string)
+  // Always pass a valid address to the contract hook (fallback to zero address for guests)
+  const ZERO_ADDRESS = "0x0000000000000000000000000000000000000000"
+  const safeAddress = address || ZERO_ADDRESS
+
+  // Get enrolled courses for the current user (safe for guests)
+  const { data: enrolledCourseIds } = getStudentCourses(safeAddress as string)
 
   const filteredAndSortedCourses = useMemo(() => {
     let filtered = courses.filter((course) => {
@@ -61,18 +66,6 @@ export default function LearningPage() {
   const handleEnrollmentSuccess = () => {
     // Refresh the page or refetch data
     window.location.reload()
-  }
-
-  if (!isConnected) {
-    return (
-      <div className="container mx-auto px-4 py-8">
-        <div className="text-center">
-          <h1 className="text-3xl font-bold mb-4">Learning Dashboard</h1>
-          <p className="text-muted-foreground mb-6">Connect your wallet to access courses on the blockchain</p>
-          <ConnectButton />
-        </div>
-      </div>
-    )
   }
 
   return (
@@ -142,8 +135,8 @@ export default function LearningPage() {
         </div>
 
         <div className="lg:w-3/4">
-          {/* Admission status banner */}
-          <div className={`mb-6 rounded-lg border p-4 flex items-start gap-3 ${isStudent ? "border-green-500/30 bg-green-500/10 text-green-800" : "border-red-500/30 bg-red-500/10 text-red-800"}`}>
+          {/* Registration status banner for guests */}
+          <div className={`mb-6 rounded-lg border p-4 flex items-start gap-3 ${isStudent ? "border-green-500/30 bg-green-500/10 text-green-800" : "border-amber-500/30 bg-amber-500/10 text-amber-900"}`}>
             {isStudent ? (
               <CheckCircle className="h-5 w-5 mt-0.5" />
             ) : (
@@ -151,16 +144,18 @@ export default function LearningPage() {
             )}
             <div className="flex-1">
               <div className="font-semibold text-sm mb-1">
-                {isStudent ? "Admitted student" : "Not admitted"}
+                {isStudent ? "Registered student" : "Guest access: preview only"}
               </div>
               <p className="text-sm opacity-90">
                 {isStudent
                   ? "You have full access to enroll and interact with course content."
-                  : "Apply for admission to unlock enrollment and course interactions."}
+                  : "You can browse and preview all courses and materials. Registration is required to enroll in any course."}
               </p>
             </div>
             {!isStudent && (
-              <Button size="sm" onClick={() => window.alert("Application flow coming soon. Please contact an administrator to be admitted.")}>Apply for Admission</Button>
+              <Button asChild size="sm">
+                <Link href="/register">Register to Enroll</Link>
+              </Button>
             )}
           </div>
 

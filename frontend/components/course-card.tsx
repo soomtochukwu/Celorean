@@ -9,6 +9,7 @@ import useCeloreanContract from "@/hooks/useCeloreanContract"
 import { useState, useEffect } from "react"
 import { toast } from "@/hooks/use-toast"
 import { useRouter } from "next/navigation"
+import Link from "next/link"
 
 interface CourseCardProps {
   id: number
@@ -79,36 +80,30 @@ export function CourseCard({
   }, [courseData])
 
   const handleCardClick = () => {
-    // Block navigation for non-admitted users who are not enrolled
-    if (!isAdmitted && !(isEnrolled || enrollmentStatus)) {
-      toast({
-        title: "Admission required",
-        description: "Apply for admission to view this course.",
-      })
-      return
-    }
+    // Guests can preview course details and content
     router.push(`/course/${id}`)
   }
 
   const handleEnrollmentClick = (e: React.MouseEvent) => {
-    e.stopPropagation() // Prevent card click when clicking enroll button
+    e.stopPropagation() // Prevent card click when clicking enroll/register button
     handleEnrollment()
   }
 
   const handleEnrollment = async () => {
+    if (!isAdmitted) {
+      // Block enrollment for guests; suggest registration
+      toast({
+        title: "Registration required",
+        description: "Create an account to enroll in courses.",
+      })
+      return
+    }
+
     if (!isConnected) {
       toast({
         title: "Wallet not connected",
         description: "Please connect your wallet to enroll in courses.",
         variant: "destructive",
-      })
-      return
-    }
-
-    if (!isAdmitted) {
-      toast({
-        title: "Admission required",
-        description: "Apply for admission to enroll in courses.",
       })
       return
     }
@@ -226,38 +221,16 @@ export function CourseCard({
           {isAdmitted ? (
             <>
               <CheckCircle className="h-3 w-3 text-green-600" />
-              <span>Admitted</span>
+              <span>Registered</span>
             </>
           ) : (
             <>
-              <Lock className="h-3 w-3 text-red-600" />
-              <span>Not admitted</span>
+              <Lock className="h-3 w-3 text-amber-600" />
+              <span>Guest preview</span>
             </>
           )}
         </div>
-        {!isAdmitted && (
-          <div
-            className="absolute inset-0 bg-background/50 backdrop-blur-[1px] flex items-center justify-center gap-2 text-sm"
-            onClick={(e) => e.stopPropagation()} // prevent triggering card navigation when clicking overlay
-          >
-            <Lock className="h-4 w-4" />
-            <span>Apply for admission to unlock</span>
-          </div>
-        )}
-        {tokenReward && (
-          <div className="absolute bottom-2 left-2 bg-primary/80 backdrop-blur-sm px-2 py-1 rounded text-xs font-bold text-primary-foreground flex items-center gap-1">
-            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" className="w-3 h-3">
-              <path d="M12 7.5a2.25 2.25 0 100 4.5 2.25 2.25 0 000-4.5z" />
-              <path
-                fillRule="evenodd"
-                d="M1.5 4.875C1.5 3.839 2.34 3 3.375 3h17.25c1.035 0 1.875.84 1.875 1.875v9.75c0 1.036-.84 1.875-1.875 1.875H3.375A1.875 1.875 0 011.5 14.625v-9.75zM8.25 9.75a3.75 3.75 0 117.5 0 3.75 3.75 0 01-7.5 0zM18.75 9a.75.75 0 00-.75.75v.008c0 .414.336.75.75.75h.008a.75.75 0 00.75-.75V9.75a.75.75 0 00-.75-.75h-.008zM4.5 9.75A.75.75 0 015.25 9h.008a.75.75 0 01.75.75v.008a.75.75 0 01-.75.75H5.25a.75.75 0 01-.75-.75V9.75z"
-                clipRule="evenodd"
-              />
-              <path d="M2.25 18a.75.75 0 000 1.5c5.4 0 10.63.722 15.6 2.075 1.19.324 2.4-.558 2.4-1.82V18.75a.75.75 0 00-.75-.75H2.25z" />
-            </svg>
-            {tokenReward} CEL
-          </div>
-        )}
+        {/* Removed blocking overlay to allow preview navigation for guests */}
       </div>
       <CardContent className="p-4">
         <h3 className="text-lg font-bold mb-2 line-clamp-2">{title}</h3>
@@ -320,12 +293,10 @@ export function CourseCard({
                 {buttonLoading ? "Processing..." : "Enroll Now"}
               </Button>
             ) : (
-              <Button
-                size="sm"
-                variant="secondary"
-                onClick={(e) => { e.stopPropagation(); toast({ title: "Apply for admission", description: "Contact an administrator or submit an application to be admitted." }) }}
-              >
-                Apply for Admission
+              <Button asChild size="sm" variant="secondary">
+                <Link href="/register" onClick={(e) => e.stopPropagation()}>
+                  Register to Enroll
+                </Link>
               </Button>
             )
           ) : (

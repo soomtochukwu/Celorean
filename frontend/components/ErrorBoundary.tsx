@@ -3,6 +3,7 @@
 import React, { Component, ErrorInfo, ReactNode } from "react";
 import { AlertTriangle, RefreshCw } from "lucide-react";
 import { handleNetworkError } from "@/utils/network-error-handler";
+import { NetworkSwitcher } from "@/components/network-switcher";
 
 interface Props {
   children: ReactNode;
@@ -70,6 +71,17 @@ class ErrorBoundary extends Component<Props, State> {
                 Reload
               </button>
             </div>
+
+            {/* Inline, accessible network switcher */}
+            <div className="mt-5 pt-4 border-t border-white/10">
+              <div className="flex flex-col items-center gap-2" role="group" aria-labelledby="network-switcher-label">
+                <span id="network-switcher-label" className="text-sm text-muted-foreground">
+                  If this is a network issue, switch networks:
+                </span>
+                <NetworkSwitcher variant="compact" />
+              </div>
+            </div>
+
             {process.env.NODE_ENV === "development" && this.state.error && (
               <details className="mt-4 text-left">
                 <summary className="cursor-pointer text-sm">Error details</summary>
