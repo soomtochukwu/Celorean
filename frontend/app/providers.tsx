@@ -21,6 +21,7 @@ import { Toaster } from "sonner";
 import ErrorBoundary from "@/components/ErrorBoundary";
 import { useAccount, useConnect } from "wagmi";
 import { toast } from "sonner";
+import { usePathname } from "next/navigation";
 
 // Define localhost hardhat chain
 const localhost = defineChain({
@@ -120,6 +121,149 @@ function NetworkSync() {
   return null;
 }
 
+// Global Loading Context and Provider
+type LoadingContextValue = {
+  active: boolean;
+  start: (opts?: { minDuration?: number }) => void;
+  stop: () => void;
+  withLoading: <T>(fn: () => Promise<T>, opts?: { minDuration?: number }) => Promise<T>;
+};
+
+const LoadingContext = React.createContext<LoadingContextValue | null>(null);
+
+export function useGlobalLoading() {
+  const ctx = React.useContext(LoadingContext);
+  if (!ctx) throw new Error("useGlobalLoading must be used within Providers");
+  return ctx;
+}
+
+function TopProgressBar({ active, progress }: { active: boolean; progress: number }) {
+  return (
+    <div
+      aria-live="polite"
+      aria-atomic="true"
+      className="pointer-events-none fixed left-0 right-0 top-0 z-[100]"
+    >
+      <div
+        role="progressbar"
+        aria-valuemin={0}
+        aria-valuemax={100}
+        aria-valuenow={active ? Math.round(progress) : undefined}
+        aria-busy={active}
+        className={`h-0.5 bg-primary transition-opacity ${active ? 'opacity-100' : 'opacity-0'}`}
+        style={{
+          width: `${Math.max(0, Math.min(100, progress))}%`,
+          boxShadow: '0 0 8px rgba(0, 255, 120, 0.5)',
+          transitionProperty: 'width, opacity',
+          transitionDuration: '200ms',
+        }}
+      />
+    </div>
+  );
+}
+
+function GlobalLoadingProvider({ children }: { children: React.ReactNode }) {
+  const [active, setActive] = React.useState(false);
+  const [progress, setProgress] = React.useState(0);
+  const counterRef = React.useRef(0);
+  const startedAtRef = React.useRef<number | null>(null);
+  const intervalRef = React.useRef<number | null>(null);
+
+  const tick = React.useCallback(() => {
+    setProgress((p) => {
+      if (p < 80) {
+        // Ease out towards 80%
+        const delta = Math.max(0.5, (80 - p) * 0.1);
+        return Math.min(80, p + delta);
+      }
+      return p;
+    });
+  }, []);
+
+  const clearTimer = React.useCallback(() => {
+    if (intervalRef.current) {
+      window.clearInterval(intervalRef.current);
+      intervalRef.current = null;
+    }
+  }, []);
+
+  const start = React.useCallback((opts?: { minDuration?: number }) => {
+    counterRef.current += 1;
+    if (!active) {
+      setActive(true);
+      setProgress(10);
+      startedAtRef.current = Date.now();
+      clearTimer();
+      intervalRef.current = window.setInterval(tick, 200) as unknown as number;
+    }
+  }, [active, clearTimer, tick]);
+
+  const stop = React.useCallback(() => {
+    if (counterRef.current > 0) counterRef.current -= 1;
+    if (counterRef.current > 0) return; // Still pending actions
+
+    const finalize = () => {
+      setProgress(100);
+      window.setTimeout(() => {
+        setActive(false);
+        setProgress(0);
+        clearTimer();
+        startedAtRef.current = null;
+      }, 200);
+    };
+
+    const startedAt = startedAtRef.current ?? Date.now();
+    const elapsed = Date.now() - startedAt;
+    const minDuration = 300;
+    if (elapsed < minDuration) {
+      window.setTimeout(finalize, minDuration - elapsed);
+    } else {
+      finalize();
+    }
+  }, [clearTimer]);
+
+  const withLoading = React.useCallback(async <T,>(fn: () => Promise<T>, opts?: { minDuration?: number }) => {
+    start(opts);
+    try {
+      const res = await fn();
+      return res;
+    } finally {
+      stop();
+    }
+  }, [start, stop]);
+
+  // Start on any click interaction (capture phase) and auto-stop shortly after
+  React.useEffect(() => {
+    const onClick = () => {
+      start({ minDuration: 300 });
+      // Auto stop if nothing else extended it
+      window.setTimeout(() => stop(), 500);
+    };
+    document.addEventListener('click', onClick, { capture: true });
+    return () => document.removeEventListener('click', onClick, { capture: true } as any);
+  }, [start, stop]);
+
+  // Route transitions: start when pathname changes, stop after a short delay
+  const pathname = usePathname();
+  React.useEffect(() => {
+    if (!pathname) return;
+    start({ minDuration: 400 });
+    const t = window.setTimeout(() => stop(), 800);
+    return () => window.clearTimeout(t);
+  }, [pathname, start, stop]);
+
+  const value = React.useMemo<LoadingContextValue>(() => ({ active, start, stop, withLoading }), [active, start, stop, withLoading]);
+
+  return (
+    <LoadingContext.Provider value={value}>
+      <TopProgressBar active={active} progress={progress} />
+      {/* Screen reader announcement */}
+      <span className="sr-only" aria-live="polite">{active ? 'Loading' : 'Idle'}</span>
+      {children}
+    </LoadingContext.Provider>
+  );
+}
+
 function MiniAppAutoConnector({ enabled }: { enabled: boolean }) {
   const { isConnected } = useAccount();
   const { connect, connectors, error, status } = useConnect();
@@ -197,7 +341,9 @@ export function Providers({ children }: { children: React.ReactNode }) {
               preferredEnvironment={getPreferredEnvironment()}
               showNetworkToasts={true}
             >
-              {children}
+              <GlobalLoadingProvider>
+                {children}
+              </GlobalLoadingProvider>
               <MiniAppAutoConnector enabled={isMiniApp} />
               <NetworkSync />
               <Toaster

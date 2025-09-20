@@ -2,7 +2,7 @@
 
 import type React from "react"
 
-import { useState } from "react"
+import { useEffect, useRef, useState } from "react"
 import Link from "next/link"
 import { useRouter } from "next/navigation"
 import { Zap, Mail, Lock, ArrowRight, Clock } from "lucide-react"
@@ -12,16 +12,51 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Badge } from "@/components/ui/badge"
 import ConnectWalletButton from "@/components/ConnectWalletButton"
+import { useAccount, useChainId, useSignMessage } from "wagmi"
+import { toast } from "sonner"
+import { useGlobalLoading } from "@/app/providers"
+
+const DASHBOARD_PAGE = "/dashboard"
 
 export default function Login() {
-
-
   const router = useRouter()
   const [isLoading, setIsLoading] = useState(false)
   const [formData, setFormData] = useState({
     email: "",
     password: "",
   })
+
+  const { address, isConnected, connector, status } = useAccount()
+  const chainId = useChainId()
+  const { signMessageAsync } = useSignMessage()
+  const verifyingRef = useRef(false)
+  const { withLoading } = useGlobalLoading()
+
+  // Quickly check if a valid session already exists and skip re-auth
+  useEffect(() => {
+    let active = true
+    ;(async () => {
+      try {
+        const res = await fetch("/api/auth/session", { method: "GET" })
+        if (!active) return
+        if (res.ok) {
+          const data = await res.json()
+          if (data?.authenticated) {
+            router.replace(DASHBOARD_PAGE)
+            return
+          }
+        }
+      } catch {
+        // ignore
+      }
+      // If no session, and already connected, start auth immediately
+      if (isConnected && address) {
+        startAuth()
+      }
+    })()
+    return () => { active = false }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target
@@ -30,13 +65,64 @@ export default function Login() {
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault()
-    // Prevent form submission for now
     return false
   }
 
-  const handleWalletConnect = (address: string) => {
-    // Redirect to learning page after wallet connection
-    router.push("/learning")
+  async function startAuth() {
+    if (!isConnected || !address || !chainId) return
+    if (verifyingRef.current) return
+    verifyingRef.current = true
+
+    await withLoading(async () => {
+      const walletType = connector?.id === "farcasterMiniApp" || (connector?.name?.toLowerCase?.() || "").includes("farcaster")
+        ? "farcaster"
+        : "standard"
+
+      const dismiss = toast.loading("Verifying wallet…")
+      try {
+        // 1) Get a signed nonce token from server
+        const nonceRes = await fetch("/api/auth/nonce", { method: "GET" })
+        if (!nonceRes.ok) throw new Error("Failed to get nonce")
+        const { token, nonce, issuedAt, domain, uri } = await nonceRes.json()
+
+        // 2) Build SIWE-style message and sign
+        const message = `${domain} wants you to sign in with your Ethereum account:\n${address}\n\nURI: ${uri}\nVersion: 1\nChain ID: ${chainId}\nNonce: ${nonce}\nIssued At: ${issuedAt}`
+        const signature = await signMessageAsync({ message })
+
+        // 3) Verify on server (sets httpOnly session cookie)
+        const verifyRes = await fetch("/api/auth/verify", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ address, signature, token, chainId, walletType }),
+        })
+        if (!verifyRes.ok) {
+          const err = await verifyRes.json().catch(() => ({}))
+          throw new Error(err?.error || "Verification failed")
+        }
+
+        toast.success("Authenticated")
+        router.replace(DASHBOARD_PAGE)
+      } catch (err: any) {
+        toast.error("Authentication failed", { description: err?.message || "Unknown error" })
+      } finally {
+        toast.dismiss(dismiss)
+        verifyingRef.current = false
+      }
+    })
+  }
+
+  // Immediately verify if a connection is already present/auto-connected
+  useEffect(() => {
+    if (isConnected && address) {
+      startAuth()
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isConnected, address])
+
+  const handleWalletConnect = (addr: string) => {
+    // Deprecated: we now auto-verify on connect via effect
+    // Kept for compatibility if needed elsewhere
+    router.push(DASHBOARD_PAGE)
   }
 
   return (
@@ -68,10 +154,14 @@ export default function Login() {
                   </div>
                 </div>
                 <div className="flex w-full justify-center">
-
                   <ConnectWalletButton />
                 </div>
-
+                {status === "connecting" && (
+                  <p className="text-xs text-muted-foreground text-center">Connecting wallet…</p>
+                )}
+                {isConnected && (
+                  <p className="text-xs text-muted-foreground text-center">Verifying connection…</p>
+                )}
               </div>
 
               <div className="relative">
