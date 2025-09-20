@@ -336,6 +336,7 @@ function GlobalLoadingProvider({ children }: { children: React.ReactNode }) {
   const startedAtRef = React.useRef<number | null>(null);
   const intervalRef = React.useRef<number | null>(null);
   const holdTimeoutRef = React.useRef<number | null>(null);
+  const minDurationRef = React.useRef<number>(300);
 
   const isFetching = useIsFetching();
   const isMutating = useIsMutating ? useIsMutating() : 0 as number;
@@ -375,11 +376,16 @@ function GlobalLoadingProvider({ children }: { children: React.ReactNode }) {
     // Cancel any pending hide from a previous cycle
     clearHoldTimer();
     if (!active) {
+      // Initialize minimum display duration for this cycle
+      minDurationRef.current = opts?.minDuration ?? 300;
       setActive(true);
       setProgress(10);
       startedAtRef.current = Date.now();
       clearTimer();
       intervalRef.current = window.setInterval(tick, 200) as unknown as number;
+    } else if (opts?.minDuration) {
+      // If already active, honor the greater requested min duration
+      minDurationRef.current = Math.max(minDurationRef.current ?? 300, opts.minDuration);
     }
   }, [active, clearTimer, clearHoldTimer, tick]);
 
@@ -395,6 +401,7 @@ function GlobalLoadingProvider({ children }: { children: React.ReactNode }) {
       setActive(false);
       setProgress(0);
       startedAtRef.current = null;
+      minDurationRef.current = 300;
       clearHoldTimer();
     }, holdDuration) as unknown as number;
   }, [clearHoldTimer, clearTimer]);
@@ -405,7 +412,7 @@ function GlobalLoadingProvider({ children }: { children: React.ReactNode }) {
 
     const startedAt = startedAtRef.current ?? Date.now();
     const elapsed = Date.now() - startedAt;
-    const minDuration = 300;
+    const minDuration = Math.max(0, minDurationRef.current ?? 300);
     if (elapsed < minDuration) {
       window.setTimeout(finalizeWithHold, minDuration - elapsed);
     } else {
@@ -473,6 +480,16 @@ function GlobalLoadingProvider({ children }: { children: React.ReactNode }) {
     window.addEventListener('load', onLoad);
     return () => window.removeEventListener('load', onLoad);
   }, [active, stopImmediate]);
+
+  // Accessibility: reflect busy state at document level for AT
+  React.useEffect(() => {
+    try {
+      document.body?.setAttribute('aria-busy', active ? 'true' : 'false');
+    } catch {}
+    return () => {
+      try { document.body?.setAttribute('aria-busy', 'false'); } catch {}
+    };
+  }, [active]);
 
   const value = React.useMemo<LoadingContextValue>(() => ({ active, start, stop, withLoading }), [active, start, stop, withLoading]);
 
@@ -568,8 +585,8 @@ export function Providers({ children }: { children: React.ReactNode }) {
               <GlobalLoadingProvider>
                 {children}
               </GlobalLoadingProvider>
-+             {/* Session management: create on connect, auto-expire in 1 hour, clear on disconnect */}
-+             <SessionManager />
+              {/* Session management: create on connect, auto-expire in 1 hour, clear on disconnect */}
+              <SessionManager />
               <MiniAppAutoConnector enabled={enableAutoConnect} />
               <NetworkSync />
               <Toaster
