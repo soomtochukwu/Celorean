@@ -41,7 +41,10 @@ type NetworkName = keyof typeof NETWORK_CONFIGS;
 type Environment = 'localhost' | 'testnet' | 'mainnet';
 
 function getNetworkConfig(name?: string) {
-  const key = (name || "localhost") as NetworkName;
+  // Accept high-level env names ('testnet'/'mainnet') and map to concrete keys
+  const raw = (name || "localhost");
+  const normalized = raw === 'testnet' ? 'alfajores' : raw === 'mainnet' ? 'celo' : raw;
+  const key = normalized as NetworkName;
   return NETWORK_CONFIGS[key] || NETWORK_CONFIGS.localhost;
 }
 
@@ -49,9 +52,11 @@ function mapNetworkToEnvironment(name?: string): Environment {
   switch (name) {
     case "celo":
     case "celo-mainnet":
+    case "mainnet":
       return "mainnet";
     case "alfajores":
     case "celo-alfajores":
+    case "testnet":
       return "testnet";
     default:
       return "localhost";
@@ -99,12 +104,18 @@ export async function POST(request: NextRequest) {
 
     return NextResponse.json(serializedCourseData);
   } catch (error: any) {
-    console.error("Error fetching course:", error);
     const reason = error?.reason || error?.shortMessage || error?.message || "Failed to fetch course";
-    const status = typeof reason === 'string' && reason.includes('Access denied') ? 403 : 500;
+    // Avoid noisy error logs for expected authorization failures
+    if (typeof reason === 'string' && reason.includes('Access denied')) {
+      return NextResponse.json(
+        { error: 'Access denied: not authorized' },
+        { status: 403 }
+      );
+    }
+    console.error("Error fetching course:", error);
     return NextResponse.json(
       { error: reason },
-      { status }
+      { status: 500 }
     );
   }
 }

@@ -39,7 +39,7 @@ const ConnectWalletButton = () => {
           smallScreen: "avatar",
           largeScreen: "full",
         }}
-        chainStatus="icon"
+        chainStatus="none"
         showBalance={{
           smallScreen: false,
           largeScreen: false,

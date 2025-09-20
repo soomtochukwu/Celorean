@@ -5,19 +5,22 @@ import * as React from "react";
 import {
   RainbowKitProvider,
   getDefaultWallets,
-  getDefaultConfig,
   lightTheme,
   darkTheme,
+  connectorsForWallets,
 } from "@rainbow-me/rainbowkit";
 import { metaMaskWallet, okxWallet, trustWallet, frameWallet, walletConnectWallet, valoraWallet, injectedWallet } from "@rainbow-me/rainbowkit/wallets";
 import { celo, celoAlfajores } from "wagmi/chains";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { WagmiProvider, http, createConfig } from "wagmi";
 import { defineChain } from "viem";
+import MiniAppSDK, { sdk } from '@farcaster/miniapp-sdk';
 import { farcasterMiniApp as miniAppConnector } from '@farcaster/miniapp-wagmi-connector';
 import { NetworkProvider, useNetwork } from "@/contexts/NetworkContext";
 import { Toaster } from "sonner";
 import ErrorBoundary from "@/components/ErrorBoundary";
+import { useAccount, useConnect } from "wagmi";
+import { toast } from "sonner";
 
 // Define localhost hardhat chain
 const localhost = defineChain({
@@ -40,13 +43,11 @@ const localhost = defineChain({
 
 // Determine initial chain based on environment
 const getInitialChain = () => {
-  // Check if we're in development mode
   if (process.env.NODE_ENV === 'development') {
     return localhost;
   }
-  // For production, use celoAlfajores (testnet) or celo (mainnet)
-  // You can customize this logic based on your deployment strategy
-  return celoAlfajores; // or celo for mainnet
+  // Default to Alfajores (can be changed to celo for mainnet)
+  return celoAlfajores;
 };
 
 const { wallets: defaultWallets } = getDefaultWallets();
@@ -64,30 +65,38 @@ const wallets = [
   ...defaultWallets,
 ];
 
-const config = getDefaultConfig({
-  appName: "Celorean",
-  projectId: "b7cfcf662095cd0ee1e06aa9eebd146a",
-  wallets,
-  chains: [
-    celoAlfajores,
-    celo,
-    localhost, // Add localhost chain
-    ...(process.env.NEXT_PUBLIC_ENABLE_TESTNETS === "true"
-      ? [celoAlfajores]
-      : []),
-  ],
-  ssr: true,
-});
-/* const config = createConfig({
-  chains: [celoAlfajores, celo],
-  transports: {
-    [celoAlfajores.id]: http(),
-    [celo.id]: http(),
-  },
-  connectors: [
-    miniAppConnector()
-  ]
-}) */
+const chains = [celoAlfajores, celo, localhost] as const satisfies readonly [import("viem").Chain, ...import("viem").Chain[]];
+
+const transports = {
+  [celoAlfajores.id]: http(),
+  [celo.id]: http(),
+  [localhost.id]: http('http://127.0.0.1:8545'),
+} as const;
+
+const WALLETCONNECT_PROJECT_ID = "b7cfcf662095cd0ee1e06aa9eebd146a";
+
+function createWagmiConfig(isMiniApp: boolean) {
+  // Build RainbowKit connectors for browser wallets
+  const rkConnectors = connectorsForWallets(
+    wallets,
+    {
+      appName: "Celorean",
+      projectId: WALLETCONNECT_PROJECT_ID,
+    }
+  );
+
+  // Optionally prepend Farcaster MiniApp connector when inside miniapp
+  const connectors = isMiniApp
+    ? [miniAppConnector(), ...rkConnectors]
+    : rkConnectors;
+
+  return createConfig({
+    chains,
+    transports,
+    connectors,
+    ssr: true,
+  });
+}
 
 const queryClient = new QueryClient();
 
@@ -111,6 +120,27 @@ function NetworkSync() {
   return null;
 }
 
+function MiniAppAutoConnector({ enabled }: { enabled: boolean }) {
+  const { isConnected } = useAccount();
+  const { connect, connectors, error, status } = useConnect();
+
+  React.useEffect(() => {
+    if (!enabled || isConnected) return;
+    const far = connectors.find((c) => c.id === 'farcasterMiniApp' || c.name.toLowerCase().includes('farcaster'));
+    if (far) {
+      connect({ connector: far });
+    }
+  }, [enabled, isConnected, connectors, connect]);
+
+  React.useEffect(() => {
+    if (error) {
+      toast.error('Wallet connection failed', { description: error.message });
+    }
+  }, [error]);
+
+  return null;
+}
+
 // Enhanced Providers component with network management
 export function Providers({ children }: { children: React.ReactNode }) {
   // Determine preferred environment based on build mode
@@ -118,12 +148,37 @@ export function Providers({ children }: { children: React.ReactNode }) {
     if (process.env.NODE_ENV === 'development') {
       return 'localhost';
     }
-    // For production builds, prefer testnet unless explicitly set to mainnet
     return process.env.NEXT_PUBLIC_NETWORK === 'mainnet' ? 'mainnet' : 'testnet';
   };
 
+  const [isMiniApp, setIsMiniApp] = React.useState(false);
+  const [wagmiConfig, setWagmiConfig] = React.useState(() => createWagmiConfig(false));
+
+  // Detect Farcaster MiniApp environment on mount
+  React.useEffect(() => {
+    let mounted = true;
+    (async () => {
+      try {
+        // Ensure SDK is ready to resolve context properly
+        await sdk.actions.ready();
+        const inMiniApp = await MiniAppSDK.isInMiniApp();
+        if (mounted) {
+          setIsMiniApp(inMiniApp);
+          if (inMiniApp) {
+            setWagmiConfig(createWagmiConfig(true));
+          }
+        }
+      } catch (_) {
+        // Swallow detection errors and keep browser config
+      }
+    })();
+    return () => {
+      mounted = false;
+    };
+  }, []);
+
   return (
-    <WagmiProvider config={config}>
+    <WagmiProvider config={wagmiConfig}>
       <QueryClientProvider client={queryClient}>
         <RainbowKitProvider
           theme={darkTheme({
@@ -138,11 +193,12 @@ export function Providers({ children }: { children: React.ReactNode }) {
         >
           <ErrorBoundary>
             <NetworkProvider
-              enableAutoSwitching={false} // Disable auto-switching to let users choose
+              enableAutoSwitching={false}
               preferredEnvironment={getPreferredEnvironment()}
               showNetworkToasts={true}
             >
               {children}
+              <MiniAppAutoConnector enabled={isMiniApp} />
               <NetworkSync />
               <Toaster
                 position="top-right"

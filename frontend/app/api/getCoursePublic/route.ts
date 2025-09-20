@@ -40,7 +40,9 @@ type NetworkName = keyof typeof NETWORK_CONFIGS;
 type Environment = 'localhost' | 'testnet' | 'mainnet';
 
 function getNetworkConfig(name?: string) {
-  const key = (name || "localhost") as NetworkName;
+  const raw = (name || "localhost");
+  const normalized = raw === 'testnet' ? 'alfajores' : raw === 'mainnet' ? 'celo' : raw;
+  const key = normalized as NetworkName;
   return NETWORK_CONFIGS[key] || NETWORK_CONFIGS.localhost;
 }
 
@@ -48,9 +50,11 @@ function mapNetworkToEnvironment(name?: string): Environment {
   switch (name) {
     case "celo":
     case "celo-mainnet":
+    case "mainnet":
       return "mainnet";
     case "alfajores":
     case "celo-alfajores":
+    case "testnet":
       return "testnet";
     default:
       return "localhost";

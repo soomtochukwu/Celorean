@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { PinataSDK } from "pinata";
-import { getAddressesForEnvironment } from "@/contracts/addresses";
+import { getAddressesForEnvironment } from "@/contracts";
 
 const pinata = new PinataSDK({
   pinataJwt: process.env.PINATA_JWT!,
@@ -22,10 +22,10 @@ export async function POST(req: NextRequest) {
 
     // Resolve environment and addresses for provenance
     const url = new URL(req.url);
-    const networkParam = url.searchParams.get("network") || "localhost";
-    const env = (networkParam === "celo" || networkParam === "celo-mainnet")
+    const networkParam = (url.searchParams.get("network") || "localhost").toLowerCase();
+    const env = (networkParam === "celo" || networkParam === "celo-mainnet" || networkParam === "mainnet")
       ? "mainnet"
-      : (networkParam === "alfajores" || networkParam === "celo-alfajores")
+      : (networkParam === "alfajores" || networkParam === "celo-alfajores" || networkParam === "testnet")
       ? "testnet"
       : "localhost";
 
