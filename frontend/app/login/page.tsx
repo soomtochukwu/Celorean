@@ -21,6 +21,7 @@ const DASHBOARD_PAGE = "/dashboard"
 export default function Login() {
   const router = useRouter()
   const [isLoading, setIsLoading] = useState(false)
+  const [sessionStatus, setSessionStatus] = useState<"checking" | "active" | "none">("checking")
   const [formData, setFormData] = useState({
     email: "",
     password: "",
@@ -32,31 +33,54 @@ export default function Login() {
   const verifyingRef = useRef(false)
   const { withLoading } = useGlobalLoading()
 
+  // Lightweight client-side session check (matches providers.tsx key)
+  function readStoredSession(): { address?: string; expiresAt?: number } | null {
+    try {
+      const raw = localStorage.getItem("celorean.session")
+      if (!raw) return null
+      const parsed = JSON.parse(raw)
+      if (!parsed || typeof parsed.expiresAt !== "number") return null
+      if (parsed.expiresAt <= Date.now()) return null
+      return parsed
+    } catch {
+      return null
+    }
+  }
+
   // Quickly check if a valid session already exists and skip re-auth
   useEffect(() => {
-    let active = true
+    let mounted = true
     ;(async () => {
+      // 1) Client-side quick check
+      const local = readStoredSession()
+      if (!mounted) return
+      if (local) {
+        setSessionStatus("active")
+        router.replace(DASHBOARD_PAGE)
+        return
+      }
+      // 2) Server-side session check (httpOnly cookie)
       try {
         const res = await fetch("/api/auth/session", { method: "GET" })
-        if (!active) return
+        if (!mounted) return
         if (res.ok) {
           const data = await res.json()
           if (data?.authenticated) {
+            setSessionStatus("active")
             router.replace(DASHBOARD_PAGE)
             return
           }
         }
       } catch {
-        // ignore
+        // ignore errors and proceed to auth if needed
       }
-      // If no session, and already connected, start auth immediately
-      if (isConnected && address) {
-        startAuth()
-      }
+      if (!mounted) return
+      setSessionStatus("none")
     })()
-    return () => { active = false }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [])
+    return () => {
+      mounted = false
+    }
+  }, [router])
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target
@@ -74,9 +98,10 @@ export default function Login() {
     verifyingRef.current = true
 
     await withLoading(async () => {
-      const walletType = connector?.id === "farcasterMiniApp" || (connector?.name?.toLowerCase?.() || "").includes("farcaster")
-        ? "farcaster"
-        : "standard"
+      const walletType =
+        connector?.id === "farcasterMiniApp" || (connector?.name?.toLowerCase?.() || "").includes("farcaster")
+          ? "farcaster"
+          : "standard"
 
       const dismiss = toast.loading("Verifying wallet…")
       try {
@@ -111,18 +136,19 @@ export default function Login() {
     })
   }
 
-  // Immediately verify if a connection is already present/auto-connected
+  // Start wallet-based auth only after confirming no active session
   useEffect(() => {
+    if (sessionStatus !== "none") return
     if (isConnected && address) {
       startAuth()
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [isConnected, address])
+  }, [sessionStatus, isConnected, address])
 
   const handleWalletConnect = (addr: string) => {
     // Deprecated: we now auto-verify on connect via effect
     // Kept for compatibility if needed elsewhere
-    router.push(DASHBOARD_PAGE)
+    // No-op here; sessionStatus effect will handle auth/redirect
   }
 
   return (
@@ -156,6 +182,9 @@ export default function Login() {
                 <div className="flex w-full justify-center">
                   <ConnectWalletButton />
                 </div>
+                {sessionStatus === "checking" && (
+                  <p className="text-xs text-muted-foreground text-center">Checking existing session…</p>
+                )}
                 {status === "connecting" && (
                   <p className="text-xs text-muted-foreground text-center">Connecting wallet…</p>
                 )}

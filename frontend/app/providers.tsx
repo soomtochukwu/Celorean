@@ -11,7 +11,7 @@ import {
 } from "@rainbow-me/rainbowkit";
 import { metaMaskWallet, okxWallet, trustWallet, frameWallet, walletConnectWallet, valoraWallet, injectedWallet } from "@rainbow-me/rainbowkit/wallets";
 import { celo, celoAlfajores } from "wagmi/chains";
-import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import { QueryClient, QueryClientProvider, useIsFetching, useIsMutating } from "@tanstack/react-query";
 import { WagmiProvider, http, createConfig } from "wagmi";
 import { defineChain } from "viem";
 import MiniAppSDK, { sdk } from '@farcaster/miniapp-sdk';
@@ -20,6 +20,8 @@ import { NetworkProvider, useNetwork } from "@/contexts/NetworkContext";
 import { Toaster } from "sonner";
 import ErrorBoundary from "@/components/ErrorBoundary";
 import { useAccount, useConnect } from "wagmi";
+// Add useDisconnect for manual disconnect handling
+import { useDisconnect } from "wagmi";
 import { toast } from "sonner";
 import { usePathname } from "next/navigation";
 
@@ -101,6 +103,170 @@ function createWagmiConfig(isMiniApp: boolean) {
 
 const queryClient = new QueryClient();
 
+// Session management configuration
+const SESSION_STORAGE_KEY = "celorean.session";
+const SESSION_DURATION_MS = 3600 * 1000; // 1 hour
+
+type StoredSession = {
+  address: string;
+  createdAt: number; // epoch ms
+  expiresAt: number; // epoch ms
+};
+
+function readStoredSession(): StoredSession | null {
+  try {
+    const raw = localStorage.getItem(SESSION_STORAGE_KEY);
+    if (!raw) return null;
+    const parsed = JSON.parse(raw) as StoredSession;
+    if (!parsed || typeof parsed.expiresAt !== "number") return null;
+    return parsed;
+  } catch (_) {
+    return null;
+  }
+}
+
+function writeStoredSession(s: StoredSession) {
+  try {
+    localStorage.setItem(SESSION_STORAGE_KEY, JSON.stringify(s));
+  } catch (_) {
+    // ignore
+  }
+}
+
+function clearStoredSession() {
+  try {
+    localStorage.removeItem(SESSION_STORAGE_KEY);
+  } catch (_) {
+    // ignore
+  }
+}
+
+function SessionManager() {
+  const { address, isConnected } = useAccount();
+  const { disconnect } = useDisconnect();
+
+  const expiryRef = React.useRef<number | null>(null);
+  const timerRef = React.useRef<number | null>(null);
+
+  const cancelTimer = React.useCallback(() => {
+    if (timerRef.current) {
+      window.clearTimeout(timerRef.current);
+      timerRef.current = null;
+    }
+  }, []);
+
+  const scheduleExpiry = React.useCallback((expiresAt: number) => {
+    cancelTimer();
+    const now = Date.now();
+    const delay = Math.max(0, expiresAt - now);
+    timerRef.current = window.setTimeout(() => {
+      // Auto-expire: clear session and disconnect wallet
+      clearStoredSession();
+      expiryRef.current = null;
+      if (isConnected) {
+        disconnect();
+      }
+    }, delay) as unknown as number;
+  }, [cancelTimer, disconnect, isConnected]);
+
+  // Create or resume session on successful wallet connection
+  React.useEffect(() => {
+    if (!isConnected || !address) {
+      // On disconnect, ensure session is cleared and timers are cancelled
+      cancelTimer();
+      expiryRef.current = null;
+      clearStoredSession();
+      return;
+    }
+
+    const existing = readStoredSession();
+    const validExisting = existing && existing.expiresAt > Date.now() && existing.address === address ? existing : null;
+
+    if (validExisting) {
+      // Resume existing session without redundant validation
+      expiryRef.current = validExisting.expiresAt;
+      scheduleExpiry(validExisting.expiresAt);
+    } else {
+      // Create a new session
+      const now = Date.now();
+      const expiresAt = now + SESSION_DURATION_MS;
+      const session: StoredSession = { address, createdAt: now, expiresAt };
+      writeStoredSession(session);
+      expiryRef.current = expiresAt;
+      scheduleExpiry(expiresAt);
+    }
+  }, [isConnected, address, scheduleExpiry, cancelTimer]);
+
+  // Keep session alive without revalidation during its lifetime (no polling). When tab regains focus, just check expiry once.
+  React.useEffect(() => {
+    const onVisibility = () => {
+      if (document.visibilityState === "visible") {
+        const s = readStoredSession();
+        if (!s || s.expiresAt <= Date.now()) {
+          // Expired in background – enforce logout
+          cancelTimer();
+          expiryRef.current = null;
+          clearStoredSession();
+          if (isConnected) disconnect();
+        } else if (expiryRef.current !== s.expiresAt) {
+          // If expiry changed (another tab), reschedule
+          expiryRef.current = s.expiresAt;
+          scheduleExpiry(s.expiresAt);
+        }
+      }
+    };
+    document.addEventListener("visibilitychange", onVisibility);
+    window.addEventListener("focus", onVisibility);
+    return () => {
+      document.removeEventListener("visibilitychange", onVisibility);
+      window.removeEventListener("focus", onVisibility);
+    };
+  }, [cancelTimer, disconnect, isConnected, scheduleExpiry]);
+
+  // Cross-tab synchronization via storage events
+  React.useEffect(() => {
+    const onStorage = (e: StorageEvent) => {
+      if (e.key !== SESSION_STORAGE_KEY) return;
+      const s = readStoredSession();
+      if (!s || s.expiresAt <= Date.now()) {
+        // Session removed/expired in another tab
+        cancelTimer();
+        expiryRef.current = null;
+        clearStoredSession();
+        if (isConnected) disconnect();
+      } else {
+        expiryRef.current = s.expiresAt;
+        scheduleExpiry(s.expiresAt);
+      }
+    };
+    window.addEventListener("storage", onStorage);
+    return () => window.removeEventListener("storage", onStorage);
+  }, [cancelTimer, disconnect, isConnected, scheduleExpiry]);
+
+  return null;
+}
+
+// Paths that represent authenticated sections where auto-connection is allowed
+const AUTH_SECTIONS = [
+  "/activity",
+  "/admin",
+  "/community",
+  "/course",
+  "/credentials",
+  "/learning",
+  "/profile",
+  "/self-verification",
+  "/settings",
+];
+
+function shouldAutoConnectForPath(pathname?: string) {
+  if (!pathname) return false;
+  // Explicitly block auto-connect on dashboard (and any nested routes)
+  if (pathname === "/dashboard" || pathname.startsWith("/dashboard/")) return false;
+  // Allow auto-connect for the rest of authenticated sections
+  return AUTH_SECTIONS.some((p) => pathname === p || pathname.startsWith(p + "/"));
+}
+
 function NetworkSync() {
   const { refreshAddresses } = useNetwork();
 
@@ -156,6 +322,7 @@ function TopProgressBar({ active, progress }: { active: boolean; progress: numbe
           boxShadow: '0 0 8px rgba(0, 255, 120, 0.5)',
           transitionProperty: 'width, opacity',
           transitionDuration: '200ms',
+          willChange: 'width, opacity',
         }}
       />
     </div>
@@ -168,6 +335,10 @@ function GlobalLoadingProvider({ children }: { children: React.ReactNode }) {
   const counterRef = React.useRef(0);
   const startedAtRef = React.useRef<number | null>(null);
   const intervalRef = React.useRef<number | null>(null);
+  const holdTimeoutRef = React.useRef<number | null>(null);
+
+  const isFetching = useIsFetching();
+  const isMutating = useIsMutating ? useIsMutating() : 0 as number;
 
   const tick = React.useCallback(() => {
     setProgress((p) => {
@@ -175,6 +346,11 @@ function GlobalLoadingProvider({ children }: { children: React.ReactNode }) {
         // Ease out towards 80%
         const delta = Math.max(0.5, (80 - p) * 0.1);
         return Math.min(80, p + delta);
+      }
+      if (p < 95) {
+        // Crawl towards 95% while work continues
+        const delta = Math.max(0.1, (95 - p) * 0.03);
+        return Math.min(95, p + delta);
       }
       return p;
     });
@@ -187,8 +363,17 @@ function GlobalLoadingProvider({ children }: { children: React.ReactNode }) {
     }
   }, []);
 
+  const clearHoldTimer = React.useCallback(() => {
+    if (holdTimeoutRef.current) {
+      window.clearTimeout(holdTimeoutRef.current);
+      holdTimeoutRef.current = null;
+    }
+  }, []);
+
   const start = React.useCallback((opts?: { minDuration?: number }) => {
     counterRef.current += 1;
+    // Cancel any pending hide from a previous cycle
+    clearHoldTimer();
     if (!active) {
       setActive(true);
       setProgress(10);
@@ -196,31 +381,43 @@ function GlobalLoadingProvider({ children }: { children: React.ReactNode }) {
       clearTimer();
       intervalRef.current = window.setInterval(tick, 200) as unknown as number;
     }
-  }, [active, clearTimer, tick]);
+  }, [active, clearTimer, clearHoldTimer, tick]);
+
+  const finalizeWithHold = React.useCallback(() => {
+    // Immediately complete to 100%
+    setProgress(100);
+    // Stop background ticking while we display completion state
+    clearTimer();
+    // Hold at 100% momentarily so users see completion before fade out
+    const holdDuration = 400;
+    clearHoldTimer();
+    holdTimeoutRef.current = window.setTimeout(() => {
+      setActive(false);
+      setProgress(0);
+      startedAtRef.current = null;
+      clearHoldTimer();
+    }, holdDuration) as unknown as number;
+  }, [clearHoldTimer, clearTimer]);
 
   const stop = React.useCallback(() => {
     if (counterRef.current > 0) counterRef.current -= 1;
     if (counterRef.current > 0) return; // Still pending actions
 
-    const finalize = () => {
-      setProgress(100);
-      window.setTimeout(() => {
-        setActive(false);
-        setProgress(0);
-        clearTimer();
-        startedAtRef.current = null;
-      }, 200);
-    };
-
     const startedAt = startedAtRef.current ?? Date.now();
     const elapsed = Date.now() - startedAt;
     const minDuration = 300;
     if (elapsed < minDuration) {
-      window.setTimeout(finalize, minDuration - elapsed);
+      window.setTimeout(finalizeWithHold, minDuration - elapsed);
     } else {
-      finalize();
+      finalizeWithHold();
     }
-  }, [clearTimer]);
+  }, [finalizeWithHold]);
+
+  // Immediate completion path used when we know the page is fully loaded (network idle)
+  const stopImmediate = React.useCallback(() => {
+    counterRef.current = 0;
+    finalizeWithHold();
+  }, [finalizeWithHold]);
 
   const withLoading = React.useCallback(async <T,>(fn: () => Promise<T>, opts?: { minDuration?: number }) => {
     start(opts);
@@ -232,25 +429,50 @@ function GlobalLoadingProvider({ children }: { children: React.ReactNode }) {
     }
   }, [start, stop]);
 
-  // Start on any click interaction (capture phase) and auto-stop shortly after
+  // Start on any click interaction (capture phase) and auto-stop shortly after for non-network actions
   React.useEffect(() => {
     const onClick = () => {
       start({ minDuration: 300 });
       // Auto stop if nothing else extended it
-      window.setTimeout(() => stop(), 500);
+      window.setTimeout(() => stop(), 600);
     };
     document.addEventListener('click', onClick, { capture: true });
     return () => document.removeEventListener('click', onClick, { capture: true } as any);
   }, [start, stop]);
 
-  // Route transitions: start when pathname changes, stop after a short delay
+  // Route transitions: start when pathname changes and rely on network-idle to finish.
   const pathname = usePathname();
   React.useEffect(() => {
     if (!pathname) return;
-    start({ minDuration: 400 });
-    const t = window.setTimeout(() => stop(), 800);
-    return () => window.clearTimeout(t);
-  }, [pathname, start, stop]);
+    start({ minDuration: 300 });
+    // Fallback: if something goes wrong, ensure it completes rather than hangs
+    const fallback = window.setTimeout(() => {
+      if (active) stopImmediate();
+    }, 5000);
+    return () => window.clearTimeout(fallback);
+  }, [pathname, start, active, stopImmediate]);
+
+  // React Query network idleness determines when the page is "fully loaded" for data
+  React.useEffect(() => {
+    const busy = (isFetching || 0) + (isMutating || 0) > 0;
+    if (busy) {
+      start({ minDuration: 300 });
+    } else {
+      if (active) {
+        // Complete immediately to 100% when network is idle
+        stopImmediate();
+      }
+    }
+  }, [isFetching, isMutating, active, start, stopImmediate]);
+
+  // Also complete immediately on full window load (initial mount)
+  React.useEffect(() => {
+    const onLoad = () => {
+      if (active) stopImmediate();
+    };
+    window.addEventListener('load', onLoad);
+    return () => window.removeEventListener('load', onLoad);
+  }, [active, stopImmediate]);
 
   const value = React.useMemo<LoadingContextValue>(() => ({ active, start, stop, withLoading }), [active, start, stop, withLoading]);
 
@@ -297,6 +519,8 @@ export function Providers({ children }: { children: React.ReactNode }) {
 
   const [isMiniApp, setIsMiniApp] = React.useState(false);
   const [wagmiConfig, setWagmiConfig] = React.useState(() => createWagmiConfig(false));
+  const pathname = usePathname();
+  const enableAutoConnect = React.useMemo(() => isMiniApp && shouldAutoConnectForPath(pathname || undefined), [isMiniApp, pathname]);
 
   // Detect Farcaster MiniApp environment on mount
   React.useEffect(() => {
@@ -344,7 +568,9 @@ export function Providers({ children }: { children: React.ReactNode }) {
               <GlobalLoadingProvider>
                 {children}
               </GlobalLoadingProvider>
-              <MiniAppAutoConnector enabled={isMiniApp} />
++             {/* Session management: create on connect, auto-expire in 1 hour, clear on disconnect */}
++             <SessionManager />
+              <MiniAppAutoConnector enabled={enableAutoConnect} />
               <NetworkSync />
               <Toaster
                 position="top-right"
