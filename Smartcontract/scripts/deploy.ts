@@ -192,6 +192,44 @@ async function main() {
   console.log("✅ Celorean Proxy Contract Deployed Successfully!");
   console.log("");
 
+  // Deploy CertificateNFT
+  const CertificateNFT = await hre.ethers.getContractFactory("CertificateNFT");
+  console.log("Deploying CertificateNFT...");
+  const certificateNft = await CertificateNFT.deploy("Celorean Certificates", "CLRN-CERT");
+  await certificateNft.waitForDeployment();
+  const certificateNftAddress = await certificateNft.getAddress();
+  console.log(`✅ CertificateNFT Deployed: ${certificateNftAddress}`);
+
+  // Deploy EventManager
+  const EventManager = await hre.ethers.getContractFactory("EventManager");
+  console.log("Deploying EventManager...");
+  const eventManager = await EventManager.deploy();
+  await eventManager.waitForDeployment();
+  const eventManagerAddress = await eventManager.getAddress();
+  console.log(`✅ EventManager Deployed: ${eventManagerAddress}`);
+
+  // Deploy VerifierRegistry
+  const VerifierRegistry = await hre.ethers.getContractFactory("VerifierRegistry");
+  console.log("Deploying VerifierRegistry...");
+  const verifierRegistry = await VerifierRegistry.deploy();
+  await verifierRegistry.waitForDeployment();
+  const verifierRegistryAddress = await verifierRegistry.getAddress();
+  console.log(`✅ VerifierRegistry Deployed: ${verifierRegistryAddress}`);
+
+  // Wire relationships
+  console.log("Configuring contract relationships...");
+  const txSetCertInCelorean = await celorean.setCertificateNFT(certificateNftAddress);
+  await txSetCertInCelorean.wait();
+  const txSetCertInEventMgr = await eventManager.setCertificateNFT(certificateNftAddress);
+  await txSetCertInEventMgr.wait();
+
+  // Grant minter roles for certificate NFT to Celorean and EventManager
+  const txMinterCelorean = await certificateNft.setMinter(await celorean.getAddress(), true);
+  await txMinterCelorean.wait();
+  const txMinterEventMgr = await certificateNft.setMinter(eventManagerAddress, true);
+  await txMinterEventMgr.wait();
+  console.log("✅ CertificateNFT minter roles granted");
+
   // Enhanced Contract Address Logging
   console.log("📋 CONTRACT DEPLOYMENT SUMMARY");
   console.log("=".repeat(50));
@@ -330,6 +368,11 @@ async function main() {
     deployer: deployer.address,
     gasUsed: celorean.deploymentTransaction()?.gasLimit?.toString() || "N/A",
     blockNumber: celorean.deploymentTransaction()?.blockNumber || 0,
+
+    // Extended addresses
+    certificateNFT: certificateNftAddress,
+    eventManager: eventManagerAddress,
+    verifierRegistry: verifierRegistryAddress,
   };
 
   // Create the addresses directory if it doesn't exist
@@ -411,12 +454,33 @@ export default contractAddresses;
   );
   fs.writeFileSync(jsonFilePath, JSON.stringify(contractAddresses, null, 2));
 
+  // Write individual JSONs for new contracts (for frontend consumption)
+  const extraJsons = [
+    { name: "certificate-nft", address: certificateNftAddress },
+    { name: "event-manager", address: eventManagerAddress },
+    { name: "verifier-registry", address: verifierRegistryAddress },
+  ];
+  for (const extra of extraJsons) {
+    const p = path.join(addressesDir, `${hre.network.name}-${extra.name}.json`);
+    fs.writeFileSync(p, JSON.stringify({ address: extra.address, network: hre.network.name, environment: envConfig.name }, null, 2));
+  }
+
   // Copy the TypeScript file to frontend contracts directory if it exists
   const frontendContractsDir = path.join(__dirname, "../../frontend/contracts");
   let frontendTsPath = "";
   if (fs.existsSync(frontendContractsDir)) {
     frontendTsPath = path.join(frontendContractsDir, "addresses.ts");
     fs.copyFileSync(tsFilePath, frontendTsPath);
+
+    const frontendAddrDir = path.join(frontendContractsDir, "addresses");
+    if (!fs.existsSync(frontendAddrDir)) {
+      fs.mkdirSync(frontendAddrDir, { recursive: true });
+    }
+    // Write extra addresses for frontend
+    for (const extra of extraJsons) {
+      const fp = path.join(frontendAddrDir, `${extra.name}.json`);
+      fs.writeFileSync(fp, JSON.stringify({ address: extra.address, network: hre.network.name, environment: envConfig.name }, null, 2));
+    }
   }
 
   // Enhanced File Saving Logging
@@ -438,6 +502,29 @@ export default contractAddresses;
       `Waiting for ${envConfig.confirmationBlocks} block confirmations...`
     );
     await celorean.deploymentTransaction()?.wait(envConfig.confirmationBlocks);
+
+    // Verify CertificateNFT, EventManager, VerifierRegistry
+    try {
+      await verify(certificateNftAddress, ["Celorean Certificates", "CLRN-CERT"], "contracts/CertificateNFT.sol:CertificateNFT");
+      console.log("✅ CertificateNFT verification successful!");
+    } catch (e: unknown) {
+      const errMsg = e instanceof Error ? e.message : String(e);
+      console.log("⚠️ CertificateNFT verification skipped/failed:", errMsg);
+    }
+    try {
+      await verify(eventManagerAddress, [], "contracts/EventManager.sol:EventManager");
+      console.log("✅ EventManager verification successful!");
+    } catch (e: unknown) {
+      const errMsg = e instanceof Error ? e.message : String(e);
+      console.log("⚠️ EventManager verification skipped/failed:", errMsg);
+    }
+    try {
+      await verify(verifierRegistryAddress, [], "contracts/VerifierRegistry.sol:VerifierRegistry");
+      console.log("✅ VerifierRegistry verification successful!");
+    } catch (e: unknown) {
+      const errMsg = e instanceof Error ? e.message : String(e);
+      console.log("⚠️ VerifierRegistry verification skipped/failed:", errMsg);
+    }
 
     if (implementationAddress !== "IMPLEMENTATION_ADDRESS_NOT_AVAILABLE") {
       console.log("Verifying implementation contract...");
@@ -498,6 +585,9 @@ export default contractAddresses;
     console.log("📍 CONTRACT ADDRESSES:");
     console.log(`🏠 Proxy Contract:                ${proxyAddress}`);
     console.log(`🔧 Implementation Contract:       ${implementationAddress}`);
+    console.log(`🏅 CertificateNFT:                ${certificateNftAddress}`);
+    console.log(`📅 EventManager:                  ${eventManagerAddress}`);
+    console.log(`✅ VerifierRegistry:              ${verifierRegistryAddress}`);
     console.log(`👤 Deploying Account:             ${deployer.address}`);
     console.log("");
     console.log("⛽ TRANSACTION DETAILS:");

@@ -14,6 +14,10 @@ export interface ContractAddresses {
   deployer?: string;
   gasUsed?: string;
   blockNumber?: number;
+  // Optional extended contracts (populated by deploy script when available)
+  certificateNFT?: string;
+  eventManager?: string;
+  verifierRegistry?: string;
 }
 
 export type EnvironmentKey = 'localhost' | 'testnet' | 'mainnet';

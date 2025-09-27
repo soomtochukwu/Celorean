@@ -14,6 +14,16 @@ import "./lib/EnrollmentModule.sol";
 import "./lib/AttendanceModule.sol";
 import "./lib/CredentialModule.sol";
 
+// Lightweight interface for the Certificate NFT contract
+interface ICertificateNFT {
+    function mintCertificateForCredential(
+        address to,
+        uint256 credentialId,
+        string memory title,
+        string memory metadataUri
+    ) external returns (uint256);
+}
+
 contract Celorean is
     Initializable,
     ERC721Upgradeable,
@@ -27,6 +37,10 @@ contract Celorean is
     AttendanceModule,
     CredentialModule
 {
+    // Address of external Certificate NFT contract (upgrade-safe new storage)
+    address public certificateNFT;
+    event CertificateNFTUpdated(address indexed nft);
+
     uint256 private _tokenIdCounter;
 
     modifier onlyLecturer() {
@@ -58,8 +72,7 @@ contract Celorean is
         __AttendanceModule_init();
         __CredentialModule_init();
         _tokenIdCounter = 0;
-
-        // Ownership initialized via __Ownable_init(owner)
+        // certificateNFT left unset by default; can be set post-deploy
     }
 
     function createCourse(
@@ -158,6 +171,13 @@ contract Celorean is
         super.markAttendance(sessionId, student);
     }
 
+    // Set or update the Certificate NFT contract address
+    function setCertificateNFT(address nft) external onlyOwner {
+        require(nft != address(0), "Invalid NFT address");
+        certificateNFT = nft;
+        emit CertificateNFTUpdated(nft);
+    }
+
     // Credential issuance: restricted to lecturers (or owner)
     function issueCredentialForStudent(
         address student,
@@ -165,7 +185,17 @@ contract Celorean is
         string memory metadataUri
     ) external onlyLecturer returns (uint256) {
         require(isStudent[student], "Not a registered student");
-        return _issueCredential(student, msg.sender, title, metadataUri);
+        uint256 credentialId = _issueCredential(student, msg.sender, title, metadataUri);
+
+        // If Certificate NFT contract configured, mint a certificate NFT linked to the credential
+        if (certificateNFT != address(0)) {
+            try ICertificateNFT(certificateNFT).mintCertificateForCredential(student, credentialId, title, metadataUri) returns (uint256 /*tokenId*/) {
+                // no-op; frontend can query certificate contract by student/credential id
+            } catch {
+                // Swallow errors to avoid blocking core credential issuance
+            }
+        }
+        return credentialId;
     }
 
     function withdraw() external onlyOwner {

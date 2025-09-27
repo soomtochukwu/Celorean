@@ -71,10 +71,24 @@ export function useCourses() {
       // Fetch all courses using the API route
       for (let i = 1; i <= Number(courseCount); i++) {
         try {
-          // Prefer public endpoint for guests to reduce 403 noise and latency
+          // Try authorized getCourse first
           let courseData: any | null = null
+          let response = await fetch('/api/getCourse', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({ 
+              courseId: i,
+              network: currentAddresses.network,
+              viewer: address || null,
+            }),
+          })
 
-          if (!address) {
+          if (response.ok) {
+            courseData = await response.json()
+          } else if (response.status === 403 || response.status === 404) {
+            // Fallback to public preview via logs
             const publicRes = await fetch('/api/getCoursePublic', {
               method: 'POST',
               headers: {
@@ -87,38 +101,6 @@ export function useCourses() {
             })
             if (publicRes.ok) {
               courseData = await publicRes.json()
-            }
-          } else {
-            // Try authorized getCourse first for connected users
-            let response = await fetch('/api/getCourse', {
-              method: 'POST',
-              headers: {
-                'Content-Type': 'application/json',
-              },
-              body: JSON.stringify({ 
-                courseId: i,
-                network: currentAddresses.network,
-                viewer: address || null,
-              }),
-            })
-
-            if (response.ok) {
-              courseData = await response.json()
-            } else if (response.status === 403 || response.status === 404) {
-              // Fallback to public preview via logs
-              const publicRes = await fetch('/api/getCoursePublic', {
-                method: 'POST',
-                headers: {
-                  'Content-Type': 'application/json',
-                },
-                body: JSON.stringify({
-                  courseId: i,
-                  network: currentAddresses.network,
-                }),
-              })
-              if (publicRes.ok) {
-                courseData = await publicRes.json()
-              }
             }
           }
           
@@ -162,63 +144,13 @@ export function useCourses() {
   return { courses, loading }
 }
 
-// Helper function to fetch thumbnail from IPFS metadata with multi-gateway fallback and timeout
+// Helper function to fetch thumbnail from IPFS metadata
 const fetchThumbnailFromMetadata = async (metadataUri: string): Promise<string> => {
-  const GATEWAYS = [
-    'https://ipfs.io/ipfs/',
-    'https://cloudflare-ipfs.com/ipfs/',
-    'https://gateway.pinata.cloud/ipfs/'
-  ]
-
-  const toGatewayUrls = (uri: string): string[] => {
-    try {
-      if (!uri) return []
-      // ipfs://CID/path
-      if (uri.startsWith('ipfs://')) {
-        const path = uri.replace('ipfs://', '')
-        return GATEWAYS.map(g => `${g}${path}`)
-      }
-      // http(s) with /ipfs/CID/path
-      const ipfsIndex = uri.indexOf('/ipfs/')
-      if (ipfsIndex !== -1) {
-        const path = uri.substring(ipfsIndex + '/ipfs/'.length)
-        // include original first, then alternates
-        return [uri, ...GATEWAYS.map(g => `${g}${path}`)].filter((v, idx, arr) => arr.indexOf(v) === idx)
-      }
-      // normal http(s)
-      return [uri]
-    } catch {
-      return [uri]
-    }
-  }
-
-  const fetchWithTimeout = async (url: string, ms = 6000) => {
-    const controller = new AbortController()
-    const id = setTimeout(() => controller.abort(), ms)
-    try {
-      const res = await fetch(url, { signal: controller.signal })
-      return res
-    } finally {
-      clearTimeout(id)
-    }
-  }
-
   try {
-    const metadataUrls = toGatewayUrls(metadataUri)
-    for (const url of metadataUrls) {
-      try {
-        const response = await fetchWithTimeout(url)
-        if (response.ok) {
-          const metadata = await response.json()
-          const rawThumb: string | undefined = metadata.thumbnail || metadata.image
-          if (!rawThumb) return '/placeholder.jpg'
-          const thumbCandidates = toGatewayUrls(rawThumb)
-          // Return the first candidate; the <img> tag has its own onError fallback chain
-          return thumbCandidates[0] || '/placeholder.jpg'
-        }
-      } catch (_e) {
-        // try next gateway
-      }
+    const response = await fetch(metadataUri)
+    if (response.ok) {
+      const metadata = await response.json()
+      return metadata.thumbnail || '/placeholder.jpg'
     }
   } catch (error) {
     console.error('Error fetching course metadata:', error)

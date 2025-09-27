@@ -40,18 +40,16 @@ export default function SelfVerification() {
   const [currentStep, setCurrentStep] = useState(0);
   const [isVerifying, setIsVerifying] = useState(false);
   const [isComplete, setIsComplete] = useState(false);
+  const [verificationResult, setVerificationResult] = useState<any>(null);
+  const [verificationError, setVerificationError] = useState<string | null>(null);
 
   const handleNextStep = () => {
     if (currentStep === 1) {
       setCurrentStep(2);
       setIsVerifying(true);
-    } else if (currentStep == 2) {
-      // setIsVerifying(false);
-      setTimeout(() => {
-        setIsComplete(true);
-      }, 2000);
     }
   };
+
   useEffect(() => {
     setCurrentStep(1);
   }, [isConnected]);
@@ -139,10 +137,37 @@ export default function SelfVerification() {
                 {currentStep === 2 && (
                   <div className="flex flex-col items-center justify-center py-10">
                     {isVerifying ? (
-                      <div className="text-center">
+                      <div className="text-center w-full">
+                        {!!verificationError && (
+                          <div className="mb-4 p-3 rounded-md bg-red-100 text-red-700">
+                            {verificationError}
+                          </div>
+                        )}
+                        {verificationResult ? (
+                          <div className="mb-6 text-left mx-auto max-w-md p-4 rounded-md border border-primary/10 bg-secondary/10">
+                            <h3 className="font-semibold mb-2">Verified Credential</h3>
+                            <pre className="text-xs whitespace-pre-wrap break-words">
+                              {JSON.stringify(verificationResult, null, 2)}
+                            </pre>
+                          </div>
+                        ) : null}
                         <div className=" md:block hidden">
-
-                          <SelfQr setIsComplete={setIsComplete} />
+                          <SelfQr
+                            setIsComplete={(v) => {
+                              setIsComplete(v);
+                              if (v) setIsVerifying(false);
+                            }}
+                            onVerified={(data) => {
+                              setVerificationResult(data);
+                              setVerificationError(null);
+                              setIsComplete(true);
+                              setIsVerifying(false);
+                            }}
+                            onError={(err) => {
+                              setVerificationError(typeof err === "string" ? err : "Verification failed");
+                              setIsVerifying(false);
+                            }}
+                          />
                         </div>
                         <button
                           className="bg-[#46c458] md:hidden sm:block p-3 text-black rounded-md"
@@ -150,7 +175,10 @@ export default function SelfVerification() {
                             const a = document.createElement("a");
                             a.href = `https://redirect.self.xyz/?sessionId=${localStorage.getItem("sessionId")}`;
                             a.click();
-                          }}>Since you are on a mobile device, click here.                          </button>
+                          }}
+                        >
+                          Since you are on a mobile device, click here.
+                        </button>
                       </div>
                     ) : (
                       <>

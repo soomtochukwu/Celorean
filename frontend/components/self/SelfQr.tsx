@@ -10,8 +10,12 @@ import Link from "next/link";
 import { Zap } from "lucide-react";
 function SelfQr({
   setIsComplete,
+  onVerified,
+  onError,
 }: {
   setIsComplete: (isComplete: boolean) => void;
+  onVerified?: (data: any) => void;
+  onError?: (error: string | any) => void;
 }) {
   const //
     [userId, setUserId] = useState<string | null>(null),
@@ -19,7 +23,11 @@ function SelfQr({
 
   useEffect(() => {
     // Generate a user ID when the component mounts
-    setUserId(uuidv4());
+    const id = uuidv4();
+    setUserId(id);
+    try {
+      localStorage.setItem("sessionId", id);
+    } catch (_) {}
   }, []);
 
   if (!userId) return null;
@@ -40,6 +48,37 @@ function SelfQr({
     },
   }).build();
 
+  const handleSuccess = async (payload: any) => {
+    try {
+      // Attempt to extract proof and publicSignals from callback payload
+      const proof = payload?.proof ?? payload?.data?.proof;
+      const publicSignals = payload?.publicSignals ?? payload?.data?.publicSignals;
+
+      if (proof && publicSignals) {
+        const res = await fetch("/api/verify", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ proof, publicSignals }),
+        });
+        const json = await res.json();
+        if (res.ok && json?.status === "success") {
+          setIsComplete(true);
+          if (onVerified) onVerified(json?.credentialSubject ?? json);
+        } else {
+          console.error("Self verification failed:", json);
+          if (onError) onError(json?.message || "Verification failed");
+        }
+      } else {
+        const msg = "SelfQRcodeWrapper onSuccess payload missing proof/publicSignals";
+        console.warn(msg, payload);
+        if (onError) onError(msg);
+      }
+    } catch (err: any) {
+      console.error("Error processing Self verification:", err);
+      if (onError) onError(err?.message || "Error processing verification");
+    }
+  };
+
   return (
     <div className="verification-container">
       <h1>Verify Your Identity</h1>
@@ -57,9 +96,7 @@ function SelfQr({
         ></Image> */}
         <SelfQRcodeWrapper
           selfApp={selfApp}
-          onSuccess={async () => {
-            setIsComplete(true);
-          }}
+          onSuccess={handleSuccess as unknown as () => void}
           size={350}
           darkMode
         />

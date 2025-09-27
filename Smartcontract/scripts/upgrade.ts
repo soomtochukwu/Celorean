@@ -480,6 +480,8 @@ export default contractAddresses;
       prev.deployedAt || contractAddresses.deployedAt || null;
 
     unified.environments[envKey] = {
+      // preserve any previously stored fields (e.g., extended addresses)
+      ...(prev || {}),
       proxyAddress: proxyAddress,
       implementationAddress: newImplementationAddress,
       network: network.name,
@@ -490,6 +492,31 @@ export default contractAddresses;
       previousImplementation: contractAddresses.implementationAddress,
       upgradedAt: updatedContractAddresses.upgradedAt,
     };
+
+    // Attempt to augment with extended addresses from per-network files if available
+    try {
+      const extDir = addressesDirRoot;
+      const tryRead = (fname: string) => {
+        const p = path.join(extDir, fname);
+        if (fs.existsSync(p)) {
+          try {
+            const parsed = JSON.parse(fs.readFileSync(p, "utf8"));
+            return parsed?.address as string | undefined;
+          } catch (_) {
+            return undefined;
+          }
+        }
+        return undefined;
+      };
+      const certAddr = tryRead(`${network.name}-certificate-nft.json`);
+      const eventMgrAddr = tryRead(`${network.name}-event-manager.json`);
+      const verifierRegAddr = tryRead(`${network.name}-verifier-registry.json`);
+      if (certAddr) (unified.environments[envKey] as any).certificateNFT = certAddr;
+      if (eventMgrAddr) (unified.environments[envKey] as any).eventManager = eventMgrAddr;
+      if (verifierRegAddr) (unified.environments[envKey] as any).verifierRegistry = verifierRegAddr;
+    } catch (_) {
+      // non-fatal
+    }
 
     fs.writeFileSync(
       addressesJsonPath,
@@ -514,7 +541,7 @@ export default contractAddresses;
       frontendAddressesDir,
       envFilenameMap[envKey] || `${envKey}-addresses.json`
     );
-    const frontendOut = {
+    const frontendOut: any = {
       proxyAddress: proxyAddress,
       implementationAddress: newImplementationAddress,
       network: envKey,
@@ -525,26 +552,38 @@ export default contractAddresses;
       gasUsed: updatedContractAddresses.gasUsed,
       blockNumber: updatedContractAddresses.blockNumber,
     };
+    // include extended addresses if available
+    const envEntry = unified.environments[envKey] as any;
+    if (envEntry?.certificateNFT) frontendOut.certificateNFT = envEntry.certificateNFT;
+    if (envEntry?.eventManager) frontendOut.eventManager = envEntry.eventManager;
+    if (envEntry?.verifierRegistry) frontendOut.verifierRegistry = envEntry.verifierRegistry;
+
     fs.writeFileSync(outPath, JSON.stringify(frontendOut, null, 2), "utf8");
     console.log(`📦 Synced frontend addresses JSON: ${outPath}`);
 
-    // Copy ABI to frontend/contracts
-    const artifactsAbiPath = path.join(
-      __dirname,
-      "../artifacts/contracts/Celorean.sol/Celorean.json"
-    );
+    // Copy ABIs to frontend/contracts
+    const artifactsDir = path.join(__dirname, "../artifacts/contracts");
     const frontendContractsDir = path.join(
       __dirname,
       "../../frontend/contracts"
     );
-    if (fs.existsSync(artifactsAbiPath)) {
-      if (!fs.existsSync(frontendContractsDir))
-        fs.mkdirSync(frontendContractsDir, { recursive: true });
-      const frontendAbiPath = path.join(frontendContractsDir, "Celorean.json");
-      fs.copyFileSync(artifactsAbiPath, frontendAbiPath);
-      console.log(`📦 Copied ABI to frontend:        ${frontendAbiPath}`);
-    } else {
-      console.log("⚠️  ABI artifact not found at:", artifactsAbiPath);
+    const abiMap: Array<{ src: string; dest: string }> = [
+      { src: path.join(artifactsDir, "Celorean.sol/Celorean.json"), dest: path.join(frontendContractsDir, "Celorean.json") },
+      { src: path.join(artifactsDir, "CertificateNFT.sol/CertificateNFT.json"), dest: path.join(frontendContractsDir, "CertificateNFT.json") },
+      { src: path.join(artifactsDir, "EventManager.sol/EventManager.json"), dest: path.join(frontendContractsDir, "EventManager.json") },
+      { src: path.join(artifactsDir, "VerifierRegistry.sol/VerifierRegistry.json"), dest: path.join(frontendContractsDir, "VerifierRegistry.json") },
+    ];
+    if (!fs.existsSync(frontendContractsDir))
+      fs.mkdirSync(frontendContractsDir, { recursive: true });
+    for (const { src, dest } of abiMap) {
+      if (fs.existsSync(src)) {
+        try {
+          fs.copyFileSync(src, dest);
+          console.log(`📦 Copied ABI to frontend:        ${dest}`);
+        } catch (e) {
+          console.log(`⚠️  Failed to copy ABI ${src}:`, (e as Error).message || e);
+        }
+      }
     }
   } catch (e) {
     console.log(

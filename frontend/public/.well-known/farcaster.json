@@ -1,35 +1,42 @@
 {
-    "frame": {
-        "name": "Celorean",
-        "version": "1",
-        "iconUrl": "https://www.celorean.school/farcaster/celorean.png",
-        "homeUrl": "https://www.celorean.school",
-        "imageUrl": "https://www.celorean.school/farcaster/preview.png",
-        "buttonTitle": "Learning, Earn ",
-        "splashImageUrl": "https://www.celorean.school/farcaster/celorean.png",
-        "splashBackgroundColor": "#003300",
-        "webhookUrl": "https://www.celorean.school/api/webhook",
-        "subtitle": "Incentivize learning",
-        "description": "Celorean leverages the power of blockchain and AI to create a dynamic, secure, and rewarding learning experience for all.",
-        "primaryCategory": "education",
-        "screenshotUrls": [
-            "https://www.celorean.school/farcaster/preview.png"
-        ],
-        "heroImageUrl": "https://www.celorean.school/farcaster/preview.png",
-        "tags": [
-            "edutech",
-            "education",
-            "learning"
-        ],
-        "tagline": "Grow, Earn, Learn",
-        "ogTitle": "Celorean - (L)earn",
-        "ogDescription": "...join the nerds now",
-        "ogImageUrl": "https://www.celorean.school/farcaster/celorean.png",
-        "castShareUrl": "https://www.celorean.school/"
-    },
-    "accountAssociation": {
-        "header": "eyJmaWQiOjEwNzk5OTksInR5cGUiOiJhdXRoIiwia2V5IjoiMHgwOTIwMzZmNUFENDAxMDY4ZTZFMTAyNDRjNmUwRWRCN2M0NEQyMDdBIn0",
-        "payload": "eyJkb21haW4iOiJ3d3cuY2Vsb3JlYW4uc2Nob29sIn0",
-        "signature": "ZkVUAXAKqePmPRg/7t9KrLiSrwss/PIQaIbdkZC9i7NnxP/3jpnJmXMcLMQM16J7LWX53NNfVo/VMosAMqVo5xs="
-    }
+  "frame": {
+    "name": "Celorean",
+    "version": "1",
+    "iconUrl": "https://www.celorean.school/farcaster/celorean.png",
+    "homeUrl": "https://www.celorean.school",
+    "imageUrl": "https://www.celorean.school/farcaster/preview.png",
+    "buttonTitle": "Learning, Earn ",
+    "splashImageUrl": "https://www.celorean.school/farcaster/celorean.png",
+    "splashBackgroundColor": "#003300",
+    "webhookUrl": "https://www.celorean.school/api/webhook",
+    "subtitle": "Incentivize learning",
+    "description": "Celorean leverages the power of blockchain and AI to create a dynamic, secure, and rewarding learning experience for all.",
+    "primaryCategory": "education",
+    "screenshotUrls": [
+      "https://www.celorean.school/farcaster/preview.png"
+    ],
+    "heroImageUrl": "https://www.celorean.school/farcaster/preview.png",
+    "tags": [
+      "edutech",
+      "education",
+      "learning"
+    ],
+    "tagline": "Grow, Earn, Learn",
+    "ogTitle": "Celorean - (L)earn",
+    "ogDescription": "...join the nerds now",
+    "ogImageUrl": "https://www.celorean.school/farcaster/celorean.png",
+    "castShareUrl": "https://www.celorean.school/",
+    "requiredCapabilities": [
+      "wallet.getEthereumProvider"
+    ],
+    "requiredChains": [
+      "eip155:44787",
+      "eip155:42220"
+    ]
+  },
+  "accountAssociation": {
+    "header": "eyJmaWQiOjEwNzk5OTksInR5cGUiOiJhdXRoIiwia2V5IjoiMHgwOTIwMzZmNUFENDAxMDY4ZTZFMTAyNDRjNmUwRWRCN2M0NEQyMDdBIn0",
+    "payload": "eyJkb21haW4iOiJ3d3cuY2Vsb3JlYW4uc2Nob29sIn0",
+    "signature": "ZkVUAXAKqePmPRg/7t9KrLiSrwss/PIQaIbdkZC9i7NnxP/3jpnJmXMcLMQM16J7LWX53NNfVo/VMosAMqVo5xs="
+  }
 }

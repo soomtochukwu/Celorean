@@ -27,12 +27,8 @@ export default function LearningPage() {
   const { getStudentCourses } = useCeloreanContract()
   const { isStudent } = useUserData()
 
-  // Always pass a valid address to the contract hook (fallback to zero address for guests)
-  const ZERO_ADDRESS = "0x0000000000000000000000000000000000000000"
-  const safeAddress = address || ZERO_ADDRESS
-
-  // Get enrolled courses for the current user (safe for guests)
-  const { data: enrolledCourseIds } = getStudentCourses(safeAddress as string)
+  // Get enrolled courses for the current user
+  const { data: enrolledCourseIds } = getStudentCourses(address as string)
 
   const filteredAndSortedCourses = useMemo(() => {
     let filtered = courses.filter((course) => {

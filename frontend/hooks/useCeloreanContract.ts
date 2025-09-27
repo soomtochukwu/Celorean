@@ -190,6 +190,15 @@ export function useCeloreanContract() {
     functionName: "getLecturerList",
   });
 
+  // Expose Certificate NFT address (from Celorean public getter)
+  const getCertificateNFTAddress = () => {
+    return useReadContract({
+      address: CELOREAN_CONTRACT_ADDRESS as `0x${string}`,
+      abi: CeloreanABI.abi,
+      functionName: "certificateNFT",
+    });
+  };
+
   // Write functions
   const registerForCourse = async (
     courseId: number,
@@ -360,6 +369,8 @@ export function useCeloreanContract() {
     getCredential,
     getStudentCredentialIds,
     getCredentialsByStudent,
+    // External contract address reads
+    getCertificateNFTAddress,
 
     // Write functions
     registerForCourse,

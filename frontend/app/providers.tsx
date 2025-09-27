@@ -22,6 +22,8 @@ import ErrorBoundary from "@/components/ErrorBoundary";
 import { useAccount, useConnect } from "wagmi";
 // Add useDisconnect for manual disconnect handling
 import { useDisconnect } from "wagmi";
+// Add missing imports for chain guard
+import { useChainId, useSwitchChain } from "wagmi";
 import { toast } from "sonner";
 import { usePathname } from "next/navigation";
 
@@ -588,6 +590,7 @@ export function Providers({ children }: { children: React.ReactNode }) {
               {/* Session management: create on connect, auto-expire in 1 hour, clear on disconnect */}
               <SessionManager />
               <MiniAppAutoConnector enabled={enableAutoConnect} />
+              <MiniAppChainGuard enabled={isMiniApp} />
               <NetworkSync />
               <Toaster
                 position="top-right"
@@ -602,4 +605,25 @@ export function Providers({ children }: { children: React.ReactNode }) {
       </QueryClientProvider>
     </WagmiProvider>
   );
+}
+
+function MiniAppChainGuard({ enabled }: { enabled: boolean }) {
+  const chainId = useChainId();
+  const { switchChain } = useSwitchChain();
+
+  React.useEffect(() => {
+    if (!enabled) return;
+    // Allowed chains: Celo Alfajores (44787), Celo (42220), Localhost (1337)
+    const allowed = new Set([44787, 42220, 1337]);
+    if (!allowed.has(chainId)) {
+      // Prefer Alfajores in miniapp
+      try {
+        switchChain({ chainId: 44787 });
+      } catch (e) {
+        // Swallow errors; user can switch manually via UI
+      }
+    }
+  }, [enabled, chainId, switchChain]);
+
+  return null;
 }

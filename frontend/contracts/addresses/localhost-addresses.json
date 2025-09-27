@@ -4,8 +4,5 @@
   "network": "localhost",
   "environment": "localhost",
   "deployedAt": "2025-07-19T15:50:11.128Z",
-  "deployedAtFormatted": "2025-09-10 15:20:24 UTC",
-  "deployer": "0x8626f6940E2eb28930eFb4CeF49B2d1F2C9C1199",
-  "gasUsed": "33963",
-  "blockNumber": 3
+  "deployer": "0x8626f6940E2eb28930eFb4CeF49B2d1F2C9C1199"
 }

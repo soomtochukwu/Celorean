@@ -5,7 +5,7 @@ import Link from "next/link"
 import { usePathname } from "next/navigation"
 import { cn } from "@/lib/utils"
 import { Button } from "@/components/ui/button"
-import { LayoutDashboard, Shield, User, LogOut, Menu, X, Zap, BookOpen, Settings, Users, UserCog, Activity, BadgeCheck } from "lucide-react"
+import { LayoutDashboard, Shield, User, LogOut, Menu, X, Zap, BookOpen, Settings, Users, UserCog, Activity, BadgeCheck, CalendarDays } from "lucide-react"
 import { useDisconnect, useAccount } from "wagmi"
 import ConnectWalletButton from "./ConnectWalletButton"
 import useCeloreanContract from "@/hooks/useCeloreanContract"
@@ -177,6 +177,11 @@ export function SidebarNavigation({ className }: SidebarNavigationProps) {
       name: "Activity",
       href: "/activity",
       icon: Activity,
+    },
+    {
+      name: "Events",
+      href: "/events/discover",
+      icon: CalendarDays,
     },
     {
       name: "Community",
