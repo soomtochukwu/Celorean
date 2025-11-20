@@ -8,7 +8,7 @@ contract EnrollmentModule is Initializable {
     mapping(uint256 => address[]) public courseStudents;
     // NEW STORAGE VARIABLES MUST BE ADDED AFTER EXISTING ONES
     mapping(uint256 => mapping(address => bool)) public isEnrolled;
-    
+
     event StudentRegistered(uint256 courseId, address student);
 
     function __EnrollmentModule_init() internal onlyInitializing {
@@ -49,5 +49,15 @@ contract EnrollmentModule is Initializable {
         address student
     ) external view returns (bool) {
         return isEnrolled[courseId][student];
+    }
+
+    function getCoursesRegisteredByStudent(
+        address student
+    ) external view returns (uint256[] memory) {
+        return studentCourses[student];
+    }
+
+    function getTotalRegisteredCourses() external view returns (uint256) {
+        return studentCourses[msg.sender].length;
     }
 }

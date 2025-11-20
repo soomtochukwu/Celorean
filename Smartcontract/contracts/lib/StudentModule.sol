@@ -9,17 +9,24 @@ contract StudentModule is Initializable {
     address[] public students;
     
     event StudentAdmitted(address indexed student, uint256 amount);
+    event StudentTokenUpdated(address indexed student, uint256 newAmount);
     
     function __StudentModule_init() internal onlyInitializing {
         // Initialization logic without ownership
     }
     
-    function admitStudent(address student, uint256 amount) external {
+    function _admitStudent(address student, uint256 amount) internal {
         require(!isStudent[student], "Student already exists");
         studentTokens[student] = amount;
         isStudent[student] = true;
         students.push(student);
         emit StudentAdmitted(student, amount);
+    }
+
+    function _addStudentTokens(address student, uint256 amount) internal {
+        require(isStudent[student], "Not a student");
+        studentTokens[student] += amount;
+        emit StudentTokenUpdated(student, studentTokens[student]);
     }
     
     function getListOfStudents() external view returns (address[] memory) {

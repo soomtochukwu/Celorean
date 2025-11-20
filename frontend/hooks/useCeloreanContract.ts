@@ -353,6 +353,56 @@ export function useCeloreanContract() {
     });
   };
 
+  // =======================
+  // Attendance Module APIs
+  // =======================
+
+  // Lecturer function: Create class session
+  const createClassSession = async (courseId: number) => {
+    return runTransaction("Create class session", {
+      functionName: "createClassSession",
+      args: [courseId],
+    });
+  };
+
+  // Student/Lecturer function: Mark attendance
+  const markAttendance = async (sessionId: number) => {
+    return runTransaction("Mark attendance", {
+      functionName: "markAttendance",
+      args: [sessionId],
+    });
+  };
+
+  // Lecturer function: Get session IDs
+  const getSessionIdsForLecturer = () => {
+    return useReadContract({
+      address: CELOREAN_CONTRACT_ADDRESS as `0x${string}`,
+      abi: CeloreanABI.abi,
+      functionName: "getSessionIdsForLecturer",
+    });
+  };
+
+  // =======================
+  // Enrollment Module APIs
+  // =======================
+
+  const getCoursesRegisteredByStudent = (studentAddress: string) => {
+    return useReadContract({
+      address: CELOREAN_CONTRACT_ADDRESS as `0x${string}`,
+      abi: CeloreanABI.abi,
+      functionName: "getCoursesRegisteredByStudent",
+      args: [studentAddress],
+    });
+  };
+
+  const getTotalRegisteredCourses = () => {
+    return useReadContract({
+      address: CELOREAN_CONTRACT_ADDRESS as `0x${string}`,
+      abi: CeloreanABI.abi,
+      functionName: "getTotalRegisteredCourses",
+    });
+  };
+
   return {
     // Read functions
     courseCount,
@@ -365,6 +415,9 @@ export function useCeloreanContract() {
     lecturerList,
     getCourseContentUris,
     getCourseContentCount,
+    getSessionIdsForLecturer,
+    getCoursesRegisteredByStudent,
+    getTotalRegisteredCourses,
     // Credentials reads
     getCredential,
     getStudentCredentialIds,
@@ -381,6 +434,8 @@ export function useCeloreanContract() {
     updateCourseContent,
     addCourseContent,
     addMultipleCourseContent,
+    createClassSession,
+    markAttendance,
     // Credentials writes
     issueCredentialForStudent,
 

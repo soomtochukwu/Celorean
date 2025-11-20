@@ -1,13 +1,15 @@
-
 "use client"
 
-import { Coins, Users, BookOpen, TrendingUp, Activity, Zap, Wallet } from "lucide-react"
+import { Coins, Users, BookOpen, TrendingUp, Activity, Zap, Wallet, Clock, Calendar } from "lucide-react"
 import { StatCard } from "@/components/stat-card"
 import { useUserData } from "@/hooks/useUserData"
-import { useCourses } from "@/hooks/useCourses"
 import { useRouter } from "next/navigation"
 import useCeloreanContract from "@/hooks/useCeloreanContract"
 import { toast } from "sonner"
+import { useEffect, useState } from "react"
+import { CourseCard } from "@/components/course-card"
+import { Button } from "@/components/ui/button"
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 
 export default function Dashboard() {
   const router = useRouter()
@@ -16,74 +18,99 @@ export default function Dashboard() {
     isStudent,
     isLecturer,
     userStats,
-    loading,
+    loading: userDataLoading,
     address
   } = useUserData()
-  const { courses } = useCourses()
-  const { registerForCourse, isPending, getCourse } = useCeloreanContract()
 
-  // Get activity icons
-  const getActivityIcon = (iconName: string) => {
-    switch (iconName) {
-      case "BookOpen":
-        return <BookOpen className="h-5 w-5 text-primary" />
-      case "Coins":
-        return <Coins className="h-5 w-5 text-primary" />
-      case "TrendingUp":
-        return <TrendingUp className="h-5 w-5 text-primary" />
-      default:
-        return <Activity className="h-5 w-5 text-primary" />
+  const {
+    getCoursesRegisteredByStudent,
+    getTotalRegisteredCourses,
+    getCourse,
+    isPending
+  } = useCeloreanContract()
+
+  const [registeredCourses, setRegisteredCourses] = useState<any[]>([])
+  const [loadingCourses, setLoadingCourses] = useState(false)
+  const [totalCourses, setTotalCourses] = useState(0)
+
+  // Fetch registered courses
+  useEffect(() => {
+    const fetchRegisteredCourses = async () => {
+      if (!address || !isStudent) return
+
+      setLoadingCourses(true)
+      try {
+        // Get total count first
+        const total = await getTotalRegisteredCourses()
+        setTotalCourses(Number(total?.data || 0))
+
+        // Get course IDs
+        const courseIdsData = await getCoursesRegisteredByStudent(address)
+        const courseIds = (courseIdsData?.data as any[]) || []
+
+        // Fetch details for each course
+        const coursesPromises = courseIds.map(async (id: any) => {
+          const courseId = Number(id)
+          const courseData = await getCourse(courseId)
+          const data = courseData?.data as any
+
+          if (!data) return null
+
+          // Parse course data
+          const title = data.title || data[1]
+          const description = data.description || data[2]
+          const durationVal = Number(data.duration || data[3])
+          const price = (data.price || data[4]).toString()
+          const level = data.level || data[6]
+          const rating = Number(data.rating || data[7])
+          const enrolledCount = Number(data.enrolledCount || data[8])
+          const capacity = Number(data.capacity || data[9])
+          const instructor = data.instructor || data[10]
+          const metadataUri = data.metadataUri || data[11]
+
+          // Fetch metadata
+          let metadata = { thumbnail: "", tokenReward: "0", tags: [] }
+          if (metadataUri) {
+            try {
+              const metadataResponse = await fetch(`https://gateway.pinata.cloud/ipfs/${metadataUri}`)
+              metadata = await metadataResponse.json()
+            } catch (e) {
+              console.warn("Failed to fetch metadata", e)
+            }
+          }
+
+          return {
+            id: courseId,
+            title,
+            description,
+            instructor,
+            duration: durationVal > 0 ? `${durationVal} hours` : "Self-paced",
+            students: enrolledCount,
+            rating: rating,
+            level: level,
+            price: price,
+            tokenReward: metadata.tokenReward || "100",
+            image: metadata.thumbnail ? `https://gateway.pinata.cloud/ipfs/${metadata.thumbnail}` : "/api/placeholder/400/200",
+            tags: data.tags || metadata.tags || [],
+            capacity: capacity,
+            isEnrolled: true,
+            isAdmitted: true
+          }
+        })
+
+        const courses = (await Promise.all(coursesPromises)).filter(Boolean)
+        setRegisteredCourses(courses)
+      } catch (error) {
+        console.error("Error fetching registered courses:", error)
+      } finally {
+        setLoadingCourses(false)
+      }
     }
-  }
 
-  // Filter recommended courses (exclude enrolled ones)
-  const recommendedCourses = courses.filter(course =>
-    !userStats.enrolledCoursesCount || Math.random() > 0.5 // Demo filter
-  ).slice(0, 3)
-
-  // Handle course enrollment
-  const handleCourseEnroll = async (courseId: number, courseTitle: string) => {
-    if (!isConnected) {
-      toast.error("Please connect your wallet first")
-      return
+    if (isConnected && isStudent) {
+      fetchRegisteredCourses()
     }
-
-    if (!isStudent) {
-      toast.error("You need to be registered as a student to enroll in courses")
-      return
-    }
-
-    if (!address) {
-      toast.error("Wallet address not available")
-      return
-    }
-
-    try {
-      // Get course data to fetch the price
-      const courseData = getCourse(courseId)
-      const priceInWei = (courseData?.data as any)?.price?.toString() || '0'
-
-      await registerForCourse(courseId, address, priceInWei)
-      toast.success(`Successfully enrolled in ${courseTitle}!`)
-      // Optionally refresh the page or update state
-      setTimeout(() => {
-        window.location.reload()
-      }, 2000)
-    } catch (error) {
-      console.error("Enrollment error:", error)
-      toast.error("Failed to enroll in course. Please try again.")
-    }
-  }
-
-  // Handle course card click
-  const handleCourseClick = (courseId: number) => {
-    router.push(`/learning?courseId=${courseId}`)
-  }
-
-  // Handle View All buttons
-  const handleViewAllActivity = () => {
-    router.push("/activity")
-  }
+  }, [address, isStudent, isConnected])
 
   const handleViewAllCourses = () => {
     router.push("/learning")
@@ -91,44 +118,50 @@ export default function Dashboard() {
 
   if (!isConnected) {
     return (
-      <div className="p-6 md:p-8">
-        <div className="flex flex-col items-center justify-center min-h-[400px] text-center">
-          <Wallet className="h-16 w-16 text-muted-foreground mb-4" />
-          <h2 className="text-2xl font-bold mb-2">Connect Your Wallet</h2>
-          <p className="text-muted-foreground">Please connect your wallet to view your learning dashboard</p>
+      <div className="p-6 md:p-8 min-h-[80vh] flex items-center justify-center">
+        <div className="flex flex-col items-center justify-center text-center max-w-md mx-auto p-8 glass-card rounded-2xl border-white/10">
+          <div className="w-20 h-20 bg-primary/10 rounded-full flex items-center justify-center mb-6 animate-pulse-glow">
+            <Wallet className="h-10 w-10 text-primary" />
+          </div>
+          <h2 className="text-3xl font-bold mb-3 text-white">Connect Your Wallet</h2>
+          <p className="text-gray-400 mb-8">Please connect your wallet to access your personalized dashboard and track your learning progress.</p>
+          <Button className="w-full bg-gradient-to-r from-primary to-accent hover:opacity-90 text-white font-bold py-6">
+            Connect Wallet
+          </Button>
         </div>
       </div>
     )
   }
 
   return (
-    <div className="p-6 md:p-8">
-      <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-8 gap-4">
+    <div className="p-6 md:p-8 space-y-8">
+      <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
         <div>
-          <h1 className="text-3xl font-bold">Dashboard</h1>
-          <p className="text-muted-foreground">
+          <h1 className="text-4xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-white to-gray-400 mb-2">Dashboard</h1>
+          <p className="text-gray-400 text-lg">
             {isStudent ? "Welcome back to your learning journey" :
               isLecturer ? "Welcome back, Instructor" :
                 "Welcome to Celorean"}
           </p>
-          {address && (
-            <p className="text-xs text-muted-foreground mt-1">
-              Connected: {address.slice(0, 6)}...{address.slice(-4)}
-            </p>
-          )}
         </div>
+        {address && (
+          <div className="px-4 py-2 bg-white/5 rounded-full border border-white/10 text-sm text-gray-400 flex items-center gap-2">
+            <div className="w-2 h-2 rounded-full bg-green-500 animate-pulse" />
+            {address.slice(0, 6)}...{address.slice(-4)}
+          </div>
+        )}
       </div>
 
       {/* Stats Grid */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-8">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
         <StatCard
           title="Learning Progress"
           value={`${userStats.progressPercentage}%`}
-          description={`${userStats.enrolledCoursesCount} courses enrolled`}
+          description={`${totalCourses} courses enrolled`}
           icon={<BookOpen className="h-5 w-5" />}
           trend={userStats.progressPercentage > 50 ? "up" : "neutral"}
-          trendValue={userStats.enrolledCoursesCount > 0 ? `${userStats.completedCoursesCount} completed` : "Start learning!"}
-          loading={loading}
+          trendValue={totalCourses > 0 ? `${userStats.completedCoursesCount} completed` : "Start learning!"}
+          loading={userDataLoading || loadingCourses}
         />
         <StatCard
           title="Tokens Earned"
@@ -136,156 +169,95 @@ export default function Dashboard() {
           description="Lifetime earnings"
           icon={<Coins className="h-5 w-5" />}
           trend={userStats.tokensEarned > 0 ? "up" : "neutral"}
-          trendValue={userStats.tokensEarned > 0 ? "Keep learning to earn more!" : "Complete courses to earn tokens"}
-          loading={loading}
+          trendValue={userStats.tokensEarned > 0 ? "Keep learning!" : "Complete courses to earn"}
+          loading={userDataLoading}
         />
         <StatCard
           title="Account Status"
           value={isStudent ? "Student" : isLecturer ? "Instructor" : "Guest"}
           description={isStudent ? "Verified learner" : isLecturer ? "Verified instructor" : "Connect to get started"}
           icon={<Users className="h-5 w-5" />}
-          loading={loading}
+          loading={userDataLoading}
         />
       </div>
 
-      {/* Activity Section */}
-      <div className="glass rounded-lg border border-primary/10 p-6 mb-8">
-        <div className="flex items-center justify-between mb-4">
-          <h2 className="text-xl font-bold">Recent Activity</h2>
-          <button
-            onClick={handleViewAllActivity}
-            className="text-sm text-primary hover:text-primary/80 transition-colors"
-          >
-            View All
-          </button>
-        </div>
-        <div className="space-y-4">
-          {loading ? (
-            <div className="text-center py-8 text-muted-foreground">
-              Loading your activity...
-            </div>
-          ) : userStats.recentActivities.length > 0 ? (
-            userStats.recentActivities.map((activity, index) => (
-              <div key={index} className="flex items-start">
-                <div className="flex-shrink-0 w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center mr-4">
-                  {getActivityIcon(activity.icon)}
-                </div>
-                <div className="flex-1 min-w-0">
-                  <p className="text-sm font-medium">{activity.title}</p>
-                  <p className="text-xs text-muted-foreground">{activity.description}</p>
-                </div>
-                <div className="text-xs text-muted-foreground">{activity.time}</div>
-              </div>
-            ))
-          ) : (
-            <div className="text-center py-8 text-muted-foreground">
-              <BookOpen className="h-12 w-12 mx-auto mb-4 opacity-50" />
-              <p>No recent activity</p>
-              <p className="text-xs">Start learning to see your progress here!</p>
-            </div>
-          )}
-        </div>
-      </div>
+      <Tabs defaultValue="courses" className="w-full">
+        <TabsList className="bg-white/5 border border-white/10 p-1">
+          <TabsTrigger value="courses">My Courses</TabsTrigger>
+          <TabsTrigger value="activity">Activity</TabsTrigger>
+          <TabsTrigger value="schedule">Schedule</TabsTrigger>
+        </TabsList>
 
-      {/* Recommended Courses */}
-      <div>
-        <div className="flex items-center justify-between mb-4">
-          <h2 className="text-xl font-bold">Recommended Courses</h2>
-          <button
-            onClick={handleViewAllCourses}
-            className="text-sm text-primary hover:text-primary/80 transition-colors"
-          >
-            View All
-          </button>
-        </div>
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {recommendedCourses.length > 0 ? (
-            recommendedCourses.map((course, index) => (
-              <div
-                key={course.id || index}
-                className="glass rounded-lg border border-primary/10 p-6 hover:border-primary/30 transition-colors cursor-pointer group"
-                onClick={() => handleCourseClick(course.id)}
-              >
-                <div className="flex-shrink-0 w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center mb-4 group-hover:bg-primary/20 transition-colors">
-                  <BookOpen className="h-5 w-5 text-primary" />
-                </div>
-                <h3 className="text-lg font-bold mb-2 group-hover:text-primary transition-colors">{course.title}</h3>
-                <p className="text-sm text-muted-foreground mb-4">{course.description}</p>
-                <div className="flex justify-between items-center">
-                  <div className="text-xs text-muted-foreground">
-                    {course.level} • {course.duration}h
-                  </div>
-                  <button
-                    onClick={(e) => {
-                      e.stopPropagation()
-                      handleCourseEnroll(course.id, course.title)
-                    }}
-                    disabled={isPending}
-                    className="text-xs text-primary hover:text-primary/80 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-                  >
-                    {isPending ? "Enrolling..." : "Start Course"}
-                  </button>
-                </div>
-              </div>
-            ))
+        <TabsContent value="courses" className="mt-6 space-y-6">
+          <div className="flex items-center justify-between">
+            <h2 className="text-2xl font-bold text-white">Enrolled Courses</h2>
+            <Button variant="ghost" onClick={handleViewAllCourses} className="text-primary hover:text-primary/80 hover:bg-primary/10">
+              Browse All Courses
+            </Button>
+          </div>
+
+          {loadingCourses ? (
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+              {[1, 2, 3].map((i) => (
+                <div key={i} className="h-[400px] rounded-xl bg-white/5 animate-pulse" />
+              ))}
+            </div>
+          ) : registeredCourses.length > 0 ? (
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+              {registeredCourses.map((course) => (
+                <CourseCard
+                  key={course.id}
+                  {...course}
+                  onEnrollmentSuccess={() => { }} // Already enrolled
+                />
+              ))}
+            </div>
           ) : (
-            // Fallback static courses if no courses available
-            [
-              {
-                id: 1,
-                title: "Advanced Blockchain Concepts",
-                description: "Learn about consensus mechanisms, smart contracts, and more",
-                level: "Advanced",
-                duration: "8",
-                icon: <Activity className="h-5 w-5 text-primary" />,
-              },
-              {
-                id: 2,
-                title: "Web3 Development Fundamentals",
-                description: "Build decentralized applications with modern frameworks",
-                level: "Intermediate",
-                duration: "12",
-                icon: <Zap className="h-5 w-5 text-primary" />,
-              },
-              {
-                id: 3,
-                title: "Cryptography Basics",
-                description: "Understand the mathematics behind blockchain security",
-                level: "Beginner",
-                duration: "6",
-                icon: <Users className="h-5 w-5 text-primary" />,
-              },
-            ].map((course, index) => (
-              <div
-                key={index}
-                className="glass rounded-lg border border-primary/10 p-6 hover:border-primary/30 transition-colors cursor-pointer group"
-                onClick={() => handleCourseClick(course.id)}
-              >
-                <div className="flex-shrink-0 w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center mb-4 group-hover:bg-primary/20 transition-colors">
-                  {course.icon}
-                </div>
-                <h3 className="text-lg font-bold mb-2 group-hover:text-primary transition-colors">{course.title}</h3>
-                <p className="text-sm text-muted-foreground mb-4">{course.description}</p>
-                <div className="flex justify-between items-center">
-                  <div className="text-xs text-muted-foreground">
-                    {course.level} • {course.duration}h
-                  </div>
-                  <button
-                    onClick={(e) => {
-                      e.stopPropagation()
-                      handleCourseEnroll(course.id, course.title)
-                    }}
-                    disabled={isPending}
-                    className="text-xs text-primary hover:text-primary/80 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-                  >
-                    {isPending ? "Enrolling..." : "Start Course"}
-                  </button>
-                </div>
-              </div>
-            ))
+            <div className="text-center py-16 glass-panel rounded-xl border-dashed border-white/20">
+              <BookOpen className="h-16 w-16 mx-auto mb-4 text-gray-600" />
+              <h3 className="text-xl font-bold text-white mb-2">No courses yet</h3>
+              <p className="text-gray-400 mb-6">Start your learning journey by enrolling in a course.</p>
+              <Button onClick={handleViewAllCourses} className="bg-primary hover:bg-primary/90">
+                Browse Courses
+              </Button>
+            </div>
           )}
-        </div>
-      </div>
+        </TabsContent>
+
+        <TabsContent value="activity" className="mt-6">
+          <div className="glass-panel rounded-xl border border-white/10 p-6">
+            <h2 className="text-xl font-bold text-white mb-6">Recent Activity</h2>
+            <div className="space-y-6">
+              {userStats.recentActivities.length > 0 ? (
+                userStats.recentActivities.map((activity, index) => (
+                  <div key={index} className="flex items-start group">
+                    <div className="flex-shrink-0 w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center mr-4 group-hover:bg-primary/20 transition-colors border border-primary/20">
+                      <Activity className="h-5 w-5 text-primary" />
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <p className="text-sm font-medium text-white group-hover:text-primary transition-colors">{activity.title}</p>
+                      <p className="text-xs text-gray-400">{activity.description}</p>
+                    </div>
+                    <div className="text-xs text-gray-500">{activity.time}</div>
+                  </div>
+                ))
+              ) : (
+                <div className="text-center py-8 text-gray-500">
+                  <p>No recent activity</p>
+                </div>
+              )}
+            </div>
+          </div>
+        </TabsContent>
+
+        <TabsContent value="schedule" className="mt-6">
+          <div className="glass-panel rounded-xl border border-white/10 p-6 text-center py-16">
+            <Calendar className="h-16 w-16 mx-auto mb-4 text-gray-600" />
+            <h3 className="text-xl font-bold text-white mb-2">Upcoming Sessions</h3>
+            <p className="text-gray-400">Your class schedule will appear here once you enroll in live sessions.</p>
+          </div>
+        </TabsContent>
+      </Tabs>
     </div>
   )
 }

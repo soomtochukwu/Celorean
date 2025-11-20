@@ -1,0 +1,83 @@
+# PoS#8 milestones
+
+## Overview
+This document summarizes the significant changes completed since 2025-09-01 in the Celorean project. Milestones are presented chronologically, each including the original commit message, date, and a curated description of key features, enhancements, and fixes.
+
+---
+
+## Milestone 1 — Network Compatibility Stabilization (2025-09-07)
+
+- Commit: 54e2b510 (2025-09-07)
+- Original message: "FIX: wallet/network compatibility"
+
+### Key updates
+- Smart contract and deployment infrastructure:
+  - Updated contract references and address registries to align per-network usage: Smartcontract/addresses (root and localhost variants), ensuring the DApp reads the correct addresses per environment.
+  - Deployment and upgrade scripts refined (scripts/deploy.ts, scripts/upgrade.ts) for more reliable network detection and usage.
+  - Package and Hardhat-side adjustments to support predictable builds and deployment tasks.
+- Frontend compatibility and UX resiliency:
+  - Provider configuration and app providers updated to gracefully handle network mismatches and wallet differences (frontend/app/providers.tsx).
+  - Introduced/updated NetworkContext and a network switcher component to let users align their wallet with the selected chain (frontend/contexts/NetworkContext.tsx, frontend/components/network-switcher.tsx).
+  - Centralized address consumption (frontend/contracts/addresses.ts, index.ts) to ensure contract calls always target the correct network deployment.
+  - Added network error handling utility (frontend/utils/network-error-handler.ts) and related hooks (useNetworkManager, useCeloreanContract) to reduce user-facing errors on wrong networks or unsupported chains.
+
+### Impact
+- Reduced connection friction between wallet and app.
+- Consistent per-network contract address resolution.
+- More resilient dApp behavior across different wallets and networks.
+
+---
+
+## Milestone 2 — Environment Selection & Learning/Credentials Overhaul (2025-09-11)
+
+- Commit: b144b973 (2025-09-11)
+- Original message: "FEAT: modify FE to  specify testnet/mainnet/localhost, Proper dev-flow, community under dev., added credenetials page, learning page undergoing critical changes, etc"
+
+### Key updates
+- Environment selection and dev-flow:
+  - Explicit support for selecting testnet/mainnet/localhost in the frontend.
+  - Improvements to app layout and providers to propagate environment settings.
+- Learning and dashboard experience:
+  - Significant updates across pages: course details, dashboard, achievements, learning page.
+  - Course components and hooks revised to improve data loading and error boundaries.
+- Credentials workflows:
+  - Added Credentials page and API routes for issuing, listing, and verifying credentials (frontend/app/api/credentials/*).
+- Community features (under development):
+  - Introduced a community page and seed data for community messages (frontend/.data/community-messages.json).
+- Contract integration and addresses:
+  - Updated ABI (frontend/contracts/Celorean.json) and per-network address registries to match new deployments.
+  - Hooks (useCeloreanContract, useCourses, useNetworkManager) aligned to new flows and environment selection.
+
+### Impact
+- Clearer environment targeting (dev/testnet/mainnet) for both developers and users.
+- Foundations for credentials issuance/verification and community interactions.
+- Improved learning flow and app robustness through updated components and error handling.
+
+---
+
+## Milestone 3 — Deployment Outputs & Dev Seeding Improvements (2025-09-11)
+
+- Commit: 7d029f0b (2025-09-11)
+- Original message: "FIX: modified deploy scripts to output proxy contract detials depending on the network is was deployed on: FIX: deploy script seeds smc in dev mode, etc"
+
+### Key updates
+- Deployment pipeline
+  - Deployment script prints proxy and implementation details tailored to the active network (Smartcontract/scripts/deploy.ts).
+  - Address syncing utility and outputs improved (Smartcontract/scripts/sync-addresses.ts, Smartcontract/addresses/*) to keep frontend and scripts in sync.
+  - Upgrade script refined to coexist with proxy deployments.
+- Dev environment data seeding
+  - Automated dev-mode seeding of smart contract state to accelerate local testing and feature verification.
+- Contract and config alignment
+  - Minor refinements in core contracts and modules (Celorean.sol, CourseModule.sol, CredentialModule.sol) and Hardhat config to support the enhanced deploy flow.
+
+### Impact
+- Easier verification of deployments and proxies across networks.
+- Faster developer onboarding with pre-seeded local environments.
+- Tighter alignment between on-chain artifacts and frontend consumption.
+
+---
+
+## Appendix — Commit References
+- 54e2b510 (2025-09-07): FIX: wallet/network compatibility
+- b144b973 (2025-09-11): FEAT: modify FE to  specify testnet/mainnet/localhost, Proper dev-flow, community under dev., added credenetials page, learning page undergoing critical changes, etc
+- 7d029f0b (2025-09-11): FIX: modified deploy scripts to output proxy contract detials depending on the network is was deployed on: FIX: deploy script seeds smc in dev mode, etc

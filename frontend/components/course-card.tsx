@@ -28,8 +28,9 @@ interface CourseCardProps {
   className?: string
   isEnrolled?: boolean
   onEnrollmentSuccess?: () => void
-  thumbnail?: string // Add thumbnail support
-  isAdmitted?: boolean // NEW: admission status from parent
+  thumbnail?: string
+  isAdmitted?: boolean
+  capacity?: number // NEW: capacity prop
 }
 
 export function CourseCard({
@@ -51,6 +52,7 @@ export function CourseCard({
   onEnrollmentSuccess,
   thumbnail,
   isAdmitted = false,
+  capacity = 100, // Default capacity
 }: CourseCardProps) {
   const router = useRouter()
   const { address, isConnected } = useAccount()
@@ -58,6 +60,8 @@ export function CourseCard({
   const [isEnrolled, setIsEnrolled] = useState(initialIsEnrolled || progress !== undefined)
   const [isEnrolling, setIsEnrolling] = useState(false)
   const [coursePrice, setCoursePrice] = useState('0')
+
+  const isFull = students >= capacity;
 
   // Check enrollment status from blockchain - only if address is available
   const enrollmentQuery = address ? isStudentEnrolled(id, address) : null
@@ -80,18 +84,16 @@ export function CourseCard({
   }, [courseData])
 
   const handleCardClick = () => {
-    // Guests can preview course details and content
     router.push(`/course/${id}`)
   }
 
   const handleEnrollmentClick = (e: React.MouseEvent) => {
-    e.stopPropagation() // Prevent card click when clicking enroll/register button
+    e.stopPropagation()
     handleEnrollment()
   }
 
   const handleEnrollment = async () => {
     if (!isAdmitted) {
-      // Block enrollment for guests; suggest registration
       toast({
         title: "Registration required",
         description: "Create an account to enroll in courses.",
@@ -117,11 +119,19 @@ export function CourseCard({
       return
     }
 
-    // Check if already enrolled before attempting enrollment
     if (isEnrolled || enrollmentStatus) {
       toast({
         title: "Already enrolled",
         description: "You are already enrolled in this course.",
+        variant: "destructive",
+      })
+      return
+    }
+
+    if (isFull) {
+      toast({
+        title: "Course Full",
+        description: "This course has reached its maximum capacity.",
         variant: "destructive",
       })
       return
@@ -138,7 +148,6 @@ export function CourseCard({
     } catch (err: any) {
       console.error('Enrollment error:', err)
 
-      // Handle specific error for duplicate enrollment
       if (err.message?.includes("already enrolled")) {
         toast({
           title: "Already enrolled",
@@ -157,7 +166,6 @@ export function CourseCard({
     }
   }
 
-  // Handle successful enrollment
   useEffect(() => {
     if (isConfirmed && isEnrolling) {
       setIsEnrolled(true)
@@ -170,7 +178,6 @@ export function CourseCard({
     }
   }, [isConfirmed, isEnrolling, title, onEnrollmentSuccess])
 
-  // Handle enrollment error
   useEffect(() => {
     if (error && isEnrolling) {
       setIsEnrolling(false)
@@ -187,96 +194,95 @@ export function CourseCard({
   return (
     <Card
       className={cn(
-        "group cursor-pointer transition-all duration-200 hover:shadow-lg hover:scale-[1.02] border-border bg-card",
+        "group cursor-pointer transition-all duration-300 glass-card hover:shadow-2xl hover:-translate-y-1 overflow-hidden border-white/5",
         className
       )}
       onClick={handleCardClick}
     >
-      <div className="relative h-48 overflow-hidden rounded-t-lg">
+      <div className="relative h-48 overflow-hidden">
+        <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent z-10" />
         <img
           src={thumbnail || image || "/placeholder.jpg"}
           alt={title}
-          className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105"
+          className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110"
           onError={(e) => {
             const target = e.target as HTMLImageElement;
-            const currentSrc = target.src;
-
-            // Try different IPFS gateways if the current one fails
-            if (currentSrc.includes('ipfs.io/ipfs/')) {
-              const cid = currentSrc.split('/ipfs/')[1];
-              target.src = `https://gateway.pinata.cloud/ipfs/${cid}`;
-            } else if (currentSrc.includes('gateway.pinata.cloud/ipfs/')) {
-              const cid = currentSrc.split('/ipfs/')[1];
-              target.src = `https://cloudflare-ipfs.com/ipfs/${cid}`;
-            } else if (thumbnail && currentSrc !== thumbnail) {
-              target.src = thumbnail;
-            } else if (image && currentSrc !== image) {
-              target.src = image;
-            } else {
-              target.src = "/placeholder.jpg";
-            }
+            target.src = "/placeholder.jpg";
           }}
         />
-        <div className="absolute top-2 right-2 bg-background/80 backdrop-blur-sm px-2 py-1 rounded text-xs font-medium flex items-center gap-1">
-          {isAdmitted ? (
-            <>
-              <CheckCircle className="h-3 w-3 text-green-600" />
-              <span>Registered</span>
-            </>
-          ) : (
-            <>
-              <Lock className="h-3 w-3 text-amber-600" />
-              <span>Guest preview</span>
-            </>
+        <div className="absolute top-2 right-2 z-20 flex gap-2">
+          {isFull && !isEnrolled && (
+            <Badge variant="destructive" className="animate-pulse">
+              Full
+            </Badge>
           )}
+          <div className="bg-black/60 backdrop-blur-md px-2 py-1 rounded-full text-xs font-medium flex items-center gap-1 text-white border border-white/10">
+            {isAdmitted ? (
+              <>
+                <CheckCircle className="h-3 w-3 text-green-400" />
+                <span>Registered</span>
+              </>
+            ) : (
+              <>
+                <Lock className="h-3 w-3 text-amber-400" />
+                <span>Guest</span>
+              </>
+            )}
+          </div>
         </div>
-        {/* Removed blocking overlay to allow preview navigation for guests */}
       </div>
-      <CardContent className="p-4">
-        <h3 className="text-lg font-bold mb-2 line-clamp-2">{title}</h3>
-        <p className="text-sm text-muted-foreground mb-3 line-clamp-2">{description}</p>
-        <div className="flex items-center text-xs text-muted-foreground mb-3">
-          <div className="flex items-center mr-3">
-            <Clock className="h-3 w-3 mr-1" />
-            {duration}
-          </div>
-          <div className="flex items-center mr-3">
-            <Users className="h-3 w-3 mr-1" />
-            {students.toLocaleString()}
-          </div>
-          <div className="flex items-center">
-            <Star className="h-3 w-3 mr-1 text-yellow-500" />
+      <CardContent className="p-5 relative z-20">
+        <div className="flex justify-between items-start mb-2">
+          <h3 className="text-xl font-bold line-clamp-1 text-white group-hover:text-primary transition-colors">{title}</h3>
+          <div className="flex items-center text-yellow-400 text-xs font-bold bg-yellow-400/10 px-2 py-1 rounded-full">
+            <Star className="h-3 w-3 mr-1 fill-yellow-400" />
             {rating.toFixed(1)}
           </div>
         </div>
-        <div className="flex flex-wrap gap-1 mb-3">
+
+        <p className="text-sm text-gray-400 mb-4 line-clamp-2 h-10">{description}</p>
+
+        <div className="flex items-center justify-between text-xs text-gray-400 mb-4 bg-white/5 p-2 rounded-lg border border-white/5">
+          <div className="flex items-center">
+            <Clock className="h-3 w-3 mr-1.5 text-primary" />
+            {duration}
+          </div>
+          <div className="flex items-center">
+            <Users className="h-3 w-3 mr-1.5 text-secondary" />
+            <span className={cn(isFull ? "text-red-400 font-bold" : "")}>
+              {students}/{capacity}
+            </span>
+          </div>
+          <div className="flex items-center">
+            <BookOpen className="h-3 w-3 mr-1.5 text-accent" />
+            {level}
+          </div>
+        </div>
+
+        <div className="flex flex-wrap gap-1.5 mb-4">
           {tags.slice(0, 3).map((tag, index) => (
-            <span key={index} className="px-2 py-0.5 bg-primary/10 text-primary rounded-full text-xs">
+            <span key={index} className="px-2.5 py-0.5 bg-primary/10 text-primary border border-primary/20 rounded-full text-[10px] font-medium uppercase tracking-wider">
               {tag}
             </span>
           ))}
-          {tags.length > 3 && (
-            <span className="px-2 py-0.5 bg-muted text-muted-foreground rounded-full text-xs">+{tags.length - 3}</span>
-          )}
         </div>
+
         {isEnrolled && (
-          <div className="mb-3">
-            <div className="flex justify-between text-xs mb-1">
+          <div className="mb-1">
+            <div className="flex justify-between text-xs mb-1.5 text-gray-300">
               <span>Progress</span>
               <span>{progress || 0}%</span>
             </div>
-            <Progress value={progress || 0} className="h-1.5" />
+            <Progress value={progress || 0} className="h-1.5 bg-white/10" />
           </div>
         )}
       </CardContent>
-      <CardFooter className="p-4 pt-0">
+
+      <CardFooter className="p-5 pt-0 relative z-20">
         <div className="flex items-center justify-between w-full">
           <div className="flex items-center gap-2">
-            <Badge variant="outline" className="text-xs">
-              {level}
-            </Badge>
             {tokenReward && (
-              <Badge variant="secondary" className="text-xs">
+              <Badge variant="secondary" className="bg-yellow-500/10 text-yellow-500 border-yellow-500/20 hover:bg-yellow-500/20">
                 🪙 {tokenReward}
               </Badge>
             )}
@@ -287,21 +293,26 @@ export function CourseCard({
               <Button
                 size="sm"
                 onClick={handleEnrollmentClick}
-                disabled={buttonLoading}
-                className="bg-primary hover:bg-primary/90"
+                disabled={buttonLoading || isFull}
+                className={cn(
+                  "font-medium transition-all duration-300",
+                  isFull
+                    ? "bg-muted text-muted-foreground cursor-not-allowed"
+                    : "bg-gradient-to-r from-primary to-accent hover:opacity-90 hover:shadow-lg hover:shadow-primary/25 text-white border-0"
+                )}
               >
-                {buttonLoading ? "Processing..." : "Enroll Now"}
+                {buttonLoading ? "Processing..." : isFull ? "Course Full" : "Enroll Now"}
               </Button>
             ) : (
-              <Button asChild size="sm" variant="secondary">
+              <Button asChild size="sm" variant="outline" className="border-white/10 hover:bg-white/5 hover:text-white">
                 <Link href="/register" onClick={(e) => e.stopPropagation()}>
                   Register to Enroll
                 </Link>
               </Button>
             )
           ) : (
-            <Badge className="bg-green-500/20 text-green-700 border-green-500/30">
-              ✓ Enrolled
+            <Badge className="bg-green-500/20 text-green-400 border-green-500/30 px-3 py-1">
+              <CheckCircle className="w-3 h-3 mr-1" /> Enrolled
             </Badge>
           )}
         </div>

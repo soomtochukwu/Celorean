@@ -82,11 +82,16 @@ contract Celorean is
         uint256 price,
         string[] memory tags,
         string memory level,
-        string memory metadataUri
+        string memory metadataUri,
+        uint256 capacity
     ) public onlyLecturer returns (uint256) {
+        require(
+            courseNameToId[title] == 0,
+            "Course with this name already exists"
+        );
         courseCount++;
         uint256 courseId = courseCount;
-        
+
         courses[courseId] = Course({
             id: courseId,
             title: title,
@@ -97,13 +102,14 @@ contract Celorean is
             level: level,
             rating: 0,
             enrolledCount: 0,
+            capacity: capacity,
             instructor: msg.sender,
             metadataUri: metadataUri,
             contentUris: new string[](0)
         });
-        
+
         courseNameToId[title] = courseId;
-        
+
         emit CourseCreated(courseId, title, msg.sender, price, metadataUri);
 
         // Mint NFT for course creation
@@ -127,6 +133,7 @@ contract Celorean is
 
         Course memory course = courses[courseId];
         require(msg.value >= course.price, "Insufficient payment");
+        require(course.enrolledCount < course.capacity, "Course is full");
 
         super.registerForCourse(courseId, student);
         super.incrementEnrollment(courseId);
@@ -167,8 +174,26 @@ contract Celorean is
         // Ensure the student is enrolled in the course for this session
         uint256 courseIdForSession = classSessions[sessionId].courseId;
         require(courseIdForSession > 0, "Session not found");
-        require(isEnrolled[courseIdForSession][student], "Student not enrolled in this course");
+        require(
+            isEnrolled[courseIdForSession][student],
+            "Student not enrolled in this course"
+        );
         super.markAttendance(sessionId, student);
+    }
+
+    function markAttendance(uint256 sessionId) public {
+        require(isStudent[msg.sender], "Only student can perform this action");
+        // Ensure the student is enrolled in the course for this session
+        uint256 courseIdForSession = classSessions[sessionId].courseId;
+        require(courseIdForSession > 0, "Session not found");
+        require(
+            isEnrolled[courseIdForSession][msg.sender],
+            "Student not enrolled in this course"
+        );
+
+        // Check if session is active/valid? (Optional, but good practice)
+        // For now just call super
+        super.markAttendance(sessionId, msg.sender);
     }
 
     // Set or update the Certificate NFT contract address
@@ -185,17 +210,72 @@ contract Celorean is
         string memory metadataUri
     ) external onlyLecturer returns (uint256) {
         require(isStudent[student], "Not a registered student");
-        uint256 credentialId = _issueCredential(student, msg.sender, title, metadataUri);
+        uint256 credentialId = _issueCredential(
+            student,
+            msg.sender,
+            title,
+            metadataUri
+        );
 
         // If Certificate NFT contract configured, mint a certificate NFT linked to the credential
         if (certificateNFT != address(0)) {
-            try ICertificateNFT(certificateNFT).mintCertificateForCredential(student, credentialId, title, metadataUri) returns (uint256 /*tokenId*/) {
+            try
+                ICertificateNFT(certificateNFT).mintCertificateForCredential(
+                    student,
+                    credentialId,
+                    title,
+                    metadataUri
+                )
+            returns (uint256 /*tokenId*/) {
                 // no-op; frontend can query certificate contract by student/credential id
             } catch {
                 // Swallow errors to avoid blocking core credential issuance
             }
         }
         return credentialId;
+    }
+
+    function admitStudent(
+        address student,
+        uint256 amount
+    ) external onlyLecturer {
+        _admitStudent(student, amount);
+    }
+
+    function employLecturer(
+        address lecturer,
+        uint256 value
+    ) external onlyOwner {
+        _employLecturer(lecturer, value);
+    }
+
+    function rewardStudent(
+        address student,
+        uint256 amount
+    ) external onlyLecturer {
+        _addStudentTokens(student, amount);
+    }
+
+    function calculateAttendancePercentage() external view returns (uint256) {
+        uint256[] memory myCourses = studentCourses[msg.sender];
+        uint256 totalSessions = 0;
+        uint256 attendedSessions = 0;
+
+        for (uint256 i = 0; i < myCourses.length; i++) {
+            uint256[] memory sessions = courseSessions[myCourses[i]];
+            totalSessions += sessions.length;
+            for (uint256 j = 0; j < sessions.length; j++) {
+                if (studentSessionAttendance[msg.sender][sessions[j]] == 1) {
+                    attendedSessions++;
+                }
+            }
+        }
+
+        if (totalSessions == 0) {
+            return 0;
+        }
+
+        return (attendedSessions * 100) / totalSessions;
     }
 
     function withdraw() external onlyOwner {
@@ -209,12 +289,10 @@ contract Celorean is
     ) internal override onlyOwner {}
 
     // Authorization: only instructor or admitted+enrolled student can view course data/materials
-    function _isAuthorizedToViewCourse(uint256 courseId, address viewer)
-        internal
-        view
-        override
-        returns (bool)
-    {
+    function _isAuthorizedToViewCourse(
+        uint256 courseId,
+        address viewer
+    ) internal view override returns (bool) {
         // Basic bounds check
         if (courseId == 0 || courseId > courseCount) {
             return false;
@@ -236,7 +314,10 @@ contract Celorean is
         uint256 newRating
     ) public override {
         require(courseId > 0 && courseId <= courseCount, "Invalid course ID");
-        require(isEnrolled[courseId][msg.sender], "Only enrolled students can rate");
+        require(
+            isEnrolled[courseId][msg.sender],
+            "Only enrolled students can rate"
+        );
         super.updateCourseRating(courseId, newRating);
     }
 

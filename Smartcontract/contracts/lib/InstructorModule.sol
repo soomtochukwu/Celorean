@@ -13,7 +13,7 @@ contract InstructorModule is Initializable {
         // Initialization logic without ownership
     }
     
-    function employLecturer(address lecturer, uint256 value) external {
+    function _employLecturer(address lecturer, uint256 value) internal {
         require(lecturers[lecturer] == 0, "Lecturer already exists");
         lecturers[lecturer] = value;
         lecturerList.push(lecturer);

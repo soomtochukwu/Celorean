@@ -59,6 +59,31 @@ export default function LearningPage() {
     return filtered
   }, [courses, searchTerm, selectedLevel, sortBy])
 
+  // AI Learning Path State
+  const [aiGoal, setAiGoal] = useState("")
+  const [aiLoading, setAiLoading] = useState(false)
+  const [generatedPath, setGeneratedPath] = useState<any>(null)
+
+  const generateLearningPath = async () => {
+    if (!aiGoal.trim()) return
+    setAiLoading(true)
+    try {
+      const response = await fetch("/api/ai/generate-path", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ goal: aiGoal }),
+      })
+      const data = await response.json()
+      setGeneratedPath(data)
+    } catch (error) {
+      console.error("Failed to generate path", error)
+    } finally {
+      setAiLoading(false)
+    }
+  }
+
+
+
   const handleEnrollmentSuccess = () => {
     // Refresh the page or refetch data
     window.location.reload()
