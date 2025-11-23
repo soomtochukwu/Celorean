@@ -23,9 +23,9 @@ export default function Dashboard() {
   } = useUserData()
 
   const {
-    getCoursesRegisteredByStudent,
-    getTotalRegisteredCourses,
-    getCourse,
+    fetchCoursesRegisteredByStudent,
+    fetchTotalRegisteredCourses,
+    fetchCourse,
     isPending
   } = useCeloreanContract()
 
@@ -41,18 +41,18 @@ export default function Dashboard() {
       setLoadingCourses(true)
       try {
         // Get total count first
-        const total = await getTotalRegisteredCourses()
-        setTotalCourses(Number(total?.data || 0))
+        const total = await fetchTotalRegisteredCourses()
+        setTotalCourses(Number(total || 0))
 
         // Get course IDs
-        const courseIdsData = await getCoursesRegisteredByStudent(address)
-        const courseIds = (courseIdsData?.data as any[]) || []
+        const courseIdsData = await fetchCoursesRegisteredByStudent(address)
+        const courseIds = (courseIdsData as any[]) || []
 
         // Fetch details for each course
         const coursesPromises = courseIds.map(async (id: any) => {
           const courseId = Number(id)
-          const courseData = await getCourse(courseId)
-          const data = courseData?.data as any
+          const courseData = await fetchCourse(courseId)
+          const data = courseData as any
 
           if (!data) return null
 
@@ -203,13 +203,58 @@ export default function Dashboard() {
               ))}
             </div>
           ) : registeredCourses.length > 0 ? (
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            <div className="space-y-4">
               {registeredCourses.map((course) => (
-                <CourseCard
+                <div
                   key={course.id}
-                  {...course}
-                  onEnrollmentSuccess={() => { }} // Already enrolled
-                />
+                  className="group flex flex-col sm:flex-row items-center gap-4 p-4 glass-panel rounded-xl hover:bg-white/5 transition-all border border-white/5 cursor-pointer"
+                  onClick={() => router.push(`/course/${course.id}`)}
+                >
+                  {/* Thumbnail */}
+                  <div className="relative w-full sm:w-48 h-32 sm:h-28 rounded-lg overflow-hidden flex-shrink-0">
+                    <img
+                      src={course.image}
+                      alt={course.title}
+                      className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110"
+                      onError={(e) => {
+                        const target = e.target as HTMLImageElement;
+                        target.src = "/placeholder.jpg";
+                      }}
+                    />
+                    <div className="absolute inset-0 bg-black/20 group-hover:bg-transparent transition-colors" />
+                  </div>
+
+                  {/* Info */}
+                  <div className="flex-1 text-center sm:text-left w-full">
+                    <h3 className="text-lg font-bold text-white mb-1 group-hover:text-primary transition-colors">{course.title}</h3>
+                    <div className="flex items-center justify-center sm:justify-start gap-4 text-sm text-gray-400 mb-2">
+                      <span className="flex items-center">
+                        <Users className="w-3 h-3 mr-1" /> {course.instructor}
+                      </span>
+                      <span className="flex items-center">
+                        <Clock className="w-3 h-3 mr-1" /> {course.duration}
+                      </span>
+                    </div>
+
+                    {/* Progress Bar Placeholder - can be connected to real data later */}
+                    <div className="w-full max-w-md bg-white/10 h-1.5 rounded-full overflow-hidden">
+                      <div className="bg-primary h-full rounded-full" style={{ width: `${course.progress || 0}%` }} />
+                    </div>
+                    <p className="text-xs text-gray-500 mt-1">{course.progress || 0}% Complete</p>
+                  </div>
+
+                  {/* Action */}
+                  <Button
+                    className="w-full sm:w-auto bg-primary/10 text-primary hover:bg-primary hover:text-white border border-primary/20 transition-all"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      router.push(`/course/${course.id}`);
+                    }}
+                  >
+                    <BookOpen className="w-4 h-4 mr-2" />
+                    Continue Learning
+                  </Button>
+                </div>
               ))}
             </div>
           ) : (

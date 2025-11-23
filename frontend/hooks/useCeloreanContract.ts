@@ -2,6 +2,7 @@ import {
   useReadContract,
   useWriteContract,
   useWaitForTransactionReceipt,
+  usePublicClient,
 } from "wagmi";
 // import { parseEther } from "viem";
 import CeloreanABI from "../contracts/Celorean.json";
@@ -233,14 +234,14 @@ export function useCeloreanContract() {
     title: string,
     duration: number,
     description: string,
-    price: number,
     tags: string[],
     level: string,
-    metadataUri: string
+    metadataUri: string,
+    capacity: number
   ) => {
     return runTransaction("Create course", {
       functionName: "createCourse",
-      args: [title, duration, description, price, tags, level, metadataUri],
+      args: [title, BigInt(duration), description, tags, level, metadataUri, BigInt(capacity)],
     });
   };
 
@@ -403,6 +404,57 @@ export function useCeloreanContract() {
     });
   };
 
+  // ✅ Get list of all admitted students
+  const getListOfStudents = () => {
+    return useReadContract({
+      address: CELOREAN_CONTRACT_ADDRESS as `0x${string}`,
+      abi: CeloreanABI.abi,
+      functionName: "getListOfStudents",
+    });
+  };
+
+  const publicClient = usePublicClient();
+
+  // Imperative read functions (safe for useEffect)
+  const fetchCourse = async (courseId: number) => {
+    if (!publicClient) return null;
+    return publicClient.readContract({
+      address: CELOREAN_CONTRACT_ADDRESS as `0x${string}`,
+      abi: CeloreanABI.abi,
+      functionName: "getCourse",
+      args: [courseId],
+    });
+  };
+
+  const fetchStudentCourses = async (studentAddress: string) => {
+    if (!publicClient) return null;
+    return publicClient.readContract({
+      address: CELOREAN_CONTRACT_ADDRESS as `0x${string}`,
+      abi: CeloreanABI.abi,
+      functionName: "getStudentCourses",
+      args: [studentAddress],
+    });
+  };
+
+  const fetchCoursesRegisteredByStudent = async (studentAddress: string) => {
+    if (!publicClient) return null;
+    return publicClient.readContract({
+      address: CELOREAN_CONTRACT_ADDRESS as `0x${string}`,
+      abi: CeloreanABI.abi,
+      functionName: "getCoursesRegisteredByStudent",
+      args: [studentAddress],
+    });
+  };
+
+  const fetchTotalRegisteredCourses = async () => {
+    if (!publicClient) return null;
+    return publicClient.readContract({
+      address: CELOREAN_CONTRACT_ADDRESS as `0x${string}`,
+      abi: CeloreanABI.abi,
+      functionName: "getTotalRegisteredCourses",
+    });
+  };
+
   return {
     // Read functions
     courseCount,
@@ -418,12 +470,19 @@ export function useCeloreanContract() {
     getSessionIdsForLecturer,
     getCoursesRegisteredByStudent,
     getTotalRegisteredCourses,
+    getListOfStudents,
     // Credentials reads
     getCredential,
     getStudentCredentialIds,
     getCredentialsByStudent,
     // External contract address reads
     getCertificateNFTAddress,
+
+    // Imperative reads
+    fetchCourse,
+    fetchStudentCourses,
+    fetchCoursesRegisteredByStudent,
+    fetchTotalRegisteredCourses,
 
     // Write functions
     registerForCourse,
@@ -438,6 +497,13 @@ export function useCeloreanContract() {
     markAttendance,
     // Credentials writes
     issueCredentialForStudent,
+
+    // Admin functions
+    withdraw: async () => {
+      return runTransaction("Withdraw funds", {
+        functionName: "withdraw",
+      });
+    },
 
     // Transaction states
     isPending,

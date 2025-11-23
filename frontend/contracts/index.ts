@@ -60,34 +60,34 @@ export const networkConfigs = {
     rpcUrl: 'http://127.0.0.1:8545',
     blockExplorer: 'http://localhost:8545',
     nativeCurrency: {
-      name: 'Ether',
-      symbol: 'ETH',
-      decimals: 18
-    }
-  },
-  'celo-alfajores': {
-    name: 'Celo Alfajores Testnet',
-    chainId: 44787,
-    rpcUrl: 'https://alfajores-forno.celo-testnet.org',
-    blockExplorer: 'https://alfajores-blockscout.celo-testnet.org',
-    nativeCurrency: {
       name: 'Celo',
       symbol: 'CELO',
       decimals: 18
     }
+  },
+  'celo-sepolia': {
+    name: 'Celo Sepolia Testnet',
+    chainId: 11142220,
+    rpcUrl: 'https://rpc.ankr.com/celo_sepolia',
+    blockExplorer: 'https://sepolia.celoscan.io',
+    nativeCurrency: {
+      name: 'Celo',
+      symbol: 'CELO',
+      decimals: 18,
+    },
   },
   'celo-mainnet': {
     name: 'Celo Mainnet',
     chainId: 42220,
-    rpcUrl: 'https://forno.celo.org',
-    blockExplorer: 'https://explorer.celo.org',
+    rpcUrl: 'https://celo.drpc.org',
+    blockExplorer: 'https://celoscan.io',
     nativeCurrency: {
       name: 'Celo',
       symbol: 'CELO',
-      decimals: 18
-    }
-  }
-};
+      decimals: 18,
+    },
+  },
+} as const;
 
 // Extract contract artifacts from the JSON
 const celoreanArtifacts: ContractArtifacts = {
@@ -107,7 +107,7 @@ export function getCurrentEnvironment(): 'localhost' | 'testnet' | 'mainnet' {
 export function getNetworkConfig(env: 'localhost' | 'testnet' | 'mainnet'): NetworkConfig {
   const configMap = {
     localhost: networkConfigs.localhost,
-    testnet: networkConfigs['celo-alfajores'],
+    testnet: networkConfigs['celo-sepolia'],
     mainnet: networkConfigs['celo-mainnet']
   };
   return configMap[env];
@@ -121,9 +121,12 @@ export function getCurrentContracts() {
   return getContractsForEnvironment(currentEnvironment);
 }
 
-// Current environment data
+// Current environment data - DEPRECATED: Use useNetwork() hook instead
+// These static values are initialized once and do not react to network changes
 export const currentEnvironment = getCurrentEnvironment();
+/** @deprecated Use useNetworkAddresses() hook for dynamic address resolution */
 export const currentAddresses = getCurrentEnvironmentAddresses(currentEnvironment);
+/** @deprecated Use useNetworkConfig() hook for dynamic network config */
 export const currentNetworkConfig = getNetworkConfig(currentEnvironment);
 
 // Environment-specific contract configurations
@@ -139,7 +142,7 @@ export const environmentContracts: EnvironmentContracts = {
     testnet: {
       addresses: environmentAddresses.testnet,
       artifacts: celoreanArtifacts,
-      networkConfig: networkConfigs['celo-alfajores']
+      networkConfig: networkConfigs['celo-sepolia']
     }
   }),
   ...(environmentAddresses.mainnet && {
@@ -151,7 +154,8 @@ export const environmentContracts: EnvironmentContracts = {
   })
 };
 
-// Current active contracts
+// Current active contracts - DEPRECATED
+/** @deprecated Use dynamic contract loading via useNetwork() or useNetworkAddresses() */
 export const currentContracts = getCurrentContracts();
 
 // Convenience exports for direct access
@@ -176,7 +180,7 @@ export default {
   environmentAddresses,
   networkConfigs,
   
-  // Current environment data
+  // Current environment data (Static/Initial)
   currentEnvironment,
   currentContracts,
   currentAddresses,

@@ -83,7 +83,13 @@ export default function Register() {
                 </div>
               </div>
 
-              <form onSubmit={handleSubmit} className="space-y-4">
+              <div className="bg-yellow-500/10 border border-yellow-500/20 rounded-lg p-4 mb-6">
+                <p className="text-sm text-yellow-200 text-center">
+                  Registration is currently disabled. Only the admin can admit students for now.
+                </p>
+              </div>
+
+              <form onSubmit={handleSubmit} className="space-y-4 opacity-60">
                 <div className="space-y-2">
                   <Label htmlFor="name">Full Name</Label>
                   <div className="relative">
@@ -91,11 +97,12 @@ export default function Register() {
                     <Input
                       id="name"
                       name="name"
-                      placeholder="John Doe"
+                      placeholder="John Doe (Coming Soon)"
                       value={formData.name}
                       onChange={handleInputChange}
                       required
-                      className="pl-10 glass border-primary/20"
+                      disabled
+                      className="pl-10 glass border-primary/20 cursor-not-allowed"
                     />
                   </div>
                 </div>
@@ -107,11 +114,12 @@ export default function Register() {
                       id="email"
                       name="email"
                       type="email"
-                      placeholder="you@example.com"
+                      placeholder="you@example.com (Coming Soon)"
                       value={formData.email}
                       onChange={handleInputChange}
                       required
-                      className="pl-10 glass border-primary/20"
+                      disabled
+                      className="pl-10 glass border-primary/20 cursor-not-allowed"
                     />
                   </div>
                 </div>
@@ -123,11 +131,12 @@ export default function Register() {
                       id="password"
                       name="password"
                       type="password"
-                      placeholder="••••••••"
+                      placeholder="•••••••• (Coming Soon)"
                       value={formData.password}
                       onChange={handleInputChange}
                       required
-                      className="pl-10 glass border-primary/20"
+                      disabled
+                      className="pl-10 glass border-primary/20 cursor-not-allowed"
                     />
                   </div>
                 </div>
@@ -139,11 +148,12 @@ export default function Register() {
                       id="confirmPassword"
                       name="confirmPassword"
                       type="password"
-                      placeholder="••••••••"
+                      placeholder="•••••••• (Coming Soon)"
                       value={formData.confirmPassword}
                       onChange={handleInputChange}
                       required
-                      className="pl-10 glass border-primary/20"
+                      disabled
+                      className="pl-10 glass border-primary/20 cursor-not-allowed"
                     />
                   </div>
                 </div>
@@ -158,12 +168,12 @@ export default function Register() {
                   </Link>
                   .
                 </div>
-                <Button type="submit" className="w-full" disabled={isLoading}>
+                <Button type="submit" className="w-full" disabled>
                   {isLoading ? (
                     <div className="h-5 w-5 animate-spin rounded-full border-2 border-background border-t-transparent"></div>
                   ) : (
                     <>
-                      Create Account
+                      Create Account (Disabled)
                       <ArrowRight className="ml-2 h-4 w-4" />
                     </>
                   )}

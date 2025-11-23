@@ -41,15 +41,15 @@ export default function Login() {
 
   useEffect(() => {
     let mounted = true
-    ;(async () => {
-      try {
-        await sdk.actions.ready()
-        const inMini = await MiniAppSDK.isInMiniApp()
-        if (mounted) setIsMiniApp(inMini)
-      } catch {
-        if (mounted) setIsMiniApp(false)
-      }
-    })()
+      ; (async () => {
+        try {
+          await sdk.actions.ready()
+          const inMini = await MiniAppSDK.isInMiniApp()
+          if (mounted) setIsMiniApp(inMini)
+        } catch {
+          if (mounted) setIsMiniApp(false)
+        }
+      })()
     return () => {
       mounted = false
     }
@@ -90,33 +90,33 @@ export default function Login() {
   // Quickly check if a valid session already exists and skip re-auth
   useEffect(() => {
     let mounted = true
-    ;(async () => {
-      // 1) Client-side quick check
-      const local = readStoredSession()
-      if (!mounted) return
-      if (local) {
-        setSessionStatus("active")
-        router.replace(DASHBOARD_PAGE)
-        return
-      }
-      // 2) Server-side session check (httpOnly cookie)
-      try {
-        const res = await fetch("/api/auth/session", { method: "GET" })
+      ; (async () => {
+        // 1) Client-side quick check
+        const local = readStoredSession()
         if (!mounted) return
-        if (res.ok) {
-          const data = await res.json()
-          if (data?.authenticated) {
-            setSessionStatus("active")
-            router.replace(DASHBOARD_PAGE)
-            return
-          }
+        if (local) {
+          setSessionStatus("active")
+          router.replace(DASHBOARD_PAGE)
+          return
         }
-      } catch {
-        // ignore errors and proceed to auth if needed
-      }
-      if (!mounted) return
-      setSessionStatus("none")
-    })()
+        // 2) Server-side session check (httpOnly cookie)
+        try {
+          const res = await fetch("/api/auth/session", { method: "GET" })
+          if (!mounted) return
+          if (res.ok) {
+            const data = await res.json()
+            if (data?.authenticated) {
+              setSessionStatus("active")
+              router.replace(DASHBOARD_PAGE)
+              return
+            }
+          }
+        } catch {
+          // ignore errors and proceed to auth if needed
+        }
+        if (!mounted) return
+        setSessionStatus("none")
+      })()
     return () => {
       mounted = false
     }
@@ -151,7 +151,7 @@ export default function Login() {
         const { token, nonce, issuedAt, domain, uri } = await nonceRes.json()
 
         // 2) Build SIWE-style message and sign
-        const message = `${domain} wants you to sign in with your Ethereum account:\n${address}\n\nURI: ${uri}\nVersion: 1\nChain ID: ${chainId}\nNonce: ${nonce}\nIssued At: ${issuedAt}`
+        const message = `${domain} wants you to sign in with your Celo account:\n${address}\n\nURI: ${uri}\nVersion: 1\nChain ID: ${chainId}\nNonce: ${nonce}\nIssued At: ${issuedAt}`
         const signature = await signMessageAsync({ message })
 
         // 3) Verify on server (sets httpOnly session cookie)

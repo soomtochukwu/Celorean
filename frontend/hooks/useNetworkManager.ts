@@ -1,6 +1,6 @@
 import { useEffect, useState, useCallback } from 'react';
 import { useAccount, useChainId, useSwitchChain } from 'wagmi';
-import { celo, celoAlfajores } from 'wagmi/chains';
+import { celo } from 'wagmi/chains';
 import { defineChain } from 'viem';
 import { toast } from 'sonner';
 import {
@@ -23,8 +23,8 @@ const localhost = defineChain({
   name: 'Localhost',
   nativeCurrency: {
     decimals: 18,
-    name: 'Ether',
-    symbol: 'ETH',
+    name: 'Celo',
+    symbol: 'CELO',
   },
   rpcUrls: {
     default: {
@@ -36,21 +36,41 @@ const localhost = defineChain({
   },
 });
 
+// Define Celo Sepolia chain manually if not available in wagmi/chains
+const celoSepolia = defineChain({
+  id: 11142220,
+  name: 'Celo Sepolia',
+  nativeCurrency: {
+    decimals: 18,
+    name: 'Celo',
+    symbol: 'CELO',
+  },
+  rpcUrls: {
+    default: {
+      http: ['https://rpc.ankr.com/celo_sepolia'],
+    },
+  },
+  blockExplorers: {
+    default: { name: 'CeloScan', url: 'https://sepolia.celoscan.io' },
+  },
+  testnet: true,
+});
+
 // Network environment mapping
 const CHAIN_ID_TO_ENVIRONMENT = {
   [localhost.id]: 'localhost' as const,
-  [celoAlfajores.id]: 'testnet' as const,
+  [celoSepolia.id]: 'testnet' as const,
   [celo.id]: 'mainnet' as const,
 } as const;
 
 const ENVIRONMENT_TO_CHAIN_ID = {
   localhost: localhost.id,
-  testnet: celoAlfajores.id,
+  testnet: celoSepolia.id,
   mainnet: celo.id,
 } as const;
 
 export type NetworkEnvironment = 'localhost' | 'testnet' | 'mainnet';
-export type SupportedChainId = typeof localhost.id | typeof celoAlfajores.id | typeof celo.id;
+export type SupportedChainId = typeof localhost.id | typeof celoSepolia.id | typeof celo.id;
 
 export interface NetworkState {
   currentEnvironment: NetworkEnvironment;
@@ -104,7 +124,7 @@ export function useNetworkManager(): NetworkState & NetworkActions {
       case 'localhost':
         return networkConfigs.localhost;
       case 'testnet':
-        return networkConfigs['celo-alfajores'];
+        return networkConfigs['celo-sepolia'];
       case 'mainnet':
         return networkConfigs['celo-mainnet'];
       default:
@@ -241,7 +261,7 @@ export function getEnvironmentDisplayName(env: NetworkEnvironment): string {
     case 'localhost':
       return 'Local Development';
     case 'testnet':
-      return 'Celo Alfajores Testnet';
+      return 'Celo Sepolia Testnet';
     case 'mainnet':
       return 'Celo Mainnet';
     default:
@@ -254,8 +274,8 @@ export function getChainInfo(chainId: SupportedChainId) {
   switch (chainId) {
     case localhost.id:
       return localhost;
-    case celoAlfajores.id:
-      return celoAlfajores;
+    case celoSepolia.id:
+      return celoSepolia;
     case celo.id:
       return celo;
     default:

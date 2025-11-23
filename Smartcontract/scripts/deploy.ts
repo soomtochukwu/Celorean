@@ -34,25 +34,25 @@ const ENVIRONMENT_CONFIGS: Record<string, EnvironmentConfig> = {
   testnet: {
     name: "testnet",
     requiresVerification: true,
-    confirmationBlocks: 6,
+    confirmationBlocks: 2,
     gasLimit: 5000000,
   },
-  alfajores: {
-    name: "alfajores",
+  celoSepolia: {
+    name: "celoSepolia",
     requiresVerification: true,
-    confirmationBlocks: 6,
+    confirmationBlocks: 2,
     gasLimit: 5000000,
   },
   mainnet: {
     name: "mainnet",
     requiresVerification: true,
-    confirmationBlocks: 12,
+    confirmationBlocks: 5,
     gasLimit: 3000000,
   },
-  "celo-mainnet": {
-    name: "celo-mainnet",
+  celo: {
+    name: "celo",
     requiresVerification: true,
-    confirmationBlocks: 12,
+    confirmationBlocks: 5,
     gasLimit: 3000000,
   },
 };
@@ -97,8 +97,44 @@ function validateNetworkRequirements(config: EnvironmentConfig, deployer: any) {
 function formatTimestamp(date: Date): string {
   return date
     .toISOString()
-    .replace("T", " ")
-    .replace(/\.\d{3}Z$/, " UTC");
+    .substring(0, 19)
+    .replace(/ /g, "_");
+}
+
+// Helper function to wait for transactions with timeout and retry
+async function waitForTransactionWithRetry(
+  tx: any,
+  confirmations: number = 1,
+  timeoutMs: number = 120000, // 2 minutes default
+  retries: number = 3
+): Promise<any> {
+  for (let attempt = 1; attempt <= retries; attempt++) {
+    try {
+      console.log(`⏳ Waiting for transaction confirmation (attempt ${attempt}/${retries})...`);
+      
+      // Create a timeout promise
+      const timeoutPromise = new Promise((_, reject) => {
+        setTimeout(() => reject(new Error('Transaction confirmation timeout')), timeoutMs);
+      });
+      
+      // Race between transaction wait and timeout
+      const receipt = await Promise.race([
+        tx.wait(confirmations),
+        timeoutPromise
+      ]);
+      
+      console.log(`✅ Transaction confirmed!`);
+      return receipt;
+    } catch (error: any) {
+      if (attempt === retries) {
+        console.warn(`⚠️  Transaction wait failed after ${retries} attempts:`, error.message);
+        console.warn(`Transaction may still be pending. Check explorer for status.`);
+        throw error;
+      }
+      console.warn(`⚠️  Attempt ${attempt} failed, retrying...`);
+      await new Promise(resolve => setTimeout(resolve, 5000)); // Wait 5s before retry
+    }
+  }
 }
 
 // Helper function to get implementation address with retry logic
@@ -216,19 +252,42 @@ async function main() {
   const verifierRegistryAddress = await verifierRegistry.getAddress();
   console.log(`✅ VerifierRegistry Deployed: ${verifierRegistryAddress}`);
 
-  // Wire relationships
+  // Wire relationships with retry logic
   console.log("Configuring contract relationships...");
-  const txSetCertInCelorean = await celorean.setCertificateNFT(certificateNftAddress);
-  await txSetCertInCelorean.wait();
-  const txSetCertInEventMgr = await eventManager.setCertificateNFT(certificateNftAddress);
-  await txSetCertInEventMgr.wait();
+  
+  try {
+    const txSetCertInCelorean = await celorean.setCertificateNFT(certificateNftAddress);
+    await waitForTransactionWithRetry(txSetCertInCelorean, envConfig.confirmationBlocks);
+  } catch (error: any) {
+    console.warn("⚠️  Failed to set CertificateNFT in Celorean:", error.message);
+    console.warn("You may need to call setCertificateNFT manually");
+  }
+  
+  try {
+    const txSetCertInEventMgr = await eventManager.setCertificateNFT(certificateNftAddress);
+    await waitForTransactionWithRetry(txSetCertInEventMgr, envConfig.confirmationBlocks);
+  } catch (error: any) {
+    console.warn("⚠️  Failed to set CertificateNFT in EventManager:", error.message);
+    console.warn("You may need to call setCertificateNFT manually");
+  }
 
   // Grant minter roles for certificate NFT to Celorean and EventManager
-  const txMinterCelorean = await certificateNft.setMinter(await celorean.getAddress(), true);
-  await txMinterCelorean.wait();
-  const txMinterEventMgr = await certificateNft.setMinter(eventManagerAddress, true);
-  await txMinterEventMgr.wait();
-  console.log("✅ CertificateNFT minter roles granted");
+  try {
+    const txMinterCelorean = await certificateNft.setMinter(await celorean.getAddress(), true);
+    await waitForTransactionWithRetry(txMinterCelorean, envConfig.confirmationBlocks);
+  } catch (error: any) {
+    console.warn("⚠️  Failed to grant minter role to Celorean:", error.message);
+    console.warn("You may need to call setMinter manually");
+  }
+  
+  try {
+    const txMinterEventMgr = await certificateNft.setMinter(eventManagerAddress, true);
+    await waitForTransactionWithRetry(txMinterEventMgr, envConfig.confirmationBlocks);
+    console.log("✅ CertificateNFT minter roles granted");
+  } catch (error: any) {
+    console.warn("⚠️  Failed to grant minter role to EventManager:", error.message);
+    console.warn("You may need to call setMinter manually");
+  }
 
   // Enhanced Contract Address Logging
   console.log("📋 CONTRACT DEPLOYMENT SUMMARY");
@@ -275,7 +334,20 @@ async function main() {
       await txLecturer.wait();
       console.log(`\u2705 Deployer employed as lecturer: ${deployer.address}`);
 
-      // Prepare mock courses
+      // Dummy images for local testing
+      const REAL_IPFS_URIS = [
+        "https://placehold.co/600x400/png",
+        "https://placehold.co/600x400/orange/white/png",
+        "https://placehold.co/600x400/blue/white/png",
+        "https://placehold.co/600x400/green/white/png",
+        "https://placehold.co/600x400/purple/white/png",
+      ];
+
+      // Helper to get random item
+      const getRandomItem = <T>(arr: T[]): T => arr[Math.floor(Math.random() * arr.length)];
+      // Helper to get random price between 0.001 and 0.01
+      const getRandomPrice = () => (Math.random() * (0.01 - 0.001) + 0.001).toFixed(4);
+
       const mockCourses: Array<{
         title: string;
         duration: number;
@@ -284,37 +356,38 @@ async function main() {
         tags: string[];
         level: string;
         metadataUri: string;
+        capacity: number;
       }> = [
         {
           title: "Solidity Basics",
           duration: 4,
           description:
             "Learn the fundamentals of Solidity and smart contracts.",
-          priceEth: "0.001",
+          priceEth: getRandomPrice(),
           tags: ["solidity", "ethereum", "smart-contracts"],
           level: "Beginner",
-          metadataUri:
-            "https://files.risein.com/courses/blockchain-basics/jL3T-Blockchain%20Basics.png",
+          metadataUri: getRandomItem(REAL_IPFS_URIS),
+          capacity: 50,
         },
         {
           title: "Advanced DApp Development",
           duration: 6,
           description: "Build production-ready decentralized applications.",
-          priceEth: "0.002",
+          priceEth: getRandomPrice(),
           tags: ["dapp", "frontend", "hardhat"],
           level: "Intermediate",
-          metadataUri:
-            "https://static.alchemyapi.io/images/assets/w3u-banner-3.png",
+          metadataUri: getRandomItem(REAL_IPFS_URIS),
+          capacity: 30,
         },
         {
           title: "DeFi Protocol Design",
           duration: 8,
           description: "Design and reason about core DeFi mechanisms.",
-          priceEth: "0.003",
+          priceEth: getRandomPrice(),
           tags: ["defi", "tokenomics", "security"],
           level: "Advanced",
-          metadataUri:
-            "https://d3f1iyfxxz8i1e.cloudfront.net/courses/course_image/62207c99c700.jpg",
+          metadataUri: getRandomItem(REAL_IPFS_URIS),
+          capacity: 20,
         },
       ];
 
@@ -329,17 +402,18 @@ async function main() {
           c.title,
           c.duration,
           c.description,
-          hre.ethers.parseEther(c.priceEth),
+          // price removed
           c.tags,
           c.level,
-          c.metadataUri
+          c.metadataUri,
+          c.capacity
         );
         const receipt = await tx.wait();
         // Attempt to derive courseId from event or by reading latest count
         const afterCount = await celorean.courseCount();
         createdIds.push(afterCount.toString());
         console.log(
-          `\u2705 Seeded course: ${c.title} (courseId ~ ${afterCount.toString()})`
+          `\u2705 Seeded course: ${c.title} (ID: ${afterCount}) - Price: ${c.priceEth} ETH - URI: ${c.metadataUri}`
         );
       }
 
@@ -381,80 +455,57 @@ async function main() {
     fs.mkdirSync(addressesDir, { recursive: true });
   }
 
-  // Generate TypeScript file content with environment support
-  const tsContent = `// Auto-generated file - Do not edit manually
-// Generated on: ${formatTimestamp(new Date())}
-// Network: ${hre.network.name}
-// Environment: ${envConfig.name}
-// Deployment Type: Initial Deployment
+  // Update central addresses.json
+  const centralAddressesPath = path.join(addressesDir, "addresses.json");
+  let centralAddresses: any = { environments: {} };
+  
+  if (fs.existsSync(centralAddressesPath)) {
+    try {
+      centralAddresses = JSON.parse(fs.readFileSync(centralAddressesPath, "utf8"));
+      if (!centralAddresses.environments) centralAddresses.environments = {};
+    } catch (e) {
+      console.warn("Could not parse existing addresses.json, creating new one");
+    }
+  }
 
-export interface ContractAddresses {
-  proxyAddress: string;
-  implementationAddress: string;
-  network: string;
-  environment: string;
-  deployedAt: string;
-  deployedAtFormatted: string;
-  deployer: string;
-  gasUsed: string;
-  blockNumber: number;
-}
+  // Update the specific environment
+  centralAddresses.environments[envConfig.name] = contractAddresses;
+  
+  // Update metadata
+  centralAddresses._metadata = {
+    description: "Unified contract addresses for all deployment environments",
+    lastUpdated: deploymentTime.toISOString(),
+    version: "1.0.0",
+    note: "This file is auto-generated by deployment scripts"
+  };
 
-export interface EnvironmentAddresses {
-  localhost?: ContractAddresses;
-  testnet?: ContractAddresses;
-  mainnet?: ContractAddresses;
-}
+  // Write back to addresses.json
+  fs.writeFileSync(centralAddressesPath, JSON.stringify(centralAddresses, null, 2));
+  console.log(`Updated central addresses file: ${centralAddressesPath}`);
 
-// Current deployment addresses
-export const contractAddresses: ContractAddresses = {
-  proxyAddress: "${proxyAddress}",
-  implementationAddress: "${implementationAddress}",
-  network: "${hre.network.name}",
-  environment: "${envConfig.name}",
-  deployedAt: "${contractAddresses.deployedAt}",
-  deployedAtFormatted: "${contractAddresses.deployedAtFormatted}",
-  deployer: "${deployer.address}",
-  gasUsed: "${contractAddresses.gasUsed}",
-  blockNumber: ${contractAddresses.blockNumber}
-};
-
-// Environment-specific addresses (will be populated as deployments occur)
-export const environmentAddresses: EnvironmentAddresses = {
-  ${envConfig.name === "localhost" || envConfig.name === "hardhat" ? "localhost" : envConfig.name === "testnet" || envConfig.name === "alfajores" ? "testnet" : "mainnet"}: contractAddresses
-};
-
-// Export individual addresses for convenience
-export const CELOREAN_PROXY_ADDRESS = "${proxyAddress}";
-export const CELOREAN_IMPLEMENTATION_ADDRESS = "${implementationAddress}";
-
-// Environment-specific getters
-export function getAddressesForEnvironment(env: 'localhost' | 'testnet' | 'mainnet'): ContractAddresses | undefined {
-  return environmentAddresses[env];
-}
-
-export function getCurrentEnvironmentAddresses(): ContractAddresses {
-  return contractAddresses;
-}
-
-export default contractAddresses;
-`;
-
-  // Write to TypeScript file
-  const tsFilePath = path.join(
-    addressesDir,
-    `${hre.network.name}-addresses.ts`
-  );
-  fs.writeFileSync(tsFilePath, tsContent);
-
-  // Also save as JSON for backup
+  // Also save as individual JSON for backup/reference
   const jsonFilePath = path.join(
     addressesDir,
     `${hre.network.name}-addresses.json`
   );
   fs.writeFileSync(jsonFilePath, JSON.stringify(contractAddresses, null, 2));
 
-  // Write individual JSONs for new contracts (for frontend consumption)
+  // Run sync-addresses script logic to update frontend
+  // We can spawn the script or just log instruction
+  console.log("Running sync-addresses script...");
+  try {
+    const syncScript = path.join(__dirname, "sync-addresses.ts");
+    // We use ts-node or hardhat run to execute it if possible, but for now let's just rely on the user or CI
+    // Actually, let's try to run it via child_process if we can, or just copy the logic.
+    // Since we are in hardhat environment, we can just require it if it exports a main function, 
+    // but it's a script. Let's just use child_process.execSync
+    const { execSync } = require("child_process");
+    execSync(`npx ts-node ${syncScript}`, { stdio: 'inherit' });
+  } catch (e) {
+    console.warn("Failed to auto-run sync-addresses script. Please run 'npm run sync-addresses' manually.");
+  }
+
+  // Write individual JSONs for new contracts (for reference)
   const extraJsons = [
     { name: "certificate-nft", address: certificateNftAddress },
     { name: "event-manager", address: eventManagerAddress },
@@ -465,32 +516,12 @@ export default contractAddresses;
     fs.writeFileSync(p, JSON.stringify({ address: extra.address, network: hre.network.name, environment: envConfig.name }, null, 2));
   }
 
-  // Copy the TypeScript file to frontend contracts directory if it exists
-  const frontendContractsDir = path.join(__dirname, "../../frontend/contracts");
-  let frontendTsPath = "";
-  if (fs.existsSync(frontendContractsDir)) {
-    frontendTsPath = path.join(frontendContractsDir, "addresses.ts");
-    fs.copyFileSync(tsFilePath, frontendTsPath);
-
-    const frontendAddrDir = path.join(frontendContractsDir, "addresses");
-    if (!fs.existsSync(frontendAddrDir)) {
-      fs.mkdirSync(frontendAddrDir, { recursive: true });
-    }
-    // Write extra addresses for frontend
-    for (const extra of extraJsons) {
-      const fp = path.join(frontendAddrDir, `${extra.name}.json`);
-      fs.writeFileSync(fp, JSON.stringify({ address: extra.address, network: hre.network.name, environment: envConfig.name }, null, 2));
-    }
-  }
 
   // Enhanced File Saving Logging
   console.log("💾 CONTRACT ADDRESSES SAVED");
   console.log("=".repeat(50));
-  console.log(`📄 TypeScript File:               ${tsFilePath}`);
+  console.log(`📄 Central Addresses File:        ${centralAddressesPath}`);
   console.log(`📄 JSON Backup File:              ${jsonFilePath}`);
-  if (frontendTsPath) {
-    console.log(`📄 Frontend Copy:                 ${frontendTsPath}`);
-  }
   console.log("=".repeat(50));
   console.log("");
 

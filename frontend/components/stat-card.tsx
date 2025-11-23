@@ -38,9 +38,9 @@ export function StatCard({
         <div className="text-2xl font-bold">
           {loading ? <Skeleton className="h-7 w-28" /> : value}
         </div>
-        <p className="text-xs text-muted-foreground mt-1">
+        <div className="text-xs text-muted-foreground mt-1">
           {loading ? <Skeleton className="h-3 w-40" /> : description}
-        </p>
+        </div>
         {trendValue && !loading && (
           <div className={cn(
             "mt-3 inline-flex items-center rounded-full px-2 py-1 text-xs",

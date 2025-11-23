@@ -10,7 +10,7 @@ import {
   connectorsForWallets,
 } from "@rainbow-me/rainbowkit";
 import { metaMaskWallet, okxWallet, trustWallet, frameWallet, walletConnectWallet, valoraWallet, injectedWallet } from "@rainbow-me/rainbowkit/wallets";
-import { celo, celoAlfajores } from "wagmi/chains";
+import { celo } from "wagmi/chains";
 import { QueryClient, QueryClientProvider, useIsFetching, useIsMutating } from "@tanstack/react-query";
 import { WagmiProvider, http, createConfig } from "wagmi";
 import { defineChain } from "viem";
@@ -46,13 +46,33 @@ const localhost = defineChain({
   },
 })
 
+// Define Celo Sepolia chain manually
+const celoSepolia = defineChain({
+  id: 11142220,
+  name: 'Celo Sepolia',
+  nativeCurrency: {
+    decimals: 18,
+    name: 'Celo',
+    symbol: 'CELO',
+  },
+  rpcUrls: {
+    default: {
+      http: ['https://rpc.ankr.com/celo_sepolia'],
+    },
+  },
+  blockExplorers: {
+    default: { name: 'CeloScan', url: 'https://sepolia.celoscan.io' },
+  },
+  testnet: true,
+});
+
 // Determine initial chain based on environment
 const getInitialChain = () => {
   if (process.env.NODE_ENV === 'development') {
     return localhost;
   }
-  // Default to Alfajores (can be changed to celo for mainnet)
-  return celoAlfajores;
+  // Default to Celo Sepolia (can be changed to celo for mainnet)
+  return celoSepolia;
 };
 
 const { wallets: defaultWallets } = getDefaultWallets();
@@ -70,10 +90,10 @@ const wallets = [
   ...defaultWallets,
 ];
 
-const chains = [celoAlfajores, celo, localhost] as const satisfies readonly [import("viem").Chain, ...import("viem").Chain[]];
+const chains = [celoSepolia, celo, localhost] as const satisfies readonly [import("viem").Chain, ...import("viem").Chain[]];
 
 const transports = {
-  [celoAlfajores.id]: http(),
+  [celoSepolia.id]: http(),
   [celo.id]: http(),
   [localhost.id]: http('http://127.0.0.1:8545'),
 } as const;
@@ -487,9 +507,9 @@ function GlobalLoadingProvider({ children }: { children: React.ReactNode }) {
   React.useEffect(() => {
     try {
       document.body?.setAttribute('aria-busy', active ? 'true' : 'false');
-    } catch {}
+    } catch { }
     return () => {
-      try { document.body?.setAttribute('aria-busy', 'false'); } catch {}
+      try { document.body?.setAttribute('aria-busy', 'false'); } catch { }
     };
   }, [active]);
 
@@ -613,12 +633,12 @@ function MiniAppChainGuard({ enabled }: { enabled: boolean }) {
 
   React.useEffect(() => {
     if (!enabled) return;
-    // Allowed chains: Celo Alfajores (44787), Celo (42220), Localhost (1337)
-    const allowed = new Set([44787, 42220, 1337]);
+    // Allowed chains: Celo Sepolia (11142220), Celo (42220), Localhost (1337)
+    const allowed = new Set([11142220, 42220, 1337]);
     if (!allowed.has(chainId)) {
-      // Prefer Alfajores in miniapp
+      // Prefer Celo Sepolia in miniapp
       try {
-        switchChain({ chainId: 44787 });
+        switchChain({ chainId: 11142220 });
       } catch (e) {
         // Swallow errors; user can switch manually via UI
       }

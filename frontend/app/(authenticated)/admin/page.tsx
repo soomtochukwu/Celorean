@@ -2,8 +2,9 @@
 
 import { useState, useEffect } from "react"
 import { useAccount } from "wagmi"
+import { parseEther } from "viem"
 import { Button } from "@/components/ui/button"
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
@@ -14,7 +15,16 @@ import { toast } from "@/hooks/use-toast"
 import useCeloreanContract from "@/hooks/useCeloreanContract"
 import { CourseThumbnailUpload } from "@/components/course-thumbnail-upload"
 import { CourseContentUpload } from "@/components/course-content-upload"
-import { Users, GraduationCap, BookPlus, Shield, BookOpen } from "lucide-react"
+import { Users, GraduationCap, BookPlus, Shield, BookOpen, UserPlus, Loader2, RefreshCw } from "lucide-react"
+import {
+    Table,
+    TableBody,
+    TableCell,
+    TableHead,
+    TableHeader,
+    TableRow,
+} from "@/components/ui/table"
+import { Skeleton } from "@/components/ui/skeleton"
 
 export default function AdminPage() {
     const { address, isConnected } = useAccount()
@@ -24,17 +34,18 @@ export default function AdminPage() {
         employLecturer,
         admitStudent,
         createCourse,
-        addMultipleCourseContent, // ✅ Use this instead of updateCourseContent
+        addMultipleCourseContent,
         isLecturer,
         isPending,
         isConfirming,
-        isConfirmed,
-        error,
-        courseCount
+        courseCount,
+        getListOfStudents,
+        withdraw
     } = useCeloreanContract()
 
-    // ✅ Call hook at top level with fallback for undefined address
+    // Call hook at top level with fallback for undefined address
     const lecturerCheck = isLecturer(address || "0x0000000000000000000000000000000000000000")
+    const studentListQuery = getListOfStudents()
 
     const [isAdmin, setIsAdmin] = useState(false)
     const [isUserLecturer, setIsUserLecturer] = useState(false)
@@ -53,7 +64,8 @@ export default function AdminPage() {
         description: "",
         price: "",
         tags: "",
-        level: "Beginner"
+        level: "Beginner",
+        capacity: ""
     })
 
     // Check if current user is admin or lecturer
@@ -78,7 +90,6 @@ export default function AdminPage() {
         setContentItems(content)
     }
 
-    // ✅ Add the missing uploadThumbnailToIPFS function
     const uploadThumbnailToIPFS = async (file: File, courseTitle: string): Promise<string | null> => {
         try {
             setIsUploadingThumbnail(true)
@@ -110,7 +121,6 @@ export default function AdminPage() {
         }
     }
 
-    // ✅ Add the missing uploadCourseMetadata function
     const uploadCourseMetadata = async (courseData: any, thumbnailCid: string | null): Promise<string | null> => {
         try {
             const response = await fetch('/api/pinCourseMetadata', {
@@ -141,13 +151,10 @@ export default function AdminPage() {
         }
     }
 
-    // ✅ Remove the local updateCourseMetadata function and replace handleUpdateCourseContent
-    // ✅ Update handleUpdateCourseContent to use array
     const handleUpdateCourseContent = async (courseId: number) => {
         try {
-            // Upload each content item to IPFS and collect URIs
             const contentUris: string[] = [];
-            
+
             for (const item of contentItems) {
                 const response = await fetch('/api/pinCourseContent', {
                     method: 'POST',
@@ -156,27 +163,25 @@ export default function AdminPage() {
                     },
                     body: JSON.stringify({
                         courseId,
-                        content: [item], // Upload individual item
+                        content: [item],
                     }),
                 });
-        
+
                 if (!response.ok) {
                     throw new Error(`Failed to upload content item: ${item.title}`);
                 }
-        
+
                 const data = await response.json();
                 contentUris.push(data.cid);
             }
-    
-            // ✅ Use addMultipleCourseContent with array of URIs
+
             await addMultipleCourseContent(courseId, contentUris);
-    
+
             toast({
                 title: "Content updated",
                 description: `Successfully added ${contentUris.length} content items to the course.`,
             });
-    
-            // Clear the content items after successful upload
+
             setContentItems([]);
         } catch (error) {
             console.error('Error updating course content:', error);
@@ -187,29 +192,6 @@ export default function AdminPage() {
             });
         }
     };
-
-    if (!isConnected) {
-        return (
-            <div className="container mx-auto px-4 py-8">
-                <div className="text-center">
-                    <h1 className="text-3xl font-bold mb-4">Admin Dashboard</h1>
-                    <p className="text-muted-foreground">Please connect your wallet to access admin features</p>
-                </div>
-            </div>
-        )
-    }
-
-    if (!isAdmin && !isUserLecturer) {
-        return (
-            <div className="container mx-auto px-4 py-8">
-                <div className="text-center">
-                    <Shield className="h-16 w-16 mx-auto mb-4 text-muted-foreground" />
-                    <h1 className="text-3xl font-bold mb-4">Access Denied</h1>
-                    <p className="text-muted-foreground">You don't have permission to access this page. Only admins and lecturers can access this area.</p>
-                </div>
-            </div>
-        )
-    }
 
     const handleEmployLecturer = async (e: React.FormEvent) => {
         e.preventDefault()
@@ -232,7 +214,7 @@ export default function AdminPage() {
     const handleAdmitStudent = async (e: React.FormEvent) => {
         e.preventDefault()
         try {
-            await admitStudent(studentForm.address, parseInt(studentForm.value))
+            await admitStudent(studentForm.address, parseInt(studentForm.value || "0"))
             toast({
                 title: "Student admission initiated",
                 description: "Please confirm the transaction in your wallet.",
@@ -253,7 +235,6 @@ export default function AdminPage() {
             let thumbnailCid: string | null = null
             let metadataCid: string | null = null
 
-            // Upload thumbnail to IPFS if provided
             if (thumbnailFile && courseForm.title) {
                 thumbnailCid = await uploadThumbnailToIPFS(thumbnailFile, courseForm.title)
                 if (!thumbnailCid) {
@@ -261,24 +242,23 @@ export default function AdminPage() {
                 }
             }
 
-            // Upload course metadata to IPFS
             metadataCid = await uploadCourseMetadata(courseForm, thumbnailCid)
             if (!metadataCid) {
                 throw new Error('Failed to upload course metadata')
             }
 
-            const tags = courseForm.tags.split(',').map(tag => tag.trim()).filter(tag => tag.length > 0)
-
-            // Create course on blockchain with metadataUri
+            const tags = courseForm.tags.split(",").map(t => t.trim())
             const metadataUri = `https://gateway.pinata.cloud/ipfs/${metadataCid}`
+
             await createCourse(
                 courseForm.title,
                 parseInt(courseForm.duration),
                 courseForm.description,
-                parseInt(courseForm.price),
+                // price removed
                 tags,
                 courseForm.level,
-                metadataUri
+                metadataUri,
+                parseInt(courseForm.capacity)
             )
 
             toast({
@@ -286,14 +266,14 @@ export default function AdminPage() {
                 description: "Please confirm the transaction in your wallet.",
             })
 
-            // Reset form
             setCourseForm({
                 title: "",
                 duration: "",
                 description: "",
                 price: "",
                 tags: "",
-                level: "Beginner"
+                level: "Beginner",
+                capacity: ""
             })
             setThumbnailFile(null)
             setThumbnailPreview(null)
@@ -307,142 +287,316 @@ export default function AdminPage() {
         }
     }
 
+    const handleWithdraw = async () => {
+        try {
+            await withdraw()
+            toast({
+                title: "Withdrawal initiated",
+                description: "Please confirm the transaction in your wallet.",
+            })
+        } catch (err) {
+            toast({
+                title: "Error",
+                description: "Failed to withdraw funds. Please try again.",
+                variant: "destructive",
+            })
+        }
+    }
+
+    if (!isConnected) {
+        return (
+            <div className="container mx-auto px-4 py-16 flex items-center justify-center min-h-[60vh]">
+                <Card className="w-full max-w-md glass border-primary/10">
+                    <CardHeader className="text-center">
+                        <Shield className="w-12 h-12 mx-auto text-primary mb-4" />
+                        <CardTitle>Admin Dashboard</CardTitle>
+                        <CardDescription>Please connect your wallet to access admin features</CardDescription>
+                    </CardHeader>
+                </Card>
+            </div>
+        )
+    }
+
+    if (!isAdmin && !isUserLecturer) {
+        return (
+            <div className="container mx-auto px-4 py-16 flex items-center justify-center min-h-[60vh]">
+                <Card className="w-full max-w-md glass border-destructive/20">
+                    <CardHeader className="text-center">
+                        <Shield className="w-12 h-12 mx-auto text-destructive mb-4" />
+                        <CardTitle className="text-destructive">Access Denied</CardTitle>
+                        <CardDescription>You don't have permission to access this page. Only admins and lecturers can access this area.</CardDescription>
+                    </CardHeader>
+                </Card>
+            </div>
+        )
+    }
+
     return (
-        <div className="container mx-auto px-4 py-8">
-            <div className="flex justify-between items-center mb-8">
+        <div className="container mx-auto px-4 py-8 space-y-8">
+            <div className="flex justify-between items-center">
                 <div>
-                    <h1 className="text-3xl font-bold">Admin Dashboard</h1>
+                    <h1 className="text-3xl font-bold tracking-tight gradient-text">Admin Dashboard</h1>
                     <p className="text-muted-foreground">
-                        {isAdmin ? "Platform Administration" : "Lecturer Panel"}
+                        {isAdmin ? "Platform Administration & Management" : "Lecturer Course Management"}
                     </p>
                 </div>
                 <div className="flex gap-2">
-                    {isAdmin && <Badge variant="destructive">Admin</Badge>}
-                    {isUserLecturer && <Badge variant="secondary">Lecturer</Badge>}
+                    {isAdmin && <Badge variant="destructive" className="px-3 py-1">Admin</Badge>}
+                    {isUserLecturer && <Badge variant="secondary" className="px-3 py-1 bg-primary/20 text-primary hover:bg-primary/30">Lecturer</Badge>}
                 </div>
             </div>
 
-            <Tabs defaultValue={isAdmin ? "lecturers" : "courses"} className="space-y-6">
-                <TabsList className={`grid w-full ${isAdmin ? 'grid-cols-4' : 'grid-cols-2'}`}>
+            <Tabs defaultValue={isAdmin ? "students" : "courses"} className="space-y-6">
+                <TabsList className="grid w-full grid-cols-2 md:grid-cols-4 bg-white/5 border border-white/10 p-1">
                     {isAdmin && (
                         <>
-                            <TabsTrigger value="lecturers">Manage Lecturers</TabsTrigger>
                             <TabsTrigger value="students">Manage Students</TabsTrigger>
+                            <TabsTrigger value="lecturers">Manage Lecturers</TabsTrigger>
                         </>
                     )}
                     <TabsTrigger value="courses">Create Course</TabsTrigger>
                     <TabsTrigger value="content">Manage Content</TabsTrigger>
+                    {isAdmin && <TabsTrigger value="finance">Finance</TabsTrigger>}
                 </TabsList>
 
                 {isAdmin && (
-                    <TabsContent value="lecturers" className="space-y-6">
-                        <Card>
-                            <CardHeader>
-                                <CardTitle className="flex items-center gap-2">
-                                    <GraduationCap className="h-5 w-5" />
-                                    Employ New Lecturer
-                                </CardTitle>
-                            </CardHeader>
-                            <CardContent>
-                                <form onSubmit={handleEmployLecturer} className="space-y-4">
-                                    <div>
-                                        <Label htmlFor="lecturer-address">Lecturer Address</Label>
-                                        <Input
-                                            id="lecturer-address"
-                                            placeholder="0x..."
-                                            value={lecturerForm.address}
-                                            onChange={(e) => setLecturerForm(prev => ({ ...prev, address: e.target.value }))}
-                                            required
-                                        />
-                                    </div>
-                                    <div>
-                                        <Label htmlFor="lecturer-value">Initial Value</Label>
-                                        <Input
-                                            id="lecturer-value"
-                                            type="number"
-                                            placeholder="100"
-                                            value={lecturerForm.value}
-                                            onChange={(e) => setLecturerForm(prev => ({ ...prev, value: e.target.value }))}
-                                            required
-                                        />
-                                    </div>
-                                    <Button type="submit" disabled={isPending || isConfirming}>
-                                        {isPending || isConfirming ? "Processing..." : "Employ Lecturer"}
-                                    </Button>
-                                </form>
-                            </CardContent>
-                        </Card>
+                    <TabsContent value="students" className="space-y-6">
+                        <div className="grid gap-6 md:grid-cols-3">
+                            {/* Admit Student Form */}
+                            <Card className="md:col-span-1 glass border-primary/10 h-fit">
+                                <CardHeader>
+                                    <CardTitle className="flex items-center gap-2 text-lg">
+                                        <UserPlus className="h-5 w-5 text-primary" />
+                                        Admit New Student
+                                    </CardTitle>
+                                    <CardDescription>
+                                        Manually admit a student to allow them to enroll in courses.
+                                    </CardDescription>
+                                </CardHeader>
+                                <CardContent>
+                                    <form onSubmit={handleAdmitStudent} className="space-y-4">
+                                        <div className="space-y-2">
+                                            <Label htmlFor="student-address">Student Address</Label>
+                                            <Input
+                                                id="student-address"
+                                                placeholder="0x..."
+                                                value={studentForm.address}
+                                                onChange={(e) => setStudentForm(prev => ({ ...prev, address: e.target.value }))}
+                                                required
+                                                className="font-mono text-sm"
+                                            />
+                                        </div>
+                                        <div className="space-y-2">
+                                            <Label htmlFor="student-value">Initial Tokens (Optional)</Label>
+                                            <Input
+                                                id="student-value"
+                                                type="number"
+                                                placeholder="0"
+                                                value={studentForm.value}
+                                                onChange={(e) => setStudentForm(prev => ({ ...prev, value: e.target.value }))}
+                                            />
+                                        </div>
+                                        <Button type="submit" className="w-full" disabled={isPending || isConfirming}>
+                                            {isPending || isConfirming ? (
+                                                <>
+                                                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                                                    Processing...
+                                                </>
+                                            ) : (
+                                                "Admit Student"
+                                            )}
+                                        </Button>
+                                    </form>
+                                </CardContent>
+                            </Card>
 
-                        <Card>
+                            {/* Student List */}
+                            <Card className="md:col-span-2 glass border-primary/10">
+                                <CardHeader className="flex flex-row items-center justify-between">
+                                    <div>
+                                        <CardTitle className="flex items-center gap-2 text-lg">
+                                            <Users className="h-5 w-5 text-primary" />
+                                            Admitted Students
+                                        </CardTitle>
+                                        <CardDescription>
+                                            List of all students currently admitted to the platform.
+                                        </CardDescription>
+                                    </div>
+                                    <Button variant="outline" size="sm" onClick={() => studentListQuery.refetch()}>
+                                        <RefreshCw className={`h-4 w-4 ${studentListQuery.isLoading ? 'animate-spin' : ''}`} />
+                                    </Button>
+                                </CardHeader>
+                                <CardContent>
+                                    {studentListQuery.isLoading ? (
+                                        <div className="space-y-2">
+                                            {[1, 2, 3].map(i => <Skeleton key={i} className="h-12 w-full bg-white/5" />)}
+                                        </div>
+                                    ) : Array.isArray(studentListQuery.data) && studentListQuery.data.length > 0 ? (
+                                        <div className="rounded-md border border-white/10 overflow-hidden">
+                                            <Table>
+                                                <TableHeader className="bg-white/5">
+                                                    <TableRow className="hover:bg-transparent border-white/10">
+                                                        <TableHead className="text-gray-300">Address</TableHead>
+                                                        <TableHead className="text-right text-gray-300">Status</TableHead>
+                                                    </TableRow>
+                                                </TableHeader>
+                                                <TableBody>
+                                                    {(studentListQuery.data as string[]).map((studentAddr, index) => (
+                                                        <TableRow key={index} className="hover:bg-white/5 border-white/10">
+                                                            <TableCell className="font-mono text-sm text-gray-300">
+                                                                {studentAddr}
+                                                            </TableCell>
+                                                            <TableCell className="text-right">
+                                                                <Badge variant="outline" className="bg-green-500/10 text-green-400 border-green-500/20">
+                                                                    Admitted
+                                                                </Badge>
+                                                            </TableCell>
+                                                        </TableRow>
+                                                    ))}
+                                                </TableBody>
+                                            </Table>
+                                        </div>
+                                    ) : (
+                                        <div className="text-center py-8 text-muted-foreground">
+                                            No students found.
+                                        </div>
+                                    )}
+                                </CardContent>
+                            </Card>
+                        </div>
+                    </TabsContent>
+                )}
+
+                {isAdmin && (
+                    <TabsContent value="lecturers" className="space-y-6">
+                        <div className="grid gap-6 md:grid-cols-3">
+                            <Card className="md:col-span-1 glass border-primary/10 h-fit">
+                                <CardHeader>
+                                    <CardTitle className="flex items-center gap-2 text-lg">
+                                        <GraduationCap className="h-5 w-5 text-primary" />
+                                        Employ New Lecturer
+                                    </CardTitle>
+                                    <CardDescription>Add a new lecturer to the platform.</CardDescription>
+                                </CardHeader>
+                                <CardContent>
+                                    <form onSubmit={handleEmployLecturer} className="space-y-4">
+                                        <div className="space-y-2">
+                                            <Label htmlFor="lecturer-address">Lecturer Address</Label>
+                                            <Input
+                                                id="lecturer-address"
+                                                placeholder="0x..."
+                                                value={lecturerForm.address}
+                                                onChange={(e) => setLecturerForm(prev => ({ ...prev, address: e.target.value }))}
+                                                required
+                                                className="font-mono text-sm"
+                                            />
+                                        </div>
+                                        <div className="space-y-2">
+                                            <Label htmlFor="lecturer-value">Initial Value</Label>
+                                            <Input
+                                                id="lecturer-value"
+                                                type="number"
+                                                placeholder="100"
+                                                value={lecturerForm.value}
+                                                onChange={(e) => setLecturerForm(prev => ({ ...prev, value: e.target.value }))}
+                                                required
+                                            />
+                                        </div>
+                                        <Button type="submit" className="w-full" disabled={isPending || isConfirming}>
+                                            {isPending || isConfirming ? "Processing..." : "Employ Lecturer"}
+                                        </Button>
+                                    </form>
+                                </CardContent>
+                            </Card>
+
+                            <Card className="md:col-span-2 glass border-primary/10">
+                                <CardHeader>
+                                    <CardTitle className="flex items-center gap-2 text-lg">
+                                        <Users className="h-5 w-5 text-primary" />
+                                        Current Lecturers
+                                    </CardTitle>
+                                </CardHeader>
+                                <CardContent>
+                                    <div className="rounded-md border border-white/10 overflow-hidden">
+                                        <Table>
+                                            <TableHeader className="bg-white/5">
+                                                <TableRow className="hover:bg-transparent border-white/10">
+                                                    <TableHead className="text-gray-300">Address</TableHead>
+                                                    <TableHead className="text-right text-gray-300">Role</TableHead>
+                                                </TableRow>
+                                            </TableHeader>
+                                            <TableBody>
+                                                {Array.isArray(lecturerList) && lecturerList.length > 0 ? (
+                                                    (lecturerList as string[]).map((lecturer, index) => (
+                                                        <TableRow key={index} className="hover:bg-white/5 border-white/10">
+                                                            <TableCell className="font-mono text-sm text-gray-300">{lecturer}</TableCell>
+                                                            <TableCell className="text-right">
+                                                                <Badge variant="secondary" className="bg-primary/20 text-primary">Lecturer</Badge>
+                                                            </TableCell>
+                                                        </TableRow>
+                                                    ))
+                                                ) : (
+                                                    <TableRow>
+                                                        <TableCell colSpan={2} className="text-center py-8 text-muted-foreground">
+                                                            No lecturers found
+                                                        </TableCell>
+                                                    </TableRow>
+                                                )}
+                                            </TableBody>
+                                        </Table>
+                                    </div>
+                                </CardContent>
+                            </Card>
+                        </div>
+                    </TabsContent>
+                )}
+
+                {isAdmin && (
+                    <TabsContent value="finance" className="space-y-6">
+                        <Card className="glass border-primary/10">
                             <CardHeader>
-                                <CardTitle>Current Lecturers</CardTitle>
+                                <CardTitle className="flex items-center gap-2 text-lg">
+                                    <Shield className="h-5 w-5 text-primary" />
+                                    Platform Finance
+                                </CardTitle>
+                                <CardDescription>Manage platform funds and withdrawals.</CardDescription>
                             </CardHeader>
                             <CardContent>
-                                <div className="space-y-2">
-                                    {Array.isArray(lecturerList) && lecturerList.length > 0 ? (
-                                        lecturerList.map((lecturer: string, index: number) => (
-                                            <div key={index} className="flex items-center justify-between p-3 border rounded">
-                                                <span className="font-mono text-sm">{lecturer}</span>
-                                                <Badge variant="outline">Lecturer</Badge>
-                                            </div>
-                                        ))
-                                    ) : (
-                                        <p className="text-muted-foreground">No lecturers found</p>
-                                    )}
+                                <div className="space-y-4">
+                                    <div className="p-4 rounded-lg bg-white/5 border border-white/10">
+                                        <h3 className="text-sm font-medium text-gray-400 mb-2">Actions</h3>
+                                        <Button
+                                            onClick={handleWithdraw}
+                                            disabled={isPending || isConfirming}
+                                            className="w-full md:w-auto"
+                                        >
+                                            {isPending || isConfirming ? (
+                                                <>
+                                                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                                                    Processing...
+                                                </>
+                                            ) : (
+                                                "Withdraw All Funds"
+                                            )}
+                                        </Button>
+                                        <p className="text-xs text-muted-foreground mt-2">
+                                            Withdraws the entire contract balance to the owner's wallet.
+                                        </p>
+                                    </div>
                                 </div>
                             </CardContent>
                         </Card>
                     </TabsContent>
                 )}
 
-                {isAdmin && (
-                    <TabsContent value="students" className="space-y-6">
-                        <Card>
-                            <CardHeader>
-                                <CardTitle className="flex items-center gap-2">
-                                    <Users className="h-5 w-5" />
-                                    Admit New Student
-                                </CardTitle>
-                            </CardHeader>
-                            <CardContent>
-                                <form onSubmit={handleAdmitStudent} className="space-y-4">
-                                    <div>
-                                        <Label htmlFor="student-address">Student Address</Label>
-                                        <Input
-                                            id="student-address"
-                                            placeholder="0x..."
-                                            value={studentForm.address}
-                                            onChange={(e) => setStudentForm(prev => ({ ...prev, address: e.target.value }))}
-                                            required
-                                        />
-                                    </div>
-                                    <div>
-                                        <Label htmlFor="student-value">Initial Value</Label>
-                                        <Input
-                                            id="student-value"
-                                            type="number"
-                                            placeholder="50"
-                                            value={studentForm.value}
-                                            onChange={(e) => setStudentForm(prev => ({ ...prev, value: e.target.value }))}
-                                            required
-                                        />
-                                    </div>
-                                    <Button type="submit" disabled={isPending || isConfirming}>
-                                        {isPending || isConfirming ? "Processing..." : "Admit Student"}
-                                    </Button>
-                                </form>
-                            </CardContent>
-                        </Card>
-                    </TabsContent>
-                )}
-
                 <TabsContent value="courses" className="space-y-6">
-                    <Card>
+                    <Card className="glass border-primary/10">
                         <CardHeader>
-                            <CardTitle className="flex items-center gap-2">
-                                <BookPlus className="h-5 w-5" />
+                            <CardTitle className="flex items-center gap-2 text-lg">
+                                <BookPlus className="h-5 w-5 text-primary" />
                                 Create New Course
                             </CardTitle>
+                            <CardDescription>Launch a new course on the platform.</CardDescription>
                         </CardHeader>
                         <CardContent>
                             <form onSubmit={handleCreateCourse} className="space-y-6">
@@ -454,8 +608,8 @@ export default function AdminPage() {
                                     />
                                 </div>
 
-                                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                    <div>
+                                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                    <div className="space-y-2">
                                         <Label htmlFor="course-title">Course Title</Label>
                                         <Input
                                             id="course-title"
@@ -465,7 +619,7 @@ export default function AdminPage() {
                                             required
                                         />
                                     </div>
-                                    <div>
+                                    <div className="space-y-2">
                                         <Label htmlFor="course-duration">Duration (weeks)</Label>
                                         <Input
                                             id="course-duration"
@@ -478,7 +632,7 @@ export default function AdminPage() {
                                     </div>
                                 </div>
 
-                                <div>
+                                <div className="space-y-2">
                                     <Label htmlFor="course-description">Description</Label>
                                     <Textarea
                                         id="course-description"
@@ -486,22 +640,12 @@ export default function AdminPage() {
                                         value={courseForm.description}
                                         onChange={(e) => setCourseForm(prev => ({ ...prev, description: e.target.value }))}
                                         required
+                                        className="min-h-[100px]"
                                     />
                                 </div>
 
-                                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                    <div>
-                                        <Label htmlFor="course-price">Price (wei)</Label>
-                                        <Input
-                                            id="course-price"
-                                            type="number"
-                                            placeholder="0"
-                                            value={courseForm.price}
-                                            onChange={(e) => setCourseForm(prev => ({ ...prev, price: e.target.value }))}
-                                            required
-                                        />
-                                    </div>
-                                    <div>
+                                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                    <div className="space-y-2">
                                         <Label htmlFor="course-level">Level</Label>
                                         <Select value={courseForm.level} onValueChange={(value) => setCourseForm(prev => ({ ...prev, level: value }))}>
                                             <SelectTrigger>
@@ -514,9 +658,20 @@ export default function AdminPage() {
                                             </SelectContent>
                                         </Select>
                                     </div>
+                                    <div className="space-y-2">
+                                        <Label htmlFor="course-capacity">Capacity (students)</Label>
+                                        <Input
+                                            id="course-capacity"
+                                            type="number"
+                                            placeholder="50"
+                                            value={courseForm.capacity}
+                                            onChange={(e) => setCourseForm(prev => ({ ...prev, capacity: e.target.value }))}
+                                            required
+                                        />
+                                    </div>
                                 </div>
 
-                                <div>
+                                <div className="space-y-2">
                                     <Label htmlFor="course-tags">Tags (comma-separated)</Label>
                                     <Input
                                         id="course-tags"
@@ -531,7 +686,14 @@ export default function AdminPage() {
                                     disabled={isPending || isConfirming || isUploadingThumbnail}
                                     className="w-full"
                                 >
-                                    {isPending || isConfirming || isUploadingThumbnail ? "Processing..." : "Create Course"}
+                                    {isPending || isConfirming || isUploadingThumbnail ? (
+                                        <>
+                                            <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                                            Processing...
+                                        </>
+                                    ) : (
+                                        "Create Course"
+                                    )}
                                 </Button>
                             </form>
                         </CardContent>
@@ -539,15 +701,16 @@ export default function AdminPage() {
                 </TabsContent>
 
                 <TabsContent value="content" className="space-y-6">
-                    <Card>
+                    <Card className="glass border-primary/10">
                         <CardHeader>
-                            <CardTitle className="flex items-center gap-2">
-                                <BookOpen className="h-5 w-5" />
-                                Select Course to Manage Content
+                            <CardTitle className="flex items-center gap-2 text-lg">
+                                <BookOpen className="h-5 w-5 text-primary" />
+                                Manage Course Content
                             </CardTitle>
+                            <CardDescription>Upload and manage content for existing courses.</CardDescription>
                         </CardHeader>
-                        <CardContent>
-                            <div className="space-y-4">
+                        <CardContent className="space-y-6">
+                            <div className="space-y-2">
                                 <Label htmlFor="course-select">Select Course</Label>
                                 <Select
                                     value={selectedCourseForContent?.toString() || ""}
@@ -565,31 +728,34 @@ export default function AdminPage() {
                                     </SelectContent>
                                 </Select>
                             </div>
-                        </CardContent>
-                    </Card>
 
-                    {selectedCourseForContent && (
-                        <>
-                            <CourseContentUpload
-                                courseId={selectedCourseForContent}
-                                onContentUploaded={handleContentUploaded}
-                            />
+                            {selectedCourseForContent && (
+                                <div className="space-y-6 pt-4 border-t border-white/10">
+                                    <CourseContentUpload
+                                        courseId={selectedCourseForContent}
+                                        onContentUploaded={handleContentUploaded}
+                                    />
 
-                            {contentItems.length > 0 && (
-                                <Card>
-                                    <CardContent className="pt-6">
+                                    {contentItems.length > 0 && (
                                         <Button
                                             onClick={() => handleUpdateCourseContent(selectedCourseForContent)}
                                             disabled={isPending || isConfirming}
                                             className="w-full"
                                         >
-                                            {isPending || isConfirming ? "Updating..." : "Update Course Content"}
+                                            {isPending || isConfirming ? (
+                                                <>
+                                                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                                                    Updating...
+                                                </>
+                                            ) : (
+                                                "Update Course Content"
+                                            )}
                                         </Button>
-                                    </CardContent>
-                                </Card>
+                                    )}
+                                </div>
                             )}
-                        </>
-                    )}
+                        </CardContent>
+                    </Card>
                 </TabsContent>
             </Tabs>
         </div>

@@ -9,7 +9,7 @@ contract CourseModule is Initializable {
         string title;
         string description;
         uint256 duration; // in weeks
-        uint256 price; // in wei
+        // price removed
         string[] tags;
         string level; // Beginner, Intermediate, Advanced
         uint256 rating; // out of 50 (4.7 = 47)
@@ -47,7 +47,7 @@ contract CourseModule is Initializable {
         uint256 indexed courseId,
         string title,
         address indexed instructor,
-        uint256 price,
+        // price removed
         string metadataUri
     );
 

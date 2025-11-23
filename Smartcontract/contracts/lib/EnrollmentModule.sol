@@ -18,7 +18,7 @@ contract EnrollmentModule is Initializable {
     function registerForCourse(
         uint256 courseId,
         address student
-    ) public payable virtual {
+    ) public virtual {
         // Add duplicate enrollment check
         require(
             !isEnrolled[courseId][student],

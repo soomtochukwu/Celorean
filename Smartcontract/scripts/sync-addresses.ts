@@ -62,8 +62,8 @@ function main() {
 
   const envMap: Record<string, string> = {
     localhost: 'localhost-addresses.json',
-    testnet: 'alfajores-addresses.json',
-    mainnet: 'mainnet-addresses.json',
+    testnet: 'celoSepolia-addresses.json',
+    mainnet: 'celo-addresses.json',
   };
 
   let wrote = 0;

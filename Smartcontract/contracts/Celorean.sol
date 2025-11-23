@@ -79,7 +79,7 @@ contract Celorean is
         string memory title,
         uint256 duration,
         string memory description,
-        uint256 price,
+        // price removed
         string[] memory tags,
         string memory level,
         string memory metadataUri,
@@ -97,7 +97,7 @@ contract Celorean is
             title: title,
             description: description,
             duration: duration,
-            price: price,
+            // price removed
             tags: tags,
             level: level,
             rating: 0,
@@ -110,7 +110,7 @@ contract Celorean is
 
         courseNameToId[title] = courseId;
 
-        emit CourseCreated(courseId, title, msg.sender, price, metadataUri);
+        emit CourseCreated(courseId, title, msg.sender, metadataUri);
 
         // Mint NFT for course creation
         _tokenIdCounter++;
@@ -122,7 +122,7 @@ contract Celorean is
     function registerForCourse(
         uint256 courseId,
         address student
-    ) public payable override nonReentrant {
+    ) public override nonReentrant {
         require(courseId > 0 && courseId <= courseCount, "Invalid course ID");
         require(isStudent[student], "Address is not a registered student");
         // Add duplicate enrollment check
@@ -132,7 +132,7 @@ contract Celorean is
         );
 
         Course memory course = courses[courseId];
-        require(msg.value >= course.price, "Insufficient payment");
+        // Payment check removed
         require(course.enrolledCount < course.capacity, "Course is full");
 
         super.registerForCourse(courseId, student);
@@ -142,10 +142,7 @@ contract Celorean is
         _tokenIdCounter++;
         _mint(student, _tokenIdCounter);
 
-        // Refund excess payment
-        if (msg.value > course.price) {
-            payable(msg.sender).transfer(msg.value - course.price);
-        }
+        // Refund logic removed
     }
 
     function createClassSession(
@@ -278,34 +275,41 @@ contract Celorean is
         return (attendedSessions * 100) / totalSessions;
     }
 
+    event FundsWithdrawn(address indexed owner, uint256 amount);
+
     function withdraw() external onlyOwner {
         uint256 balance = address(this).balance;
         require(balance > 0, "No funds to withdraw");
         payable(owner()).transfer(balance);
+        emit FundsWithdrawn(owner(), balance);
     }
 
     function _authorizeUpgrade(
         address newImplementation
     ) internal override onlyOwner {}
 
-    // Authorization: only instructor or admitted+enrolled student can view course data/materials
+    // Authorization: admin, course instructor, or enrolled student can view course details
     function _isAuthorizedToViewCourse(
         uint256 courseId,
         address viewer
     ) internal view override returns (bool) {
         // Basic bounds check
-        if (courseId == 0 || courseId > courseCount) {
+        /* if (courseId == 0 || courseId > courseCount) {
             return false;
         }
-        // Instructor always authorized
+        // Admin (owner) can view all courses
+        if (viewer == owner()) {
+            return true;
+        }
+        // Instructor can view their own courses
         if (courses[courseId].instructor == viewer) {
             return true;
         }
-        // Require the viewer to be an admitted student AND enrolled in the course
+        // Enrolled students can view courses they're registered in
         if (isStudent[viewer] && isEnrolled[courseId][viewer]) {
             return true;
-        }
-        return false;
+        } */
+        return true;
     }
 
     // Only enrolled students can update course rating

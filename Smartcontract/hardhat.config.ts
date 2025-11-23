@@ -39,16 +39,15 @@ const config = {
     ],
   },
   networks: {
-    alfajores: {
-      url: "https://alfajores-forno.celo-testnet.org",
+    celoSepolia: {
+      url: "https://rpc.ankr.com/celo_sepolia",
       accounts: [process.env.WALLET_KEY as string],
-      gasPrice: 100000000000,
+      chainId: 11142220,
     },
     celo: {
-      url: "https://forno.celo.org",
+      url: "https://celo.drpc.org",
       accounts: [process.env.WALLET_KEY as string],
       chainId: 42220,
-      gasPrice: 100000000000,
     },
     lisk: {
       url: "https://rpc.api.lisk.com",
@@ -74,18 +73,18 @@ const config = {
   },
   etherscan: {
     apiKey: {
-      alfajores: process.env.ALFAJORESCAN_API_KEY || "",
+      celoSepolia: process.env.CELOSCAN_API_KEY || "",
       celo: process.env.CELOSCAN_API_KEY || "",
       lisk: process.env.LISK_API_KEY || "",
       liskSepolia: process.env.LISK_API_KEY || "",
     },
     customChains: [
       {
-        network: "alfajores",
-        chainId: 44787,
+        network: "celoSepolia",
+        chainId: 11142220,
         urls: {
-          apiURL: "https://celo-alfajores.blockscout.com/api",
-          browserURL: "https://celo-alfajores.blockscout.com",
+          apiURL: "https://api-sepolia.celoscan.io/api",
+          browserURL: "https://sepolia.celoscan.io",
         },
       },
       {

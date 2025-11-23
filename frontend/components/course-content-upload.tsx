@@ -11,6 +11,7 @@ import { Badge } from "@/components/ui/badge"
 import { Progress } from "@/components/ui/progress"
 import { toast } from "@/hooks/use-toast"
 import { Upload, FileText, Video, Link, Trash2, Plus, CheckCircle, AlertCircle, Clock, FolderOpen, ExternalLink } from "lucide-react"
+import useCeloreanContract from "@/hooks/useCeloreanContract"
 
 interface ContentItem {
     id: string
@@ -48,6 +49,9 @@ export function CourseContentUpload({
     const [previewUrl, setPreviewUrl] = useState<string | null>(null)
     const [bulkFiles, setBulkFiles] = useState<File[]>([])
     const [bulkUploadType, setBulkUploadType] = useState<'video' | 'document'>('video')
+
+    // Get contract functions for blockchain integration
+    const { addCourseContent } = useCeloreanContract()
 
     const generateThumbnail = (file: File): Promise<string> => {
         return new Promise((resolve) => {
@@ -116,14 +120,31 @@ export function CourseContentUpload({
                         try {
                             const data = JSON.parse(xhr.responseText)
                             const ipfsUrl = `https://gateway.pinata.cloud/ipfs/${data.cid}`
+                            const ipfsCid = data.cid
 
                             updateItemProgress(item.id, 100, 'completed')
 
                             setContentItems(prev => prev.map(prevItem =>
                                 prevItem.id === item.id
-                                    ? { ...prevItem, ipfsUrl, courseId } // Add courseId to item
+                                    ? { ...prevItem, ipfsUrl, courseId }
                                     : prevItem
                             ))
+
+                            // ✅ Add IPFS CID to blockchain if courseId is provided
+                            if (courseId && ipfsCid) {
+                                try {
+                                    await addCourseContent(courseId, ipfsCid)
+                                    console.log(`✅ Content added to blockchain: ${ipfsCid}`)
+                                } catch (blockchainError) {
+                                    console.warn('⚠️ Failed to add content to blockchain:', blockchainError)
+                                    // Don't fail the entire upload if blockchain tx fails
+                                    toast({
+                                        title: "Warning",
+                                        description: "Content uploaded to IPFS but blockchain update failed. You may need to add it manually.",
+                                        variant: "destructive"
+                                    })
+                                }
+                            }
 
                             resolve(ipfsUrl)
                         } catch (error) {

@@ -1,0 +1,14 @@
+{
+  "proxyAddress": "0xE9558A29AEB57955Ad4D2de93374310f276bCd11",
+  "implementationAddress": "0x46306198eC75e714689DC8Cd411c35a8287E28A0",
+  "network": "celoSepolia",
+  "environment": "celoSepolia",
+  "deployedAt": "2025-11-23T11:09:33.493Z",
+  "deployedAtFormatted": "2025-11-23T11:09:33",
+  "deployer": "0x8a371e00cd51E2BE005B86EF73C5Ee9Ef6d23FeB",
+  "gasUsed": "380513",
+  "blockNumber": 10612106,
+  "certificateNFT": "0x56aa13fe5B74C71E5409d7354ec26c7BEFb6e872",
+  "eventManager": "0x58dfE09133Bf0597e683E7C7090f310213ec7143",
+  "verifierRegistry": "0xa0408f497d09b0C4aD63c27E02255621BBBb3C01"
+}

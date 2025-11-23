@@ -30,25 +30,25 @@ const ENVIRONMENT_CONFIGS: Record<string, EnvironmentConfig> = {
   testnet: {
     name: "testnet",
     requiresVerification: true,
-    confirmationBlocks: 6,
+    confirmationBlocks: 2,
     gasLimit: 5000000,
   },
-  alfajores: {
-    name: "alfajores",
+  celoSepolia: {
+    name: "celoSepolia",
     requiresVerification: true,
-    confirmationBlocks: 6,
+    confirmationBlocks: 2,
     gasLimit: 5000000,
   },
   mainnet: {
     name: "mainnet",
     requiresVerification: true,
-    confirmationBlocks: 12,
+    confirmationBlocks: 5,
     gasLimit: 3000000,
   },
-  "celo-mainnet": {
-    name: "celo-mainnet",
+  celo: {
+    name: "celo",
     requiresVerification: true,
-    confirmationBlocks: 12,
+    confirmationBlocks: 5,
     gasLimit: 3000000,
   },
 };

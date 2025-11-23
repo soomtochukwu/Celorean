@@ -1,8 +1,28 @@
 import { NextRequest, NextResponse } from "next/server";
-import { createPublicClient, http } from "viem";
-import { localhost, celoAlfajores, celo, lisk, liskSepolia } from "viem/chains";
+import { createPublicClient, http, defineChain } from "viem";
+import { localhost, celo } from "viem/chains";
 import CeloreanABI from "@/contracts/Celorean.json";
 import { getAddressesForEnvironment } from "@/contracts";
+
+// Define Celo Sepolia chain
+const celoSepolia = defineChain({
+  id: 11142220,
+  name: 'Celo Sepolia',
+  nativeCurrency: {
+    decimals: 18,
+    name: 'Celo',
+    symbol: 'CELO',
+  },
+  rpcUrls: {
+    default: {
+      http: ['https://rpc.ankr.com/celo_sepolia'],
+    },
+  },
+  blockExplorers: {
+    default: { name: 'CeloScan', url: 'https://sepolia.celoscan.io' },
+  },
+  testnet: true,
+});
 
 // Network configuration mapping
 const NETWORK_CONFIGS = {
@@ -10,29 +30,21 @@ const NETWORK_CONFIGS = {
     chain: localhost,
     rpcUrl: "http://127.0.0.1:8545",
   },
-  alfajores: {
-    chain: celoAlfajores,
-    rpcUrl: "https://alfajores-forno.celo-testnet.org",
+  celoSepolia: {
+    chain: celoSepolia,
+    rpcUrl: "https://rpc.ankr.com/celo_sepolia",
   },
-  "celo-alfajores": {
-    chain: celoAlfajores,
-    rpcUrl: "https://alfajores-forno.celo-testnet.org",
+  "celo-sepolia": {
+    chain: celoSepolia,
+    rpcUrl: "https://rpc.ankr.com/celo_sepolia",
   },
   celo: {
     chain: celo,
-    rpcUrl: "https://forno.celo.org",
+    rpcUrl: "https://celo.drpc.org",
   },
   "celo-mainnet": {
     chain: celo,
-    rpcUrl: "https://forno.celo.org",
-  },
-  lisk: {
-    chain: lisk,
-    rpcUrl: "https://rpc.api.lisk.com",
-  },
-  liskSepolia: {
-    chain: liskSepolia,
-    rpcUrl: "https://rpc.sepolia-api.lisk.com",
+    rpcUrl: "https://celo.drpc.org",
   },
 } as const;
 
@@ -43,7 +55,7 @@ type Environment = 'localhost' | 'testnet' | 'mainnet';
 function getNetworkConfig(name?: string) {
   // Accept high-level env names ('testnet'/'mainnet') and map to concrete keys
   const raw = (name || "localhost");
-  const normalized = raw === 'testnet' ? 'alfajores' : raw === 'mainnet' ? 'celo' : raw;
+  const normalized = raw === 'testnet' ? 'celoSepolia' : raw === 'mainnet' ? 'celo' : raw;
   const key = normalized as NetworkName;
   return NETWORK_CONFIGS[key] || NETWORK_CONFIGS.localhost;
 }
@@ -54,8 +66,8 @@ function mapNetworkToEnvironment(name?: string): Environment {
     case "celo-mainnet":
     case "mainnet":
       return "mainnet";
-    case "alfajores":
-    case "celo-alfajores":
+    case "celoSepolia":
+    case "celo-sepolia":
     case "testnet":
       return "testnet";
     default:

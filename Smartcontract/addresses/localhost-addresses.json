@@ -1,11 +1,14 @@
 {
-  "proxyAddress": "0xB581C9264f59BF0289fA76D61B2D0746dCE3C30D",
-  "implementationAddress": "0x73511669fd4dE447feD18BB79bAFeAC93aB7F31f",
+  "proxyAddress": "0x22cFe63D280faF82a0EEF00578Afcd114ae3031B",
+  "implementationAddress": "0x06b77ee016f8F2f6Ff7E361F5b7165ba16797CcE",
   "network": "localhost",
   "environment": "localhost",
-  "deployedAt": "2025-09-11T14:27:59.943Z",
-  "deployedAtFormatted": "2025-09-11 14:27:59 UTC",
+  "deployedAt": "2025-11-23T10:41:02.875Z",
+  "deployedAtFormatted": "2025-11-23 10:41:02 UTC",
   "deployer": "0x8626f6940E2eb28930eFb4CeF49B2d1F2C9C1199",
   "gasUsed": "30000000",
-  "blockNumber": 2
+  "blockNumber": 34,
+  "certificateNFT": "0x7887978a762AaEA3C02Ddc23f323fAA128745fa1",
+  "eventManager": "0x87E3D01B36b07794AB2c2B72C6FD958Fc98cCab3",
+  "verifierRegistry": "0x33FdEd0aBab7c2980a613cCcAbA62bFB9f47F1aE"
 }

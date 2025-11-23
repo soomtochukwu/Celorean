@@ -105,8 +105,8 @@ export function useCourses() {
           }
           
           if (courseData) {
-            const priceWei = courseData.price?.toString?.() ?? '0'
-            const priceEth = priceWei === '0' ? '0' : formatEther(BigInt(priceWei))
+            // Price removed
+            const priceEth = '0'
             const inferredThumb = courseData.metadataUri ? await fetchThumbnailFromMetadata(courseData.metadataUri) : '/placeholder.jpg'
 
             // Transform blockchain or preview data to our Course interface
@@ -120,11 +120,10 @@ export function useCourses() {
               duration: `${courseData.duration ?? 0} weeks`,
               students: Number(courseData.enrolledCount ?? 0),
               rating: Number(courseData.rating ?? 0) / 10,
-              level: (courseData.level as 'Beginner' | 'Intermediate' | 'Advanced') ?? 'Beginner',
+              level: courseData.level || 'Beginner',
               tags: courseData.tags || [],
-              price: priceWei === '0' ? 'Free' : `${priceEth} ETH`,
-              priceWei,
-              tokenReward: '10',
+              price: 'Free',
+              tokenReward: courseData.tokenReward?.toString() || '100',
               isEnrolled: enrolledCourses.includes(i),
             }
             coursesData.push(course)
@@ -146,14 +145,30 @@ export function useCourses() {
 
 // Helper function to fetch thumbnail from IPFS metadata
 const fetchThumbnailFromMetadata = async (metadataUri: string): Promise<string> => {
+  if (!metadataUri) return '/placeholder.jpg'
+
+  // If it's clearly an image file, return it directly (handles mock data)
+  if (metadataUri.match(/\.(jpg|jpeg|png|gif|webp)$/i) || metadataUri.includes('placehold.co')) {
+    return metadataUri
+  }
+
   try {
     const response = await fetch(metadataUri)
     if (response.ok) {
-      const metadata = await response.json()
-      return metadata.thumbnail || '/placeholder.jpg'
+      // Check content type to avoid parsing non-JSON as JSON
+      const contentType = response.headers.get("content-type");
+      if (contentType && contentType.indexOf("application/json") !== -1) {
+        const metadata = await response.json()
+        return metadata.thumbnail || '/placeholder.jpg'
+      } else {
+        // If not JSON, assume the URI itself is the image (fallback)
+        return metadataUri
+      }
     }
   } catch (error) {
     console.error('Error fetching course metadata:', error)
+    // Fallback: if fetch fails, maybe the URI itself is the image?
+    // But if it failed to fetch, it might be broken. Return placeholder for safety.
   }
   return '/placeholder.jpg'
 }

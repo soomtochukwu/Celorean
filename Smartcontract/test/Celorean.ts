@@ -128,11 +128,11 @@ describe("Celorean Contract", function () {
       await expect(
         celorean
           .connect(lecturer)
-          .createCourse("Mathematics", 30, "Basic math course", 0, [], "Beginner", "", 30)
+          .createCourse("Mathematics", 30, "Basic math course", [], "Beginner", "", 30)
       )
         // @ts-ignore
         .to.emit(celorean, "CourseCreated")
-        .withArgs(1, "Mathematics", lecturer.address, 0, "");
+        .withArgs(1, "Mathematics", lecturer.address, "");
     });
 
     it("Should prevent creating duplicate course names", async function () {
@@ -141,12 +141,12 @@ describe("Celorean Contract", function () {
 
       await celorean
         .connect(lecturer)
-        .createCourse("Mathematics", 30, "Basic math course", 0, [], "Beginner", "", 30);
+        .createCourse("Mathematics", 30, "Basic math course", [], "Beginner", "", 30);
 
       await expect(
         celorean
           .connect(lecturer)
-          .createCourse("Mathematics", 25, "Advanced math course", 0, [], "Advanced", "", 25)
+          .createCourse("Mathematics", 25, "Advanced math course", [], "Advanced", "", 25)
         // @ts-ignore
       ).to.be.revertedWith("Course with this name already exists");
     });
@@ -157,10 +157,10 @@ describe("Celorean Contract", function () {
 
       await celorean
         .connect(lecturer)
-        .createCourse("Mathematics", 30, "Basic math course", 0, [], "Beginner", "", 30);
+        .createCourse("Mathematics", 30, "Basic math course", [], "Beginner", "", 30);
       await celorean
         .connect(lecturer)
-        .createCourse("Physics", 25, "Basic physics course", 0, [], "Beginner", "", 25);
+        .createCourse("Physics", 25, "Basic physics course", [], "Beginner", "", 25);
 
       const courseNames = await celorean.getAllCourseNames();
       expect(courseNames).to.include("Mathematics");
@@ -174,7 +174,7 @@ describe("Celorean Contract", function () {
 
       await celorean
         .connect(lecturer)
-        .createCourse("Mathematics", 30, "Basic math course", 0, [], "Beginner", "", 30);
+        .createCourse("Mathematics", 30, "Basic math course", [], "Beginner", "", 30);
 
       const [names, lecturers, capacities, enrolledStudents, descriptions] =
         await celorean.getAllCourses();
@@ -213,7 +213,7 @@ describe("Celorean Contract", function () {
       // Create a course
       await celorean
         .connect(lecturer)
-        .createCourse("Mathematics", 2, "Basic math course", 0, [], "Beginner", "", 2);
+        .createCourse("Mathematics", 2, "Basic math course", [], "Beginner", "", 2);
 
       return { ...fixture };
     }
@@ -280,7 +280,7 @@ describe("Celorean Contract", function () {
       // Create another course
       await celorean
         .connect(lecturer)
-        .createCourse("Physics", 5, "Basic physics course", 0, [], "Beginner", "", 5);
+        .createCourse("Physics", 5, "Basic physics course", [], "Beginner", "", 5);
 
       await celorean.connect(student1).registerForCourse(1, student1.address);
       await celorean.connect(student1).registerForCourse(2, student1.address);
@@ -296,7 +296,7 @@ describe("Celorean Contract", function () {
 
       await celorean
         .connect(lecturer)
-        .createCourse("Physics", 5, "Basic physics course", 0, [], "Beginner", "", 5);
+        .createCourse("Physics", 5, "Basic physics course", [], "Beginner", "", 5);
 
       await celorean.connect(student1).registerForCourse(1, student1.address);
       await celorean.connect(student1).registerForCourse(2, student1.address);
@@ -320,7 +320,7 @@ describe("Celorean Contract", function () {
       // Create a course and register student
       await celorean
         .connect(lecturer)
-        .createCourse("Mathematics", 10, "Basic math course", 0, [], "Beginner", "", 10);
+        .createCourse("Mathematics", 10, "Basic math course", [], "Beginner", "", 10);
       await celorean.connect(student1).registerForCourse(1, student1.address);
 
       return { ...fixture };
@@ -396,7 +396,7 @@ describe("Celorean Contract", function () {
       // Create a course and register student
       await celorean
         .connect(lecturer)
-        .createCourse("Mathematics", 10, "Basic math course", 0, [], "Beginner", "", 10);
+        .createCourse("Mathematics", 10, "Basic math course", [], "Beginner", "", 10);
       await celorean.connect(student1).registerForCourse(1, student1.address);
 
       // Create a class session

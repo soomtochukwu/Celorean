@@ -25,7 +25,7 @@ export async function POST(req: NextRequest) {
     const networkParam = (url.searchParams.get("network") || "localhost").toLowerCase();
     const env = (networkParam === "celo" || networkParam === "celo-mainnet" || networkParam === "mainnet")
       ? "mainnet"
-      : (networkParam === "alfajores" || networkParam === "celo-alfajores" || networkParam === "testnet")
+      : (networkParam === "celoSepolia" || networkParam === "celo-sepolia" || networkParam === "testnet")
       ? "testnet"
       : "localhost";
 

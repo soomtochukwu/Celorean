@@ -84,6 +84,7 @@ export default function LearningPage() {
 
 
 
+
   const handleEnrollmentSuccess = () => {
     // Refresh the page or refetch data
     window.location.reload()

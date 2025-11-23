@@ -1,9 +1,10 @@
-import { Clock, Users, Star, BookOpen, Lock, CheckCircle } from "lucide-react"
+import { Clock, Users, Star, BookOpen, Lock, CheckCircle, Tag } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardFooter } from "@/components/ui/card"
 import { Progress } from "@/components/ui/progress"
 import { Badge } from "@/components/ui/badge"
 import { cn } from "@/lib/utils"
+import { formatEther } from "viem"
 import { useAccount } from "wagmi"
 import useCeloreanContract from "@/hooks/useCeloreanContract"
 import { useState, useEffect } from "react"
@@ -63,16 +64,17 @@ export function CourseCard({
 
   const isFull = students >= capacity;
 
-  // Check enrollment status from blockchain - only if address is available
-  const enrollmentQuery = address ? isStudentEnrolled(id, address) : null
+  // Check enrollment status from blockchain - MUST call hook unconditionally
+  const enrollmentQuery = isStudentEnrolled(id, address || "0x0")
   const enrollmentStatus = enrollmentQuery?.data
 
   // Update enrollment status when blockchain data changes
   useEffect(() => {
-    if (typeof enrollmentStatus === 'boolean') {
+    // Only use enrollment data if user is connected
+    if (address && typeof enrollmentStatus === 'boolean') {
       setIsEnrolled(enrollmentStatus)
     }
-  }, [enrollmentStatus])
+  }, [enrollmentStatus, address])
 
   // Fetch course details to get the actual price in wei
   const { data: courseData } = getCourse(id)
@@ -139,7 +141,7 @@ export function CourseCard({
 
     try {
       setIsEnrolling(true)
-      await registerForCourse(id, address, coursePrice)
+      await registerForCourse(id, address)
 
       toast({
         title: "Enrollment initiated",
@@ -165,6 +167,7 @@ export function CourseCard({
       setIsEnrolling(false)
     }
   }
+
 
   useEffect(() => {
     if (isConfirmed && isEnrolling) {
@@ -257,6 +260,10 @@ export function CourseCard({
             <BookOpen className="h-3 w-3 mr-1.5 text-accent" />
             {level}
           </div>
+          <div className="flex items-center text-green-400 font-mono">
+            <Tag className="h-3 w-3 mr-1.5" />
+            Free
+          </div>
         </div>
 
         <div className="flex flex-wrap gap-1.5 mb-4">
@@ -311,9 +318,17 @@ export function CourseCard({
               </Button>
             )
           ) : (
-            <Badge className="bg-green-500/20 text-green-400 border-green-500/30 px-3 py-1">
-              <CheckCircle className="w-3 h-3 mr-1" /> Enrolled
-            </Badge>
+            <Button
+              size="sm"
+              className="bg-green-500/10 text-green-400 hover:bg-green-500/20 border border-green-500/20"
+              onClick={(e) => {
+                e.stopPropagation();
+                router.push(`/course/${id}`);
+              }}
+            >
+              <BookOpen className="w-4 h-4 mr-2" />
+              Continue Learning
+            </Button>
           )}
         </div>
       </CardFooter>

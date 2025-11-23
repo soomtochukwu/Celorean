@@ -21,22 +21,33 @@ export async function GET(request: NextRequest) {
     // Search for course content files by courseId in metadata
     // Using 'public' network - change to 'private' if your files are private
     // @ts-ignore
-    const files = await pinata.files.list("public", {
-      metadata: {
-        courseId: {
-          value: courseId,
-          op: "eq",
-        },
-      },
+    // Search for course content files by courseId in metadata
+    // Using direct API call to avoid SDK version issues
+    const queryParams = new URLSearchParams({
+      status: 'pinned',
+      'metadata[keyvalues][courseId]': `{"value":"${courseId}","op":"eq"}`
     });
+
+    const response = await fetch(`https://api.pinata.cloud/data/pinList?${queryParams.toString()}`, {
+      method: 'GET',
+      headers: {
+        'Authorization': `Bearer ${process.env.PINATA_JWT}`
+      }
+    });
+
+    if (!response.ok) {
+      throw new Error(`Pinata API error: ${response.statusText}`);
+    }
+
+    const files = await response.json();
 
     const contentItems = [];
 
     // Fetch and parse each content file
-    for (const file of files.data.files) {
+    for (const file of files.rows) {
       try {
         const response = await fetch(
-          `https://gateway.pinata.cloud/ipfs/${file.cid}`
+          `https://gateway.pinata.cloud/ipfs/${file.ipfs_pin_hash}`
         );
         const content = await response.json();
 
@@ -47,7 +58,7 @@ export async function GET(request: NextRequest) {
           } else {
             // Individual content item format
             contentItems.push({
-              id: file.cid,
+              id: file.ipfs_pin_hash,
               title: content.title,
               description: content.description,
               type: content.type,
@@ -61,7 +72,7 @@ export async function GET(request: NextRequest) {
           }
         }
       } catch (error) {
-        console.error(`Error fetching content for file ${file.cid}:`, error);
+        console.error(`Error fetching content for file ${file.ipfs_pin_hash}:`, error);
       }
     }
 
