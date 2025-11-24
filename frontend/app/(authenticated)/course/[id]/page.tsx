@@ -212,16 +212,8 @@ export default function CourseDetailPage() {
     )
   }
 
-  return <div className="min-h-screen p-6 md:p-8">
+  return <div className="min-h-screen p-6 md:p-8 -mt-2">
     {/* Header */}
-    <Button
-      variant="ghost"
-      onClick={() => router.back()}
-      className="mb-6 hover:bg-white/5"
-    >
-      <ArrowLeft className="w-4 h-4 mr-2" />
-      Back
-    </Button>
 
     {/* Tabs Navigation */}
     <Tabs value={activeTab} onValueChange={setActiveTab} className="mb-6">
@@ -378,7 +370,7 @@ export default function CourseDetailPage() {
                     </div>
                     <Button
                       className="w-full bg-gradient-to-r from-primary to-accent hover:opacity-90"
-                      onClick={() => toast.info("Course content coming soon!")}
+                      onClick={() => { setActiveTab("content") }}
                     >
                       Continue Learning
                     </Button>

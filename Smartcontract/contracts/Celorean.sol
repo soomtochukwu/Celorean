@@ -13,6 +13,7 @@ import "./lib/StudentModule.sol";
 import "./lib/EnrollmentModule.sol";
 import "./lib/AttendanceModule.sol";
 import "./lib/CredentialModule.sol";
+import "./lib/ProgressModule.sol";
 
 // Lightweight interface for the Certificate NFT contract
 interface ICertificateNFT {
@@ -35,7 +36,8 @@ contract Celorean is
     StudentModule,
     EnrollmentModule,
     AttendanceModule,
-    CredentialModule
+    CredentialModule,
+    ProgressModule
 {
     // Address of external Certificate NFT contract (upgrade-safe new storage)
     address public certificateNFT;
@@ -71,6 +73,7 @@ contract Celorean is
         __EnrollmentModule_init();
         __AttendanceModule_init();
         __CredentialModule_init();
+        __ProgressModule_init();
         _tokenIdCounter = 0;
         // certificateNFT left unset by default; can be set post-deploy
     }
@@ -290,9 +293,9 @@ contract Celorean is
 
     // Authorization: admin, course instructor, or enrolled student can view course details
     function _isAuthorizedToViewCourse(
-        uint256 courseId,
-        address viewer
-    ) internal view override returns (bool) {
+        uint256 /* courseId */,
+        address /* viewer */
+    ) internal pure override returns (bool) {
         // Basic bounds check
         /* if (courseId == 0 || courseId > courseCount) {
             return false;
@@ -323,6 +326,24 @@ contract Celorean is
             "Only enrolled students can rate"
         );
         super.updateCourseRating(courseId, newRating);
+    }
+
+    // Progress Tracking
+    function markContentComplete(
+        uint256 courseId,
+        uint256 contentIndex
+    ) public nonReentrant onlyStudentRole {
+        require(courseId > 0 && courseId <= courseCount, "Invalid course ID");
+        require(
+            isEnrolled[courseId][msg.sender],
+            "Student not enrolled in this course"
+        );
+        require(
+            contentIndex < courses[courseId].contentUris.length,
+            "Invalid content index"
+        );
+
+        _markContentComplete(courseId, msg.sender, contentIndex);
     }
 
     function version() external pure returns (string memory) {

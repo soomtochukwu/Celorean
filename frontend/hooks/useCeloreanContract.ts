@@ -455,6 +455,36 @@ export function useCeloreanContract() {
     });
   };
 
+  const fetchCompletedTimestamps = async (courseId: number, studentAddress: string, totalContentCount: number) => {
+    if (!publicClient) return null;
+    return publicClient.readContract({
+      address: CELOREAN_CONTRACT_ADDRESS as `0x${string}`,
+      abi: CeloreanABI.abi,
+      functionName: "getCompletedTimestamps",
+      args: [courseId, studentAddress, totalContentCount],
+    });
+  };
+
+  const fetchCompletedContentCount = async (courseId: number, studentAddress: string) => {
+    if (!publicClient) return null;
+    return publicClient.readContract({
+      address: CELOREAN_CONTRACT_ADDRESS as `0x${string}`,
+      abi: CeloreanABI.abi,
+      functionName: "getCompletedContentCount",
+      args: [courseId, studentAddress],
+    });
+  };
+
+  const fetchCourseContentCount = async (courseId: number) => {
+    if (!publicClient) return null;
+    return publicClient.readContract({
+      address: CELOREAN_CONTRACT_ADDRESS as `0x${string}`,
+      abi: CeloreanABI.abi,
+      functionName: "getCourseContentCount",
+      args: [courseId],
+    });
+  };
+
   return {
     // Read functions
     courseCount,
@@ -483,6 +513,9 @@ export function useCeloreanContract() {
     fetchStudentCourses,
     fetchCoursesRegisteredByStudent,
     fetchTotalRegisteredCourses,
+    fetchCompletedTimestamps,
+    fetchCompletedContentCount,
+    fetchCourseContentCount,
 
     // Write functions
     registerForCourse,
@@ -497,6 +530,58 @@ export function useCeloreanContract() {
     markAttendance,
     // Credentials writes
     issueCredentialForStudent,
+
+    // =======================
+    // Progress Module APIs
+    // =======================
+
+    // Write: Mark content as complete
+    markContentComplete: async (courseId: number, contentIndex: number) => {
+      return runTransaction("Mark content complete", {
+        functionName: "markContentComplete",
+        args: [courseId, contentIndex],
+      });
+    },
+
+    // Read: Check if content is completed
+    isContentCompleted: (courseId: number, studentAddress: string, contentIndex: number) => {
+      return useReadContract({
+        address: CELOREAN_CONTRACT_ADDRESS as `0x${string}`,
+        abi: CeloreanABI.abi,
+        functionName: "isContentCompleted",
+        args: [courseId, studentAddress, contentIndex],
+      });
+    },
+
+    // Read: Get completed content count
+    getCompletedContentCount: (courseId: number, studentAddress: string) => {
+      return useReadContract({
+        address: CELOREAN_CONTRACT_ADDRESS as `0x${string}`,
+        abi: CeloreanABI.abi,
+        functionName: "getCompletedContentCount",
+        args: [courseId, studentAddress],
+      });
+    },
+
+    // Read: Get all completed contents for a course
+    getCompletedContents: (courseId: number, studentAddress: string, totalContentCount: number) => {
+      return useReadContract({
+        address: CELOREAN_CONTRACT_ADDRESS as `0x${string}`,
+        abi: CeloreanABI.abi,
+        functionName: "getCompletedContents",
+        args: [courseId, studentAddress, totalContentCount],
+      });
+    },
+
+    // Read: Get all completed timestamps for a course
+    getCompletedTimestamps: (courseId: number, studentAddress: string, totalContentCount: number) => {
+      return useReadContract({
+        address: CELOREAN_CONTRACT_ADDRESS as `0x${string}`,
+        abi: CeloreanABI.abi,
+        functionName: "getCompletedTimestamps",
+        args: [courseId, studentAddress, totalContentCount],
+      });
+    },
 
     // Admin functions
     withdraw: async () => {

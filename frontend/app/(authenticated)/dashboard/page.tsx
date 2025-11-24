@@ -157,11 +157,11 @@ export default function Dashboard() {
         <StatCard
           title="Learning Progress"
           value={`${userStats.progressPercentage}%`}
-          description={`${totalCourses} courses enrolled`}
+          description={`${userStats.enrolledCoursesCount} ${userStats.enrolledCoursesCount === 1 ? 'course' : 'courses'} enrolled`}
           icon={<BookOpen className="h-5 w-5" />}
           trend={userStats.progressPercentage > 50 ? "up" : "neutral"}
-          trendValue={totalCourses > 0 ? `${userStats.completedCoursesCount} completed` : "Start learning!"}
-          loading={userDataLoading || loadingCourses}
+          trendValue={userStats.enrolledCoursesCount > 0 ? `${userStats.completedCoursesCount} completed` : "Start learning!"}
+          loading={userDataLoading}
         />
         <StatCard
           title="Tokens Earned"

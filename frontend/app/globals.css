@@ -117,3 +117,8 @@
 ::-webkit-scrollbar-thumb {
   @apply bg-muted rounded-full hover:bg-muted-foreground/50 transition-colors;
 }
+
+/* Safe Area for Mobile Devices */
+.safe-area-bottom {
+  padding-bottom: env(safe-area-inset-bottom);
+}

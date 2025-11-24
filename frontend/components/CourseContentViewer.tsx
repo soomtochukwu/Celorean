@@ -8,9 +8,13 @@ import { Progress } from "@/components/ui/progress"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import {
     PlayCircle, FileText, ExternalLink, CheckCircle2, Lock,
-    ChevronRight, ChevronLeft, Download, Loader2, Maximize, Minimize, Laptop, ShieldAlert
+    ChevronRight, ChevronLeft, ChevronUp, ChevronDown, Download, Loader2, Maximize, Minimize, Laptop, ShieldAlert
 } from "lucide-react"
 import { toast } from "sonner"
+
+import { useAccount } from "wagmi"
+import { useCeloreanContract } from "@/hooks/useCeloreanContract"
+import { ReactTinyLink } from 'react-tiny-link'
 
 interface ContentItem {
     id: string
@@ -38,16 +42,30 @@ export function CourseContentViewer({
     isEnrolled,
     isInstructor
 }: CourseContentViewerProps) {
+    const { address } = useAccount()
+    const { markContentComplete, getCompletedContents } = useCeloreanContract()
     const [contentItems, setContentItems] = useState<ContentItem[]>([])
     const [currentIndex, setCurrentIndex] = useState(0)
     const [loading, setLoading] = useState(true)
     const [progress, setProgress] = useState(0)
     const [isFullscreen, setIsFullscreen] = useState(false)
+    const [contentLoading, setContentLoading] = useState(false)
+    const [showDescription, setShowDescription] = useState(false)
+    const [activeTab, setActiveTab] = useState<'embedded' | 'external'>('embedded')
+    const [iframeError, setIframeError] = useState(false)
 
     // Reset state when content changes
     useEffect(() => {
         setIsFullscreen(false)
-    }, [currentIndex])
+        setContentLoading(true)
+        setActiveTab('embedded')
+        setIframeError(false)
+
+        // Text content loads instantly
+        if (contentItems[currentIndex]?.type === 'text') {
+            setContentLoading(false)
+        }
+    }, [currentIndex, contentItems])
 
     const toggleFullscreen = () => {
         const element = document.getElementById('content-viewer-container')
@@ -64,12 +82,74 @@ export function CourseContentViewer({
         }
     }
 
+    // Fetch completion status from smart contract
+    const { data: completedStatus, refetch: refetchProgress } = getCompletedContents(
+        courseId,
+        address || "0x0000000000000000000000000000000000000000",
+        contentUris.length
+    )
+
+    // Sync completion status with content items
+    useEffect(() => {
+        if (completedStatus && Array.isArray(completedStatus)) {
+            setContentItems(prev => prev.map((item, idx) => ({
+                ...item,
+                completed: completedStatus[idx]
+            })))
+
+            // Calculate progress
+            const completedCount = completedStatus.filter(Boolean).length
+            const total = contentUris.length
+            setProgress(total > 0 ? (completedCount / total) * 100 : 0)
+        }
+    }, [completedStatus, contentUris.length])
+
+    // Helper to load progress (Legacy/Fallback)
+    const loadProgress = (items: ContentItem[]) => {
+        // If we have smart contract data, use it instead
+        if (completedStatus && Array.isArray(completedStatus)) {
+            // Already handled by useEffect above
+            return
+        }
+
+        const savedProgress = localStorage.getItem(`course_${courseId}_progress`)
+        if (savedProgress) {
+            try {
+                const { currentIndex: savedIndex } = JSON.parse(savedProgress)
+                // Validate index
+                if (savedIndex >= 0 && savedIndex < items.length) {
+                    setCurrentIndex(savedIndex)
+                }
+            } catch (e) {
+                console.warn('Failed to load progress:', e)
+            }
+        }
+    }
+
     // Parse IPFS URIs and fetch metadata
     useEffect(() => {
         const fetchContentMetadata = async () => {
             if (!contentUris || contentUris.length === 0) {
                 setLoading(false)
                 return
+            }
+
+            // Check cache first
+            const cacheKey = `course_content_v1_${courseId}`
+            try {
+                const cachedDataString = localStorage.getItem(cacheKey)
+                if (cachedDataString) {
+                    const cachedData = JSON.parse(cachedDataString)
+                    // Verify if the cached data corresponds to the current content URIs
+                    if (JSON.stringify(cachedData.sourceUris) === JSON.stringify(contentUris)) {
+                        setContentItems(cachedData.items)
+                        loadProgress(cachedData.items)
+                        setLoading(false)
+                        return
+                    }
+                }
+            } catch (e) {
+                console.warn("Error reading from cache:", e)
             }
 
             setLoading(true)
@@ -172,26 +252,18 @@ export function CourseContentViewer({
 
             setContentItems(items)
 
-            // Load progress from localStorage
-            const savedProgress = localStorage.getItem(`course_${courseId}_progress`)
-            if (savedProgress) {
-                try {
-                    const { currentIndex: savedIndex, completed } = JSON.parse(savedProgress)
-                    // Validate index
-                    if (savedIndex >= 0 && savedIndex < items.length) {
-                        setCurrentIndex(savedIndex)
-                    }
-
-                    // Mark completed items
-                    setContentItems(prev => prev.map((item, idx) => ({
-                        ...item,
-                        completed: completed?.includes(idx) || false
-                    })))
-                } catch (e) {
-                    console.warn('Failed to load progress:', e)
-                }
+            // Save to cache
+            try {
+                localStorage.setItem(cacheKey, JSON.stringify({
+                    sourceUris: contentUris,
+                    items: items,
+                    timestamp: Date.now()
+                }))
+            } catch (e) {
+                console.warn("Failed to save to cache:", e)
             }
 
+            loadProgress(items)
             setLoading(false)
         }
 
@@ -206,25 +278,26 @@ export function CourseContentViewer({
     }, [contentItems])
 
     // Mark current item as completed
-    const markAsCompleted = (index: number) => {
-        setContentItems(prev => {
-            const updated = [...prev]
-            updated[index] = { ...updated[index], completed: true }
+    const markAsCompleted = async (index: number) => {
+        try {
+            await markContentComplete(courseId, index)
+            toast.success("Content marked as complete!")
 
-            // Save to localStorage
-            const completedIndices = updated
-                .map((item, idx) => item.completed ? idx : -1)
-                .filter(idx => idx !== -1)
+            // Optimistic update
+            setContentItems(prev => {
+                const newItems = [...prev]
+                if (newItems[index]) {
+                    newItems[index] = { ...newItems[index], completed: true }
+                }
+                return newItems
+            })
 
-            localStorage.setItem(`course_${courseId}_progress`, JSON.stringify({
-                currentIndex: index,
-                completed: completedIndices
-            }))
-
-            return updated
-        })
-
-        toast.success("Content marked as completed!")
+            // Refetch to confirm
+            setTimeout(() => refetchProgress(), 2000)
+        } catch (error) {
+            console.error("Failed to mark content as complete:", error)
+            // toast.error("Failed to mark content as complete")
+        }
     }
 
     const navigateToContent = (index: number) => {
@@ -296,11 +369,11 @@ export function CourseContentViewer({
     // ... (keep existing useEffects)
 
     return (
-        <div className="min-h-screen lg:h-[calc(100vh-200px)] flex flex-col lg:flex-row gap-4 lg:gap-6">
+        <div className="h-auto lg:h-[calc(100vh-140px)] flex flex-col lg:flex-row gap-4 lg:gap-6">
             {/* Left Sidebar: Course Materials + Progress */}
-            <div className="w-full lg:w-1/3 flex flex-col gap-4 min-h-0">
+            <div className="w-full lg:w-1/3 flex flex-col gap-4 min-h-0 max-h-[calc(100vh-140px)] order-2 lg:order-1">
                 {/* Content List - Compact on mobile */}
-                <Card className="glass-card border-white/10 flex-1 flex flex-col min-h-0 max-h-[40vh] lg:max-h-none">
+                <Card className="glass-card border-white/10 flex-1 flex flex-col min-h-0 overflow-hidden">
                     <CardHeader className="flex-shrink-0 py-3 lg:py-4">
                         <CardTitle className="text-base lg:text-lg text-white">Course Materials</CardTitle>
                     </CardHeader>
@@ -328,10 +401,15 @@ export function CourseContentViewer({
                                             )}
                                         </div>
                                         <div className="flex-1 min-w-0">
-                                            <p className={`text-xs lg:text-sm font-medium truncate ${index === currentIndex ? 'text-primary' : 'text-white'
-                                                }`}>
-                                                {item.title}
-                                            </p>
+                                            <div className="flex items-center justify-between gap-2">
+                                                <p className={`text-xs lg:text-sm font-medium truncate ${index === currentIndex ? 'text-primary' : 'text-white'
+                                                    }`}>
+                                                    {item.title}
+                                                </p>
+                                                {index === currentIndex && contentLoading && (
+                                                    <Loader2 className="w-3 h-3 text-primary animate-spin flex-shrink-0" />
+                                                )}
+                                            </div>
                                             <div className="flex items-center gap-2 mt-1">
                                                 <Badge variant="outline" className="text-[10px] lg:text-xs capitalize">
                                                     {item.type}
@@ -361,15 +439,50 @@ export function CourseContentViewer({
                         </p>
                     </CardContent>
                 </Card>
+
+                {/* Footer Actions */}
+                <Card className="glass-card border-white/10 mt-4 flex-shrink-0">
+                    <CardContent className="p-3 lg:p-4 flex items-center justify-between">
+                        <Button
+                            variant="outline"
+                            onClick={() => navigateToContent(currentIndex - 1)}
+                            disabled={currentIndex === 0}
+                            size="sm"
+                            className="text-xs lg:text-sm"
+                        >
+                            <ChevronLeft className="w-4 h-4 mr-2" />
+                            Previous
+                        </Button>
+
+                        {!currentContent.completed && (
+                            <Button onClick={() => markAsCompleted(currentIndex)} className="bg-green-600 hover:bg-green-700 text-xs lg:text-sm" size="sm">
+                                <CheckCircle2 className="w-4 h-4 mr-2" />
+                                Mark as Complete
+                            </Button>
+                        )}
+
+                        <Button
+                            onClick={() => navigateToContent(currentIndex + 1)}
+                            disabled={currentIndex === contentItems.length - 1}
+                            size="sm"
+                            className="text-xs lg:text-sm"
+                        >
+                            Next
+                            <ChevronRight className="w-4 h-4 ml-2" />
+                        </Button>
+                    </CardContent>
+                </Card>
+
             </div>
 
             {/* Right Column: Content Viewer Only */}
-            <div className="w-full lg:w-2/3 min-h-0 flex-1">{/* Content Viewer */}
-                <Card className="glass-card border-white/10" id="content-viewer-container">
-                    <CardHeader className="border-b border-white/10 p-3 lg:p-6">
-                        <div className="flex items-center justify-between">
-                            <div className="flex-1 min-w-0">
-                                <div className="flex items-center gap-2 mb-2">
+            <div className="w-full lg:w-2/3 h-full flex flex-col order-1 lg:order-2">
+                {/* Wrapper for Tabs if content is document/link, otherwise just div */}
+                {currentContent.type === 'video' ? (
+                    <Card className="glass-card border-white/10 flex-1 flex flex-col min-h-0" id="content-viewer-container">
+                        <CardHeader className="border-b border-white/10 p-2 lg:p-3 min-h-[60px] flex justify-center flex-col">
+                            <div className="flex items-center justify-between">
+                                <div className="flex items-center gap-2">
                                     <Badge variant="secondary" className="capitalize text-xs">
                                         {currentContent.type}
                                     </Badge>
@@ -379,29 +492,49 @@ export function CourseContentViewer({
                                         </Badge>
                                     )}
                                 </div>
-                                <CardTitle className="text-white text-base lg:text-xl truncate">{currentContent.title}</CardTitle>
-                                {currentContent.description && (
-                                    <p className="text-xs lg:text-sm text-gray-400 mt-2 line-clamp-2">{currentContent.description}</p>
-                                )}
+                                <div className="flex items-center gap-2">
+                                    <Button
+                                        variant="ghost"
+                                        size="sm"
+                                        onClick={() => setShowDescription(!showDescription)}
+                                        className="h-8 text-xs gap-2"
+                                    >
+                                        Course Info
+                                        {showDescription ? <ChevronUp className="w-3 h-3" /> : <ChevronDown className="w-3 h-3" />}
+                                    </Button>
+                                    <Button variant="ghost" size="icon" onClick={toggleFullscreen} title="Toggle Fullscreen" className="h-8 w-8">
+                                        {isFullscreen ? <Minimize className="w-4 h-4" /> : <Maximize className="w-4 h-4" />}
+                                    </Button>
+                                </div>
                             </div>
-                            <Button variant="ghost" size="icon" onClick={toggleFullscreen} title="Toggle Fullscreen" className="flex-shrink-0 ml-2">
-                                {isFullscreen ? <Minimize className="w-4 h-4 lg:w-5 lg:h-5" /> : <Maximize className="w-4 h-4 lg:w-5 lg:h-5" />}
-                            </Button>
-                        </div>
 
+                            {/* Collapsible Description */}
+                            {showDescription && (
+                                <div className="mt-3 pt-3 border-t border-white/10 animate-in slide-in-from-top-2">
+                                    <h3 className="text-lg font-semibold text-white mb-1">{currentContent.title}</h3>
+                                    {currentContent.description && (
+                                        <p className="text-sm text-gray-400">{currentContent.description}</p>
+                                    )}
+                                </div>
+                            )}
+                        </CardHeader>
 
-                    </CardHeader>
-
-                    <CardContent className="p-0">
-                        {/* Content Display Area */}
-                        <div className={`relative ${isFullscreen ? 'h-screen bg-black flex items-center justify-center' : 'min-h-[300px] lg:min-h-[400px]'}`}>
-
-                            {currentContent.type === 'video' && (
-                                <div className="w-full h-full bg-black aspect-video">
+                        <CardContent className="p-0 flex-1 flex flex-col min-h-0 relative">
+                            <div className={`relative flex-1 flex flex-col min-h-0 ${isFullscreen ? 'fixed inset-0 z-50 bg-black' : ''}`}>
+                                <div className="w-full h-full bg-black relative">
+                                    {contentLoading && (
+                                        <div className="absolute inset-0 flex items-center justify-center bg-black/80 z-10">
+                                            <div className="flex flex-col items-center gap-3">
+                                                <Loader2 className="w-8 h-8 lg:w-12 lg:h-12 text-primary animate-spin" />
+                                                <p className="text-xs lg:text-sm text-gray-300">Loading video...</p>
+                                            </div>
+                                        </div>
+                                    )}
                                     <video
                                         key={currentContent.uri}
                                         controls
                                         className="w-full h-full"
+                                        onLoadedData={() => setContentLoading(false)}
                                         onEnded={() => markAsCompleted(currentIndex)}
                                     >
                                         <source src={contentUrl} type="video/mp4" />
@@ -409,156 +542,216 @@ export function CourseContentViewer({
                                         Your browser does not support the video tag.
                                     </video>
                                 </div>
-                            )}
-
-                            {(currentContent.type === 'document' || currentContent.type === 'link') && (
-                                <Tabs defaultValue="embedded" className="w-full" key={currentIndex}>
-                                    <div className="flex items-center justify-between mb-3 px-3 lg:px-4 pt-3 lg:pt-4">
-                                        <TabsList>
-                                            <TabsTrigger value="embedded" className="flex items-center gap-1.5 lg:gap-2 text-xs lg:text-sm">
-                                                <Laptop className="w-3 h-3 lg:w-4 lg:h-4" />
-                                                Embedded View
-                                            </TabsTrigger>
-                                            <TabsTrigger value="external" className="flex items-center gap-1.5 lg:gap-2 text-xs lg:text-sm">
-                                                <ExternalLink className="w-3 h-3 lg:w-4 lg:h-4" />
-                                                External Source
-                                            </TabsTrigger>
-                                        </TabsList>
+                            </div>
+                        </CardContent>
+                    </Card>
+                ) : (
+                    <div className="flex-1 flex flex-col min-h-0">
+                        <Card className="glass-card border-white/10 flex-1 flex flex-col min-h-0" id="content-viewer-container">
+                            <CardHeader className="border-b border-white/10 p-2 lg:p-3 min-h-[60px] flex justify-center flex-col">
+                                <div className="flex items-center justify-between gap-4">
+                                    <div className="bg-white/5 border border-white/10 h-8 rounded-md flex items-center p-1">
+                                        <button
+                                            onClick={() => setActiveTab('embedded')}
+                                            className={`text-xs h-6 px-3 rounded-sm flex items-center transition-all ${activeTab === 'embedded' ? 'bg-primary text-primary-foreground shadow-sm' : 'text-gray-400 hover:text-white'}`}
+                                        >
+                                            <Laptop className="w-3 h-3 mr-2" />
+                                            Embedded
+                                        </button>
+                                        <button
+                                            onClick={() => setActiveTab('external')}
+                                            className={`text-xs h-6 px-3 rounded-sm flex items-center transition-all ${activeTab === 'external' ? 'bg-primary text-primary-foreground shadow-sm' : 'text-gray-400 hover:text-white'}`}
+                                        >
+                                            <ExternalLink className="w-3 h-3 mr-2" />
+                                            External
+                                        </button>
                                     </div>
 
-                                    <TabsContent value="embedded" className="mt-0 px-3 lg:px-4 pb-3 lg:pb-4">
-                                        <div className="space-y-3">
-                                            {/* Helpful notice */}
-                                            <div className="flex items-start gap-2 p-2 lg:p-3 bg-blue-500/10 border border-blue-500/20 rounded-lg">
+                                    <div className="flex items-center gap-2">
+                                        <Button
+                                            variant="ghost"
+                                            size="sm"
+                                            onClick={() => setShowDescription(!showDescription)}
+                                            className="h-8 text-xs gap-2"
+                                        >
+                                            Course Info
+                                            {showDescription ? <ChevronUp className="w-3 h-3" /> : <ChevronDown className="w-3 h-3" />}
+                                        </Button>
+                                        <Button variant="ghost" size="icon" onClick={toggleFullscreen} title="Toggle Fullscreen" className="h-8 w-8">
+                                            {isFullscreen ? <Minimize className="w-4 h-4" /> : <Maximize className="w-4 h-4" />}
+                                        </Button>
+                                    </div>
+                                </div>
+
+                                {/* Collapsible Description */}
+                                {showDescription && (
+                                    <div className="mt-3 pt-3 border-t border-white/10 animate-in slide-in-from-top-2">
+                                        <div className="flex items-center gap-2 mb-2">
+                                            <Badge variant="secondary" className="capitalize text-xs">
+                                                {currentContent.type}
+                                            </Badge>
+                                            {currentContent.completed && (
+                                                <Badge className="bg-green-500/20 text-green-400 border-green-500/30 text-xs">
+                                                    Completed
+                                                </Badge>
+                                            )}
+                                        </div>
+                                        <h3 className="text-lg font-semibold text-white mb-1">{currentContent.title}</h3>
+                                        {currentContent.description && (
+                                            <p className="text-sm text-gray-400">{currentContent.description}</p>
+                                        )}
+                                    </div>
+                                )}
+                            </CardHeader>
+
+                            <CardContent className="p-0 flex-1 flex flex-col min-h-0 relative">
+                                <div className={`relative flex-1 flex flex-col min-h-0 ${isFullscreen ? 'fixed inset-0 z-50 bg-black' : ''}`}>
+
+                                    {/* Embedded View - Hidden via CSS when inactive to preserve state */}
+                                    <div className={`flex-1 flex flex-col min-h-0 p-3 lg:p-4 space-y-3 ${activeTab !== 'embedded' ? 'hidden' : ''}`}>
+                                        {/* Helpful notice */}
+                                        {
+                                            currentContent.type === 'document' ? null : <div className="flex items-start gap-2 p-2 lg:p-3 bg-blue-500/10 border border-blue-500/20 rounded-lg flex-shrink-0">
+
+
                                                 <ShieldAlert className="w-3 h-3 lg:w-4 lg:h-4 text-blue-400 mt-0.5 flex-shrink-0" />
                                                 <p className="text-[10px] lg:text-xs text-blue-300">
-                                                    {currentContent.type === 'document'
-                                                        ? 'Document is displayed using an enhanced viewer for maximum compatibility with all formats.'
-                                                        : 'Some websites block embedding for security reasons. If content doesn\'t appear below, switch to the "External Source" tab.'
-                                                    }
+                                                    Some websites block embedding. If content fails, try "External".
                                                 </p>
                                             </div>
 
-                                            {/* Responsive iframe */}
-                                            <div className="w-full bg-white/5 rounded-lg overflow-hidden border border-white/10">
-                                                <iframe
-                                                    src={currentContent.type === 'document'
-                                                        ? `https://docs.google.com/viewer?url=${encodeURIComponent(contentUrl)}&embedded=true`
-                                                        : contentUrl
-                                                    }
-                                                    className="w-full border-0"
-                                                    style={{ height: 'calc(100vh - 500px)', minHeight: '400px' }}
-                                                    title={currentContent.title}
-                                                    sandbox="allow-same-origin allow-scripts allow-popups allow-forms"
+                                        }
+
+                                        {/* Responsive iframe */}
+                                        <div className="w-full bg-white/5 rounded-lg overflow-hidden border border-white/10 relative flex-1 min-h-[600px] lg:min-h-0">
+                                            {contentLoading && (
+                                                <div className="absolute inset-0 flex items-center justify-center bg-gray-900/90 z-10 rounded-lg">
+                                                    <div className="flex flex-col items-center gap-3">
+                                                        <Loader2 className="w-8 h-8 lg:w-12 lg:h-12 text-primary animate-spin" />
+                                                        <p className="text-xs lg:text-sm text-gray-300">
+                                                            {currentContent.type === 'document' ? 'Loading document...' : 'Loading content...'}
+                                                        </p>
+                                                    </div>
+                                                </div>
+                                            )}
+                                            <iframe
+                                                src={currentContent.type === 'document'
+                                                    ? `https://docs.google.com/viewer?url=${encodeURIComponent(contentUrl)}&embedded=true`
+                                                    : contentUrl
+                                                }
+                                                className="absolute inset-0 w-full h-full border-0"
+                                                title={currentContent.title}
+                                                sandbox="allow-same-origin allow-scripts allow-popups allow-forms"
+                                                onLoad={() => setContentLoading(false)}
+                                                onError={() => {
+                                                    setContentLoading(false)
+                                                    setIframeError(true)
+                                                }}
+                                            />
+
+                                            {/* CSP Error Overlay */}
+                                            {iframeError && (
+                                                <div className="absolute inset-0 flex items-center justify-center bg-gray-900/95 z-20 p-6">
+                                                    <div className="max-w-md text-center space-y-4">
+                                                        <ShieldAlert className="w-12 h-12 text-yellow-500 mx-auto" />
+                                                        <h3 className="text-lg font-semibold text-white">Content Cannot Be Embedded</h3>
+                                                        <p className="text-sm text-gray-400">
+                                                            This website blocks iframe embedding for security reasons.
+                                                        </p>
+                                                        <Button
+                                                            onClick={() => setActiveTab('external')}
+                                                            className="bg-primary hover:bg-primary/90"
+                                                        >
+                                                            <ExternalLink className="w-4 h-4 mr-2" />
+                                                            View Preview Instead
+                                                        </Button>
+                                                    </div>
+                                                </div>
+                                            )}
+                                        </div>
+                                    </div>
+
+                                    {/* External View with Link Preview */}
+                                    <div className={`flex-1 flex flex-col min-h-0 p-6 ${activeTab !== 'external' ? 'hidden' : ''}`}>
+                                        <div className="flex-1 flex flex-col items-center justify-center space-y-6 max-w-3xl mx-auto w-full">
+                                            {/* Link Preview Card */}
+                                            <div className="w-full glass-card border-white/10 rounded-xl overflow-hidden">
+                                                <ReactTinyLink
+                                                    cardSize="large"
+                                                    showGraphic={true}
+                                                    maxLine={3}
+                                                    minLine={2}
+                                                    url={contentUrl}
+                                                    proxyUrl="https://corsproxy.io/?"
                                                 />
                                             </div>
-                                        </div>
-                                    </TabsContent>
 
-                                    <TabsContent value="external" className="mt-0">
-                                        <div className="flex flex-col items-center justify-center h-[600px] p-8 text-center bg-white/5 rounded-lg border border-white/10">
-                                            <ExternalLink className="w-16 h-16 text-gray-400 mb-4" />
-                                            <h3 className="text-xl font-bold text-white mb-2">External Content</h3>
-                                            <p className="text-gray-400 mb-6 max-w-md">
-                                                This content is hosted externally. Choose how you'd like to view it:
-                                            </p>
-                                            <div className="flex flex-col gap-3 w-full max-w-sm">
+                                            <div className="w-16 h-16 rounded-full bg-white/5 flex items-center justify-center">
+                                                <ExternalLink className="w-8 h-8 text-gray-400" />
+                                            </div>
+                                            <div className="max-w-md space-y-2">
+                                                <h3 className="text-xl font-semibold text-white">External Content</h3>
+                                                <p className="text-gray-400">
+                                                    This content is hosted on an external website. You can open it in a popup window for the best experience, or in a new tab.
+                                                </p>
+                                            </div>
+                                            <div className="flex flex-col sm:flex-row gap-4 justify-center">
                                                 <Button
-                                                    onClick={() => {
-                                                        const width = 1200;
-                                                        const height = 800;
-                                                        const left = (window.screen.width - width) / 2;
-                                                        const top = (window.screen.height - height) / 2;
-                                                        window.open(
-                                                            contentUrl,
-                                                            currentContent.title,
-                                                            `width=${width},height=${height},left=${left},top=${top},menubar=no,toolbar=no,location=yes,resizable=yes,scrollbars=yes`
-                                                        );
-                                                    }}
-                                                    size="lg"
-                                                    className="w-full"
+                                                    onClick={() => window.open(contentUrl, 'targetWindow', `toolbar=no,location=yes,status=no,menubar=no,scrollbars=yes,resizable=yes,width=1200,height=800,left=${(window.screen.width - 1200) / 2},top=${(window.screen.height - 800) / 2}`)}
+                                                    className="gap-2"
                                                 >
-                                                    <Laptop className="w-5 h-5 mr-2" />
+                                                    <Laptop className="w-4 h-4" />
                                                     Open in Popup Window
                                                 </Button>
-
                                                 <Button
-                                                    asChild
                                                     variant="outline"
-                                                    size="lg"
-                                                    className="w-full"
+                                                    onClick={() => window.open(contentUrl, '_blank')}
+                                                    className="gap-2"
                                                 >
-                                                    <a href={contentUrl} target="_blank" rel="noopener noreferrer">
-                                                        <ExternalLink className="w-5 h-5 mr-2" />
-                                                        Open in New Tab
-                                                    </a>
+                                                    <ExternalLink className="w-4 h-4" />
+                                                    Open in New Tab
                                                 </Button>
-
-                                                {currentContent.type === 'document' && (
-                                                    <Button
-                                                        asChild
-                                                        variant="ghost"
-                                                        size="lg"
-                                                        className="w-full"
-                                                    >
-                                                        <a href={contentUrl} download>
-                                                            <Download className="w-5 h-5 mr-2" />
-                                                            Download File
-                                                        </a>
-                                                    </Button>
-                                                )}
                                             </div>
+                                            {currentContent.type === 'document' && (
+                                                <Button
+                                                    variant="secondary"
+                                                    onClick={() => window.open(contentUrl, '_blank')}
+                                                    className="gap-2 mt-4"
+                                                >
+                                                    <Download className="w-4 h-4" />
+                                                    Download Document
+                                                </Button>
+                                            )}
 
-                                            <div className="mt-6 p-3 bg-gray-800/50 rounded-lg border border-gray-700/50 max-w-md">
+                                            <div className="mt-6 p-3 bg-gray-800/50 rounded-lg border border-gray-700/50 max-w-md mx-auto">
                                                 <p className="text-xs text-gray-400">
                                                     <strong className="text-gray-300">Tip:</strong> The popup window keeps you within the app
                                                     while giving you full access to interact with the content.
                                                 </p>
                                             </div>
                                         </div>
-                                    </TabsContent>
-                                </Tabs>
-                            )}
-
-                            {currentContent.type === 'text' && (
-                                <div className="p-8 prose prose-invert prose-lg max-w-none">
-                                    <div
-                                        dangerouslySetInnerHTML={{
-                                            __html: currentContent.description || currentContent.content || 'No content available'
-                                        }}
-                                    />
+                                    </div>
                                 </div>
-                            )}
-                        </div>
+                            </CardContent>
+                        </Card>
+                    </div>
+                )}
 
-                        {/* Footer Actions */}
-                        <div className="flex items-center justify-between p-6 border-t border-white/10 bg-black/20">
-                            <Button
-                                variant="outline"
-                                onClick={() => navigateToContent(currentIndex - 1)}
-                                disabled={currentIndex === 0}
-                            >
-                                <ChevronLeft className="w-4 h-4 mr-2" />
-                                Previous
-                            </Button>
+                {/* Text Content - Scrollable within viewport */}
+                {currentContent.type === 'text' && (
+                    <Card className="glass-card border-white/10 flex-1 flex flex-col min-h-0 overflow-hidden">
+                        <CardContent className="p-6 lg:p-8 overflow-y-auto">
+                            <div className="prose prose-invert prose-lg max-w-none">
+                                <div
+                                    dangerouslySetInnerHTML={{
+                                        __html: currentContent.description || currentContent.content || 'No content available'
+                                    }}
+                                />
+                            </div>
+                        </CardContent>
+                    </Card>
+                )}
 
-                            {!currentContent.completed && (
-                                <Button onClick={() => markAsCompleted(currentIndex)} className="bg-green-600 hover:bg-green-700">
-                                    <CheckCircle2 className="w-4 h-4 mr-2" />
-                                    Mark as Complete
-                                </Button>
-                            )}
-
-                            <Button
-                                onClick={() => navigateToContent(currentIndex + 1)}
-                                disabled={currentIndex === contentItems.length - 1}
-                            >
-                                Next
-                                <ChevronRight className="w-4 h-4 ml-2" />
-                            </Button>
-                        </div>
-                    </CardContent>
-                </Card>
             </div>
         </div>
     )

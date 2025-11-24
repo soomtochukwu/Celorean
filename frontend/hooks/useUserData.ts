@@ -1,15 +1,30 @@
 import { useAccount } from "wagmi";
 import useCeloreanContract from "./useCeloreanContract";
 import { useCourses } from "./useCourses";
-import { useMemo } from "react";
+import { useMemo, useState, useEffect } from "react";
+import { useUserActivities } from "./useUserActivities";
 
 export function useUserData() {
   const { address, isConnected } = useAccount();
-  const { getStudentCourses, isStudent, isLecturer, getCourse } =
-    useCeloreanContract();
+  const { activities: recentActivities, loading: activitiesLoading } = useUserActivities();
+  const { 
+    getStudentCourses, 
+    isStudent, 
+    isLecturer, 
+    fetchCourseContentCount, 
+    fetchCompletedContentCount 
+  } = useCeloreanContract();
   const { courses } = useCourses();
+  
+  const [stats, setStats] = useState({
+    enrolledCoursesCount: 0,
+    completedCoursesCount: 0,
+    progressPercentage: 0,
+    tokensEarned: 0,
+    recentActivities: [] as any[],
+    loading: true
+  });
 
-  // Get user-specific data from smart contract
   const studentCourses = getStudentCourses(
     address || "0x0000000000000000000000000000000000000000"
   );
@@ -20,61 +35,60 @@ export function useUserData() {
     address || "0x0000000000000000000000000000000000000000"
   );
 
-  // Calculate user statistics
-  const userStats = useMemo(() => {
-    if (!isConnected || !studentCourses.data) {
-      return {
-        enrolledCoursesCount: 0,
-        completedCoursesCount: 0,
-        progressPercentage: 0,
-        tokensEarned: 0,
-        recentActivities: [],
-      };
-    }
+  useEffect(() => {
+    const fetchStats = async () => {
+      if (!isConnected || !studentCourses.data || !Array.isArray(studentCourses.data) || !address) {
+        setStats(prev => ({ ...prev, loading: false }));
+        return;
+      }
 
-    const enrolledCount = Array.isArray(studentCourses.data)
-      ? studentCourses.data.length
-      : 0;
-    // For demo purposes, assume some courses are completed
-    const completedCount = Math.floor(enrolledCount * 0.6);
-    const progressPercentage =
-      enrolledCount > 0
-        ? Math.round((completedCount / enrolledCount) * 100)
+      const enrolledCourseIds = studentCourses.data as number[];
+      let totalProgress = 0;
+      let completedCourses = 0;
+      let totalTokens = 0;
+
+      for (const courseId of enrolledCourseIds) {
+        // Get content counts
+        const totalContentBigInt = await fetchCourseContentCount(courseId);
+        const completedContentBigInt = await fetchCompletedContentCount(courseId, address);
+        
+        const totalContent = Number(totalContentBigInt || 0);
+        const completedContent = Number(completedContentBigInt || 0);
+
+        if (totalContent > 0) {
+          const courseProgress = (completedContent / totalContent) * 100;
+          totalProgress += courseProgress;
+          
+          if (courseProgress >= 100) {
+            completedCourses++;
+          }
+          
+          // Estimate tokens: 10 tokens per completed lesson
+          totalTokens += completedContent * 10;
+        }
+      }
+
+      const avgProgress = enrolledCourseIds.length > 0 
+        ? Math.round(totalProgress / enrolledCourseIds.length) 
         : 0;
 
-    // Calculate estimated tokens (demo calculation)
-    const tokensEarned = completedCount * 250 + enrolledCount * 50;
-
-    // Generate recent activities based on enrolled courses
-    const recentActivities = [
-      {
-        icon: "BookOpen",
-        title: "Course Progress",
-        description: `Working on ${enrolledCount} courses`,
-        time: "Today",
-      },
-      {
-        icon: "Coins",
-        title: "Tokens Earned",
-        description: `Earned ${tokensEarned} CEL tokens`,
-        time: "This week",
-      },
-      {
-        icon: "TrendingUp",
-        title: "Learning Milestone",
-        description: `${progressPercentage}% overall progress`,
-        time: "2 days ago",
-      },
-    ];
-
-    return {
-      enrolledCoursesCount: enrolledCount,
-      completedCoursesCount: completedCount,
-      progressPercentage,
-      tokensEarned,
-      recentActivities,
+      setStats({
+        enrolledCoursesCount: enrolledCourseIds.length,
+        completedCoursesCount: completedCourses,
+        progressPercentage: avgProgress,
+        tokensEarned: totalTokens,
+        recentActivities: recentActivities.slice(0, 5).map(a => ({
+          icon: a.type === 'enrollment' ? 'BookOpen' : a.type === 'tokens' ? 'Coins' : 'Activity',
+          title: a.title,
+          description: a.description,
+          time: new Date(a.timestamp).toLocaleDateString()
+        })),
+        loading: false
+      });
     };
-  }, [studentCourses.data, isConnected]);
+
+    fetchStats();
+  }, [studentCourses.data, isConnected, address, recentActivities]);
 
   return {
     address,
@@ -82,8 +96,14 @@ export function useUserData() {
     isStudent: studentStatus.data || false,
     isLecturer: lecturerStatus.data || false,
     enrolledCourses: studentCourses.data || [],
-    userStats,
-    loading: studentCourses.isLoading || studentStatus.isLoading,
+    userStats: {
+      enrolledCoursesCount: stats.enrolledCoursesCount,
+      completedCoursesCount: stats.completedCoursesCount,
+      progressPercentage: stats.progressPercentage,
+      tokensEarned: stats.tokensEarned,
+      recentActivities: stats.recentActivities,
+    },
+    loading: stats.loading || studentCourses.isLoading || studentStatus.isLoading,
     error: studentCourses.error || studentStatus.error,
   };
 }
