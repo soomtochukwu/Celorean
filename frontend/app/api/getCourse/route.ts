@@ -81,7 +81,14 @@ function isAddressLike(val: any): val is `0x${string}` {
 
 export async function POST(request: NextRequest) {
   try {
-    const { courseId, network: requestNetwork, viewer } = await request.json();
+    const bodyText = await request.text();
+    if (!bodyText) {
+      return NextResponse.json(
+        { error: "Empty request body" },
+        { status: 400 }
+      );
+    }
+    const { courseId, network: requestNetwork, viewer } = JSON.parse(bodyText);
 
     // Determine environment and addresses based on network
     const env = mapNetworkToEnvironment(requestNetwork);

@@ -598,29 +598,29 @@ export function Providers({ children }: { children: React.ReactNode }) {
           modalSize="compact"
           initialChain={getInitialChain()}
         >
-          <ErrorBoundary>
-            <NetworkProvider
-              enableAutoSwitching={false}
-              preferredEnvironment={getPreferredEnvironment()}
-              showNetworkToasts={true}
-            >
+          <NetworkProvider
+            enableAutoSwitching={false}
+            preferredEnvironment={getPreferredEnvironment()}
+            showNetworkToasts={true}
+          >
+            <ErrorBoundary>
               <GlobalLoadingProvider>
                 {children}
               </GlobalLoadingProvider>
-              {/* Session management: create on connect, auto-expire in 1 hour, clear on disconnect */}
-              <SessionManager />
-              <MiniAppAutoConnector enabled={enableAutoConnect} />
-              <MiniAppChainGuard enabled={isMiniApp} />
-              <NetworkSync />
-              <Toaster
-                position="top-right"
-                expand={false}
-                richColors
-                closeButton
-                duration={4000}
-              />
-            </NetworkProvider>
-          </ErrorBoundary>
+            </ErrorBoundary>
+            {/* Session management: create on connect, auto-expire in 1 hour, clear on disconnect */}
+            <SessionManager />
+            <MiniAppAutoConnector enabled={enableAutoConnect} />
+            <MiniAppChainGuard enabled={isMiniApp} />
+            <NetworkSync />
+            <Toaster
+              position="top-right"
+              expand={false}
+              richColors
+              closeButton
+              duration={4000}
+            />
+          </NetworkProvider>
         </RainbowKitProvider>
       </QueryClientProvider>
     </WagmiProvider>

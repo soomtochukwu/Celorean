@@ -8,7 +8,7 @@ import { Progress } from "@/components/ui/progress"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import {
     PlayCircle, FileText, ExternalLink, CheckCircle2, Lock,
-    ChevronRight, ChevronLeft, Download, Loader2
+    ChevronRight, ChevronLeft, Download, Loader2, Maximize, Minimize, Laptop, ShieldAlert
 } from "lucide-react"
 import { toast } from "sonner"
 
@@ -21,6 +21,8 @@ interface ContentItem {
     duration?: string
     completed?: boolean
     content?: string // For text content
+    thumbnail?: string
+    externalUrl?: string
 }
 
 interface CourseContentViewerProps {
@@ -40,6 +42,27 @@ export function CourseContentViewer({
     const [currentIndex, setCurrentIndex] = useState(0)
     const [loading, setLoading] = useState(true)
     const [progress, setProgress] = useState(0)
+    const [isFullscreen, setIsFullscreen] = useState(false)
+
+    // Reset state when content changes
+    useEffect(() => {
+        setIsFullscreen(false)
+    }, [currentIndex])
+
+    const toggleFullscreen = () => {
+        const element = document.getElementById('content-viewer-container')
+        if (!element) return
+
+        if (!document.fullscreenElement) {
+            element.requestFullscreen().catch(err => {
+                console.warn(`Error attempting to enable fullscreen: ${err.message}`)
+            })
+            setIsFullscreen(true)
+        } else {
+            document.exitFullscreen()
+            setIsFullscreen(false)
+        }
+    }
 
     // Parse IPFS URIs and fetch metadata
     useEffect(() => {
@@ -66,14 +89,59 @@ export function CourseContentViewer({
                         // Try to parse as JSON metadata
                         if (contentType?.includes('application/json')) {
                             const metadata = await response.json()
-                            items.push({
-                                id: cid,
-                                type: metadata.type || 'document',
-                                title: metadata.title || `Content ${i + 1}`,
-                                description: metadata.description,
-                                uri: cid,
-                                completed: false
-                            })
+
+                            // Handle nested content array structure
+                            if (metadata.content && Array.isArray(metadata.content)) {
+                                metadata.content.forEach((item: any, idx: number) => {
+                                    // Determine URI/URL based on type
+                                    let itemUri = cid // Default fallback
+                                    let externalUrl = undefined
+
+                                    if (item.type === 'link' && item.url) {
+                                        itemUri = item.url
+                                        externalUrl = item.url
+                                    } else if (item.type === 'document' && item.fileHash) {
+                                        itemUri = item.fileHash
+                                    } else if (item.type === 'video' && item.videoHash) { // Assuming videoHash for consistency
+                                        itemUri = item.videoHash
+                                    }
+
+                                    items.push({
+                                        id: item.id || `${cid}-${idx}`,
+                                        type: item.type || 'document',
+                                        title: item.title || metadata.title || `Content ${items.length + 1}`,
+                                        description: item.description || metadata.description,
+                                        uri: itemUri,
+                                        externalUrl: externalUrl,
+                                        content: item.content, // For text type
+                                        completed: false,
+                                        thumbnail: item.thumbnail
+                                    })
+                                })
+                            }
+                            // Handle flat metadata structure (fallback/legacy)
+                            else {
+                                let itemUri = cid
+                                let externalUrl = undefined
+
+                                if (metadata.type === 'link' && metadata.url) {
+                                    itemUri = metadata.url
+                                    externalUrl = metadata.url
+                                } else if (metadata.fileHash) {
+                                    itemUri = metadata.fileHash
+                                }
+
+                                items.push({
+                                    id: cid,
+                                    type: metadata.type || 'document',
+                                    title: metadata.title || `Content ${items.length + 1}`,
+                                    description: metadata.description,
+                                    uri: itemUri,
+                                    externalUrl: externalUrl,
+                                    completed: false,
+                                    thumbnail: metadata.thumbnail
+                                })
+                            }
                         } else {
                             // Direct file - infer type from content-type
                             let type: ContentItem['type'] = 'document'
@@ -83,7 +151,7 @@ export function CourseContentViewer({
                             items.push({
                                 id: cid,
                                 type,
-                                title: `Content ${i + 1}`,
+                                title: `Content ${items.length + 1}`,
                                 uri: cid,
                                 completed: false
                             })
@@ -95,7 +163,7 @@ export function CourseContentViewer({
                     items.push({
                         id: cid,
                         type: 'document',
-                        title: `Content ${i + 1}`,
+                        title: `Content ${items.length + 1}`,
                         uri: cid,
                         completed: false
                     })
@@ -109,7 +177,10 @@ export function CourseContentViewer({
             if (savedProgress) {
                 try {
                     const { currentIndex: savedIndex, completed } = JSON.parse(savedProgress)
-                    setCurrentIndex(savedIndex || 0)
+                    // Validate index
+                    if (savedIndex >= 0 && savedIndex < items.length) {
+                        setCurrentIndex(savedIndex)
+                    }
 
                     // Mark completed items
                     setContentItems(prev => prev.map((item, idx) => ({
@@ -215,64 +286,58 @@ export function CourseContentViewer({
     }
 
     const currentContent = contentItems[currentIndex]
-    const ipfsUrl = `https://gateway.pinata.cloud/ipfs/${currentContent.uri}`
+    // Determine the actual URL to display
+    const contentUrl = currentContent?.externalUrl
+        ? currentContent.externalUrl
+        : `https://gateway.pinata.cloud/ipfs/${currentContent?.uri}`
+
+
+
+    // ... (keep existing useEffects)
 
     return (
-        <div className="space-y-6">
-            {/* Progress Bar */}
-            <Card className="glass-card border-white/10">
-                <CardContent className="p-6">
-                    <div className="flex items-center justify-between mb-2">
-                        <span className="text-sm font-medium text-gray-300">Course Progress</span>
-                        <span className="text-sm font-bold text-primary">{Math.round(progress)}%</span>
-                    </div>
-                    <Progress value={progress} className="h-2" />
-                    <p className="text-xs text-gray-400 mt-2">
-                        {contentItems.filter(i => i.completed).length} of {contentItems.length} completed
-                    </p>
-                </CardContent>
-            </Card>
-
-            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-                {/* Content List Sidebar */}
-                <Card className="glass-card border-white/10 lg:col-span-1">
-                    <CardHeader>
-                        <CardTitle className="text-lg text-white">Course Materials</CardTitle>
+        <div className="min-h-screen lg:h-[calc(100vh-200px)] flex flex-col lg:flex-row gap-4 lg:gap-6">
+            {/* Left Sidebar: Course Materials + Progress */}
+            <div className="w-full lg:w-1/3 flex flex-col gap-4 min-h-0">
+                {/* Content List - Compact on mobile */}
+                <Card className="glass-card border-white/10 flex-1 flex flex-col min-h-0 max-h-[40vh] lg:max-h-none">
+                    <CardHeader className="flex-shrink-0 py-3 lg:py-4">
+                        <CardTitle className="text-base lg:text-lg text-white">Course Materials</CardTitle>
                     </CardHeader>
-                    <CardContent className="p-0">
-                        <div className="space-y-1 max-h-[600px] overflow-y-auto">
+                    <CardContent className="p-0 flex-1 overflow-hidden">
+                        <div className="space-y-1 h-full overflow-y-auto">
                             {contentItems.map((item, index) => (
                                 <button
                                     key={item.id}
                                     onClick={() => navigateToContent(index)}
-                                    className={`w-full text-left p-4 hover:bg-white/5 transition-colors border-l-4 ${index === currentIndex
+                                    className={`w-full text-left p-3 lg:p-4 hover:bg-white/5 active:bg-white/10 transition-colors border-l-4 ${index === currentIndex
                                         ? 'border-primary bg-primary/10'
                                         : 'border-transparent'
                                         }`}
                                 >
-                                    <div className="flex items-start gap-3">
-                                        <div className="flex-shrink-0 mt-1">
+                                    <div className="flex items-start gap-2 lg:gap-3">
+                                        <div className="flex-shrink-0 mt-0.5 lg:mt-1">
                                             {item.completed ? (
-                                                <CheckCircle2 className="w-5 h-5 text-green-400" />
+                                                <CheckCircle2 className="w-4 h-4 lg:w-5 lg:h-5 text-green-400" />
                                             ) : item.type === 'video' ? (
-                                                <PlayCircle className="w-5 h-5 text-primary" />
+                                                <PlayCircle className="w-4 h-4 lg:w-5 lg:h-5 text-primary" />
                                             ) : item.type === 'link' ? (
-                                                <ExternalLink className="w-5 h-5 text-secondary" />
+                                                <ExternalLink className="w-4 h-4 lg:w-5 lg:h-5 text-secondary" />
                                             ) : (
-                                                <FileText className="w-5 h-5 text-gray-400" />
+                                                <FileText className="w-4 h-4 lg:w-5 lg:h-5 text-gray-400" />
                                             )}
                                         </div>
                                         <div className="flex-1 min-w-0">
-                                            <p className={`text-sm font-medium truncate ${index === currentIndex ? 'text-primary' : 'text-white'
+                                            <p className={`text-xs lg:text-sm font-medium truncate ${index === currentIndex ? 'text-primary' : 'text-white'
                                                 }`}>
                                                 {item.title}
                                             </p>
                                             <div className="flex items-center gap-2 mt-1">
-                                                <Badge variant="outline" className="text-xs">
+                                                <Badge variant="outline" className="text-[10px] lg:text-xs capitalize">
                                                     {item.type}
                                                 </Badge>
                                                 {item.duration && (
-                                                    <span className="text-xs text-gray-400">{item.duration}</span>
+                                                    <span className="text-[10px] lg:text-xs text-gray-400">{item.duration}</span>
                                                 )}
                                             </div>
                                         </div>
@@ -283,146 +348,217 @@ export function CourseContentViewer({
                     </CardContent>
                 </Card>
 
-                {/* Content Viewer */}
-                <div className="lg:col-span-2 space-y-4">
-                    <Card className="glass-card border-white/10">
-                        <CardHeader>
-                            <div className="flex items-center justify-between">
-                                <div>
-                                    <CardTitle className="text-white">{currentContent.title}</CardTitle>
-                                    {currentContent.description && (
-                                        <p className="text-sm text-gray-400 mt-1">{currentContent.description}</p>
+                {/* Progress Bar - Compact on mobile */}
+                <Card className="glass-card border-white/10 flex-shrink-0">
+                    <CardContent className="p-3 lg:p-4">
+                        <div className="flex items-center justify-between mb-2">
+                            <span className="text-xs lg:text-sm font-medium text-gray-300">Course Progress</span>
+                            <span className="text-xs lg:text-sm font-bold text-primary">{Math.round(progress)}%</span>
+                        </div>
+                        <Progress value={progress} className="h-1.5 lg:h-2" />
+                        <p className="text-[10px] lg:text-xs text-gray-400 mt-1.5 lg:mt-2">
+                            {contentItems.filter(i => i.completed).length} of {contentItems.length} completed
+                        </p>
+                    </CardContent>
+                </Card>
+            </div>
+
+            {/* Right Column: Content Viewer Only */}
+            <div className="w-full lg:w-2/3 min-h-0 flex-1">{/* Content Viewer */}
+                <Card className="glass-card border-white/10" id="content-viewer-container">
+                    <CardHeader className="border-b border-white/10 p-3 lg:p-6">
+                        <div className="flex items-center justify-between">
+                            <div className="flex-1 min-w-0">
+                                <div className="flex items-center gap-2 mb-2">
+                                    <Badge variant="secondary" className="capitalize text-xs">
+                                        {currentContent.type}
+                                    </Badge>
+                                    {currentContent.completed && (
+                                        <Badge className="bg-green-500/20 text-green-400 border-green-500/30 text-xs">
+                                            Completed
+                                        </Badge>
                                     )}
                                 </div>
-                                <Badge variant={currentContent.completed ? "default" : "outline"} className={
-                                    currentContent.completed ? "bg-green-500/20 text-green-400 border-green-500/30" : ""
-                                }>
-                                    {currentContent.completed ? "Completed" : "In Progress"}
-                                </Badge>
+                                <CardTitle className="text-white text-base lg:text-xl truncate">{currentContent.title}</CardTitle>
+                                {currentContent.description && (
+                                    <p className="text-xs lg:text-sm text-gray-400 mt-2 line-clamp-2">{currentContent.description}</p>
+                                )}
                             </div>
-                        </CardHeader>
-                        <CardContent className="space-y-4">
-                            {/* Content Display */}
+                            <Button variant="ghost" size="icon" onClick={toggleFullscreen} title="Toggle Fullscreen" className="flex-shrink-0 ml-2">
+                                {isFullscreen ? <Minimize className="w-4 h-4 lg:w-5 lg:h-5" /> : <Maximize className="w-4 h-4 lg:w-5 lg:h-5" />}
+                            </Button>
+                        </div>
+
+
+                    </CardHeader>
+
+                    <CardContent className="p-0">
+                        {/* Content Display Area */}
+                        <div className={`relative ${isFullscreen ? 'h-screen bg-black flex items-center justify-center' : 'min-h-[300px] lg:min-h-[400px]'}`}>
+
                             {currentContent.type === 'video' && (
-                                <div className="relative rounded-lg overflow-hidden bg-black aspect-video">
+                                <div className="w-full h-full bg-black aspect-video">
                                     <video
                                         key={currentContent.uri}
                                         controls
                                         className="w-full h-full"
                                         onEnded={() => markAsCompleted(currentIndex)}
                                     >
-                                        <source src={ipfsUrl} type="video/mp4" />
-                                        <source src={ipfsUrl} type="video/webm" />
+                                        <source src={contentUrl} type="video/mp4" />
+                                        <source src={contentUrl} type="video/webm" />
                                         Your browser does not support the video tag.
                                     </video>
                                 </div>
                             )}
 
-                            {currentContent.type === 'document' && (
-                                <div className="space-y-4">
-                                    {/* Embedded PDF/Document Viewer */}
-                                    <div className="relative rounded-lg overflow-hidden bg-white min-h-[600px]">
-                                        <iframe
-                                            src={`${ipfsUrl}#toolbar=1&navpanes=1&scrollbar=1`}
-                                            className="w-full h-[600px] border-0"
-                                            title={currentContent.title}
-                                            onError={(e) => {
-                                                // Fallback if iframe fails
-                                                console.warn('Iframe failed to load, showing fallback')
-                                            }}
-                                        />
+                            {(currentContent.type === 'document' || currentContent.type === 'link') && (
+                                <Tabs defaultValue="embedded" className="w-full" key={currentIndex}>
+                                    <div className="flex items-center justify-between mb-3 px-3 lg:px-4 pt-3 lg:pt-4">
+                                        <TabsList>
+                                            <TabsTrigger value="embedded" className="flex items-center gap-1.5 lg:gap-2 text-xs lg:text-sm">
+                                                <Laptop className="w-3 h-3 lg:w-4 lg:h-4" />
+                                                Embedded View
+                                            </TabsTrigger>
+                                            <TabsTrigger value="external" className="flex items-center gap-1.5 lg:gap-2 text-xs lg:text-sm">
+                                                <ExternalLink className="w-3 h-3 lg:w-4 lg:h-4" />
+                                                External Source
+                                            </TabsTrigger>
+                                        </TabsList>
                                     </div>
 
-                                    {/* Action Buttons for Document */}
-                                    <div className="flex gap-3 justify-center pt-4 border-t border-white/10">
-                                        <Button asChild variant="outline" size="sm">
-                                            <a href={ipfsUrl} target="_blank" rel="noopener noreferrer">
-                                                <ExternalLink className="w-4 h-4 mr-2" />
-                                                Open in New Tab
-                                            </a>
-                                        </Button>
-                                        <Button asChild size="sm">
-                                            <a href={ipfsUrl} download>
-                                                <Download className="w-4 h-4 mr-2" />
-                                                Download
-                                            </a>
-                                        </Button>
-                                    </div>
-                                </div>
-                            )}
+                                    <TabsContent value="embedded" className="mt-0 px-3 lg:px-4 pb-3 lg:pb-4">
+                                        <div className="space-y-3">
+                                            {/* Helpful notice */}
+                                            <div className="flex items-start gap-2 p-2 lg:p-3 bg-blue-500/10 border border-blue-500/20 rounded-lg">
+                                                <ShieldAlert className="w-3 h-3 lg:w-4 lg:h-4 text-blue-400 mt-0.5 flex-shrink-0" />
+                                                <p className="text-[10px] lg:text-xs text-blue-300">
+                                                    {currentContent.type === 'document'
+                                                        ? 'Document is displayed using an enhanced viewer for maximum compatibility with all formats.'
+                                                        : 'Some websites block embedding for security reasons. If content doesn\'t appear below, switch to the "External Source" tab.'
+                                                    }
+                                                </p>
+                                            </div>
 
-                            {currentContent.type === 'link' && (
-                                <div className="space-y-4">
-                                    {/* Try to embed the link in iframe first */}
-                                    <div className="relative rounded-lg overflow-hidden bg-white border border-white/10">
-                                        <iframe
-                                            src={ipfsUrl}
-                                            className="w-full h-[600px] border-0"
-                                            title={currentContent.title}
-                                            sandbox="allow-same-origin allow-scripts allow-popups allow-forms"
-                                            onError={(e) => {
-                                                console.warn('Iframe blocked, showing fallback')
-                                            }}
-                                        />
-                                    </div>
+                                            {/* Responsive iframe */}
+                                            <div className="w-full bg-white/5 rounded-lg overflow-hidden border border-white/10">
+                                                <iframe
+                                                    src={currentContent.type === 'document'
+                                                        ? `https://docs.google.com/viewer?url=${encodeURIComponent(contentUrl)}&embedded=true`
+                                                        : contentUrl
+                                                    }
+                                                    className="w-full border-0"
+                                                    style={{ height: 'calc(100vh - 500px)', minHeight: '400px' }}
+                                                    title={currentContent.title}
+                                                    sandbox="allow-same-origin allow-scripts allow-popups allow-forms"
+                                                />
+                                            </div>
+                                        </div>
+                                    </TabsContent>
 
-                                    {/* Fallback button */}
-                                    <div className="text-center pt-4 border-t border-white/10">
-                                        <p className="text-sm text-gray-400 mb-3">
-                                            If content doesn't load above, open in a new tab:
-                                        </p>
-                                        <Button asChild>
-                                            <a href={ipfsUrl} target="_blank" rel="noopener noreferrer">
-                                                <ExternalLink className="w-4 h-4 mr-2" />
-                                                Open External Link
-                                            </a>
-                                        </Button>
-                                    </div>
-                                </div>
+                                    <TabsContent value="external" className="mt-0">
+                                        <div className="flex flex-col items-center justify-center h-[600px] p-8 text-center bg-white/5 rounded-lg border border-white/10">
+                                            <ExternalLink className="w-16 h-16 text-gray-400 mb-4" />
+                                            <h3 className="text-xl font-bold text-white mb-2">External Content</h3>
+                                            <p className="text-gray-400 mb-6 max-w-md">
+                                                This content is hosted externally. Choose how you'd like to view it:
+                                            </p>
+                                            <div className="flex flex-col gap-3 w-full max-w-sm">
+                                                <Button
+                                                    onClick={() => {
+                                                        const width = 1200;
+                                                        const height = 800;
+                                                        const left = (window.screen.width - width) / 2;
+                                                        const top = (window.screen.height - height) / 2;
+                                                        window.open(
+                                                            contentUrl,
+                                                            currentContent.title,
+                                                            `width=${width},height=${height},left=${left},top=${top},menubar=no,toolbar=no,location=yes,resizable=yes,scrollbars=yes`
+                                                        );
+                                                    }}
+                                                    size="lg"
+                                                    className="w-full"
+                                                >
+                                                    <Laptop className="w-5 h-5 mr-2" />
+                                                    Open in Popup Window
+                                                </Button>
+
+                                                <Button
+                                                    asChild
+                                                    variant="outline"
+                                                    size="lg"
+                                                    className="w-full"
+                                                >
+                                                    <a href={contentUrl} target="_blank" rel="noopener noreferrer">
+                                                        <ExternalLink className="w-5 h-5 mr-2" />
+                                                        Open in New Tab
+                                                    </a>
+                                                </Button>
+
+                                                {currentContent.type === 'document' && (
+                                                    <Button
+                                                        asChild
+                                                        variant="ghost"
+                                                        size="lg"
+                                                        className="w-full"
+                                                    >
+                                                        <a href={contentUrl} download>
+                                                            <Download className="w-5 h-5 mr-2" />
+                                                            Download File
+                                                        </a>
+                                                    </Button>
+                                                )}
+                                            </div>
+
+                                            <div className="mt-6 p-3 bg-gray-800/50 rounded-lg border border-gray-700/50 max-w-md">
+                                                <p className="text-xs text-gray-400">
+                                                    <strong className="text-gray-300">Tip:</strong> The popup window keeps you within the app
+                                                    while giving you full access to interact with the content.
+                                                </p>
+                                            </div>
+                                        </div>
+                                    </TabsContent>
+                                </Tabs>
                             )}
 
                             {currentContent.type === 'text' && (
-                                <Card className="glass-card border-white/10">
-                                    <CardContent className="p-8">
-                                        <div className="prose prose-invert prose-lg max-w-none">
-                                            <div
-                                                dangerouslySetInnerHTML={{
-                                                    __html: currentContent.description || currentContent.content || 'No content available'
-                                                }}
-                                            />
-                                        </div>
-                                    </CardContent>
-                                </Card>
+                                <div className="p-8 prose prose-invert prose-lg max-w-none">
+                                    <div
+                                        dangerouslySetInnerHTML={{
+                                            __html: currentContent.description || currentContent.content || 'No content available'
+                                        }}
+                                    />
+                                </div>
                             )}
-                            {/* Action Buttons */}
-                            <div className="flex items-center justify-between pt-4 border-t border-white/10">
-                                <Button
-                                    variant="outline"
-                                    onClick={() => navigateToContent(currentIndex - 1)}
-                                    disabled={currentIndex === 0}
-                                >
-                                    <ChevronLeft className="w-4 h-4 mr-2" />
-                                    Previous
-                                </Button>
+                        </div>
 
-                                {!currentContent.completed && (
-                                    <Button onClick={() => markAsCompleted(currentIndex)}>
-                                        <CheckCircle2 className="w-4 h-4 mr-2" />
-                                        Mark as Complete
-                                    </Button>
-                                )}
+                        {/* Footer Actions */}
+                        <div className="flex items-center justify-between p-6 border-t border-white/10 bg-black/20">
+                            <Button
+                                variant="outline"
+                                onClick={() => navigateToContent(currentIndex - 1)}
+                                disabled={currentIndex === 0}
+                            >
+                                <ChevronLeft className="w-4 h-4 mr-2" />
+                                Previous
+                            </Button>
 
-                                <Button
-                                    onClick={() => navigateToContent(currentIndex + 1)}
-                                    disabled={currentIndex === contentItems.length - 1}
-                                >
-                                    Next
-                                    <ChevronRight className="w-4 h-4 ml-2" />
+                            {!currentContent.completed && (
+                                <Button onClick={() => markAsCompleted(currentIndex)} className="bg-green-600 hover:bg-green-700">
+                                    <CheckCircle2 className="w-4 h-4 mr-2" />
+                                    Mark as Complete
                                 </Button>
-                            </div>
-                        </CardContent>
-                    </Card>
-                </div>
+                            )}
+
+                            <Button
+                                onClick={() => navigateToContent(currentIndex + 1)}
+                                disabled={currentIndex === contentItems.length - 1}
+                            >
+                                Next
+                                <ChevronRight className="w-4 h-4 ml-2" />
+                            </Button>
+                        </div>
+                    </CardContent>
+                </Card>
             </div>
         </div>
     )
