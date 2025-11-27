@@ -20,7 +20,8 @@ const config = {
     },
     extend: {
       fontFamily: {
-        sans: ["var(--font-space-grotesk)", "sans-serif"],
+        sans: ["var(--font-space-grotesk)", "Inter", "sans-serif"],
+        mono: ["'JetBrains Mono'", "'Space Mono'", "'Fira Code'", "monospace"],
       },
       colors: {
         border: "hsl(var(--border))",
@@ -58,9 +59,9 @@ const config = {
         },
       },
       borderRadius: {
-        lg: "var(--radius)",
-        md: "calc(var(--radius) - 2px)",
-        sm: "calc(var(--radius) - 4px)",
+        lg: "0.25rem", // 4px - minimal
+        md: "0.125rem", // 2px
+        sm: "0.0625rem", // 1px
       },
       keyframes: {
         "accordion-down": {

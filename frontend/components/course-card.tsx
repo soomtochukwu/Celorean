@@ -197,7 +197,7 @@ export function CourseCard({
   return (
     <Card
       className={cn(
-        "group cursor-pointer transition-all duration-300 glass-card hover:shadow-2xl hover:-translate-y-1 overflow-hidden border-white/5",
+        "group cursor-pointer transition-all duration-300 overflow-hidden border-border hover:border-primary/40",
         className
       )}
       onClick={handleCardClick}
@@ -215,20 +215,20 @@ export function CourseCard({
         />
         <div className="absolute top-2 right-2 z-20 flex gap-2">
           {isFull && !isEnrolled && (
-            <Badge variant="destructive" className="animate-pulse">
-              Full
+            <Badge variant="destructive" className="font-mono uppercase">
+              FULL
             </Badge>
           )}
-          <div className="bg-black/60 backdrop-blur-md px-2 py-1 rounded-full text-xs font-medium flex items-center gap-1 text-white border border-white/10">
+          <div className="bg-card border border-border px-2 py-1 rounded-sm text-xs font-mono uppercase tracking-wider flex items-center gap-1 text-foreground">
             {isAdmitted ? (
               <>
-                <CheckCircle className="h-3 w-3 text-green-400" />
-                <span>Registered</span>
+                <CheckCircle className="h-3 w-3 text-primary" />
+                <span>REGISTERED</span>
               </>
             ) : (
               <>
-                <Lock className="h-3 w-3 text-amber-400" />
-                <span>Guest</span>
+                <Lock className="h-3 w-3 text-secondary" />
+                <span>GUEST</span>
               </>
             )}
           </div>
@@ -236,7 +236,7 @@ export function CourseCard({
       </div>
       <CardContent className="p-5 relative z-20">
         <div className="flex justify-between items-start mb-2">
-          <h3 className="text-xl font-bold line-clamp-1 text-white group-hover:text-primary transition-colors">{title}</h3>
+          <h3 className="text-xl font-mono font-bold line-clamp-1 text-foreground group-hover:text-primary transition-colors uppercase">{title}</h3>
           <div className="flex items-center text-yellow-400 text-xs font-bold bg-yellow-400/10 px-2 py-1 rounded-full">
             <Star className="h-3 w-3 mr-1 fill-yellow-400" />
             {rating.toFixed(1)}
@@ -245,7 +245,7 @@ export function CourseCard({
 
         <p className="text-sm text-gray-400 mb-4 line-clamp-2 h-10">{description}</p>
 
-        <div className="flex items-center justify-between text-xs text-gray-400 mb-4 bg-white/5 p-2 rounded-lg border border-white/5">
+        <div className="flex items-center justify-between text-xs text-muted-foreground mb-4 bg-card p-2 rounded-sm border border-border font-mono">
           <div className="flex items-center">
             <Clock className="h-3 w-3 mr-1.5 text-primary" />
             {duration}
@@ -260,15 +260,15 @@ export function CourseCard({
             <BookOpen className="h-3 w-3 mr-1.5 text-accent" />
             {level}
           </div>
-          <div className="flex items-center text-green-400 font-mono">
+          <div className="flex items-center text-primary font-mono uppercase">
             <Tag className="h-3 w-3 mr-1.5" />
-            Free
+            FREE
           </div>
         </div>
 
         <div className="flex flex-wrap gap-1.5 mb-4">
           {tags.slice(0, 3).map((tag, index) => (
-            <span key={index} className="px-2.5 py-0.5 bg-primary/10 text-primary border border-primary/20 rounded-full text-[10px] font-medium uppercase tracking-wider">
+            <span key={index} className="px-2.5 py-0.5 bg-transparent text-primary border border-primary/30 rounded-sm text-[10px] font-mono uppercase tracking-wider">
               {tag}
             </span>
           ))}
@@ -302,16 +302,16 @@ export function CourseCard({
                 onClick={handleEnrollmentClick}
                 disabled={buttonLoading || isFull}
                 className={cn(
-                  "font-medium transition-all duration-300",
+                  "font-mono uppercase tracking-wider transition-all duration-300",
                   isFull
                     ? "bg-muted text-muted-foreground cursor-not-allowed"
-                    : "bg-gradient-to-r from-primary to-accent hover:opacity-90 hover:shadow-lg hover:shadow-primary/25 text-white border-0"
+                    : "bg-primary text-primary-foreground border-primary hover:bg-primary/90"
                 )}
               >
                 {buttonLoading ? "Processing..." : isFull ? "Course Full" : "Enroll Now"}
               </Button>
             ) : (
-              <Button asChild size="sm" variant="outline" className="border-white/10 hover:bg-white/5 hover:text-white">
+              <Button asChild size="sm" variant="outline" className="font-mono uppercase">
                 <Link href="/register" onClick={(e) => e.stopPropagation()}>
                   Register to Enroll
                 </Link>
@@ -320,7 +320,7 @@ export function CourseCard({
           ) : (
             <Button
               size="sm"
-              className="bg-green-500/10 text-green-400 hover:bg-green-500/20 border border-green-500/20"
+              className="bg-primary/10 text-primary border-primary/30 hover:bg-primary/20 font-mono uppercase"
               onClick={(e) => {
                 e.stopPropagation();
                 router.push(`/course/${id}`);

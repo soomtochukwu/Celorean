@@ -10,24 +10,24 @@ export default function Home() {
       <AnimatedGridBackground />
 
       {/* Header */}
-      <header className="w-full py-4 px-6 glass border-b border-primary/10 sticky top-0 z-10">
+      <header className="w-full py-4 px-6 border-b border-border sticky top-0 z-10 bg-background">
         <div className="container mx-auto flex justify-between items-center">
           <Link href="/" className="flex items-center space-x-2">
             <Zap className="h-6 w-6 text-primary" />
-            <span className="text-xl font-bold tracking-wider">CELOREAN</span>
+            <span className="text-xl font-mono font-bold tracking-wider uppercase">CELOREAN</span>
           </Link>
           <div className="flex items-center space-x-4">
             <Link
               href="/about"
-              className="text-sm text-muted-foreground hover:text-foreground transition-colors"
+              className="text-sm font-mono uppercase tracking-wider text-muted-foreground hover:text-primary transition-colors"
             >
-              About
+              ABOUT
             </Link>
             <Link
               href="/docs"
-              className="text-sm text-muted-foreground hover:text-foreground transition-colors"
+              className="text-sm font-mono uppercase tracking-wider text-muted-foreground hover:text-primary transition-colors"
             >
-              Docs
+              DOCS
             </Link>
 
             <Link
@@ -44,7 +44,7 @@ export default function Home() {
       <section className="relative py-20 md:py-32 overflow-hidden">
         <div className="container mx-auto px-6 relative z-10">
           <div className="max-w-3xl mx-auto text-center">
-            <h1 className="text-4xl md:text-6xl font-bold mb-6 gradient-text">
+            <h1 className="text-4xl md:text-6xl font-mono font-bold mb-6 gradient-text">
               To Incentivize Education with Blockchain & AI
             </h1>
             <p className="text-lg md:text-xl text-muted-foreground mb-8">
@@ -53,15 +53,15 @@ export default function Home() {
             </p>
             <div className="flex flex-col sm:flex-row justify-center gap-4">
               <Link
-                className="bg-green-700 text-white p-2 rounded-lg text-center"
+                className="bg-primary text-primary-foreground px-6 py-3 rounded-sm text-center font-mono uppercase tracking-wider border border-primary hover:bg-primary/90"
                 href={"/login"}
               >
-                Start Learning
+                START LEARNING
               </Link>
 
-              <Button variant="outline" size="lg" asChild>
+              <Button variant="outline" size="lg" asChild className="font-mono uppercase tracking-wider">
                 <Link href="/docs">
-                  Learn More
+                  LEARN MORE
                   <ArrowRight className="ml-2 h-4 w-4" />
                 </Link>
               </Button>
@@ -109,7 +109,7 @@ export default function Home() {
             </div>
 
             {/* Feature 3 */}
-            <div className="glass p-6 rounded-lg border border-primary/10 glow-border">
+            <div className="border border-border p-6 rounded-sm">
               <div className="w-12 h-12 bg-primary/10 rounded-lg flex items-center justify-center mb-4">
                 <Lock className="h-6 w-6 text-primary" />
               </div>
@@ -152,7 +152,7 @@ export default function Home() {
             ].map((testimonial, index) => (
               <div
                 key={index}
-                className="glass p-6 rounded-lg border border-primary/10 glow-border"
+                className="border border-border p-6 rounded-sm">
               >
                 <p className="text-muted-foreground mb-4 italic">
                   "{testimonial.quote}"
@@ -179,7 +179,7 @@ export default function Home() {
       {/* CTA Section */}
       <section className="py-20 relative">
         <div className="container mx-auto px-6">
-          <div className="glass p-8 md:p-12 rounded-lg border border-primary/10 glow-border text-center">
+          <div className="border border-border p-8 md:p-12 rounded-sm text-center">
             <h2 className="text-2xl md:text-3xl font-bold mb-4">
               Ready to Transform Your Learning Experience?
             </h2>
@@ -189,23 +189,23 @@ export default function Home() {
             </p>
 
             <Link
-              className="bg-green-700 text-white p-2 rounded-lg text-center"
+              className="bg-primary text-primary-foreground px-6 py-3 rounded-sm text-center font-mono uppercase tracking-wider inline-block border border-primary hover:bg-primary/90"
               href={"/login"}
             >
-              Login / Signup
+              LOGIN / SIGNUP
             </Link>
           </div>
         </div>
       </section>
 
       {/* Footer */}
-      <footer className="glass border-t border-primary/10 py-8">
+      <footer className="border-t border-border py-8 bg-background">
         <div className="container mx-auto px-6">
           <div className="grid grid-cols-1 md:grid-cols-4 gap-8">
             <div>
               <Link href="/" className="flex items-center space-x-2 mb-4">
                 <Zap className="h-6 w-6 text-primary" />
-                <span className="text-xl font-bold tracking-wider">
+                <span className="text-xl font-mono font-bold tracking-wider uppercase">
                   CELOREAN
                 </span>
               </Link>

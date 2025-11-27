@@ -202,12 +202,7 @@ export function SidebarNavigation({ className }: SidebarNavigationProps) {
       name: "Profile",
       href: "/profile",
       icon: User,
-    },
-    {
-      name: "Settings",
-      href: "/settings",
-      icon: Settings,
-    },
+    }
   ]
 
   // Create routes array with conditional admin route
@@ -224,10 +219,10 @@ export function SidebarNavigation({ className }: SidebarNavigationProps) {
 
   const MenuContent = (
     <div className="flex h-full w-full flex-col" role="navigation" aria-label="Primary" style={{ paddingBottom: "env(safe-area-inset-bottom)" }}>
-      <div className="flex h-16 items-center px-6 border-b border-primary/10" style={{ paddingTop: "env(safe-area-inset-top)" }}>
+      <div className="flex h-16 items-center px-6 border-b border-border" style={{ paddingTop: "env(safe-area-inset-top)" }}>
         <Link href="/" className="flex items-center space-x-2" onClick={() => setIsOpen(false)}>
-          <Zap className="h-6 w-6 text-primary" />
-          <span className="text-xl font-bold tracking-wider">CELOREAN</span>
+          <Zap className="h-6 w-6 text-primary terminal-glow" />
+          <span className="text-xl font-mono font-bold tracking-wider uppercase">CELOREAN</span>
         </Link>
       </div>
 
@@ -242,10 +237,10 @@ export function SidebarNavigation({ className }: SidebarNavigationProps) {
                 aria-current={isActive ? "page" : undefined}
                 onClick={() => setIsOpen(false)}
                 className={cn(
-                  "flex items-center px-4 py-3 text-sm font-medium rounded-md transition-colors duration-200 focus:outline-none focus-visible:ring-2 focus-visible:ring-primary/50 active:scale-[0.98]",
+                  "flex items-center px-4 py-3 text-sm font-mono uppercase tracking-wider rounded-sm transition-colors duration-200 focus:outline-none focus-visible:ring-1 focus-visible:ring-primary active:scale-[0.98] border border-transparent",
                   isActive
-                    ? "bg-primary/10 text-primary glow-text"
-                    : "text-muted-foreground hover:text-foreground hover:bg-muted",
+                    ? "bg-primary/10 text-primary border-primary/30 terminal-glow"
+                    : "text-muted-foreground hover:text-foreground hover:bg-muted hover:border-border",
                 )}
               >
                 <route.icon className={cn("mr-3 h-5 w-5", isActive ? "text-primary" : "text-muted-foreground")} />
@@ -255,7 +250,7 @@ export function SidebarNavigation({ className }: SidebarNavigationProps) {
           })}
         </nav>
 
-        <div className="p-4 border-t border-primary/10" style={{ paddingBottom: "calc(env(safe-area-inset-bottom) + 0.5rem)" }}>
+        <div className="p-4 border-t border-border" style={{ paddingBottom: "calc(env(safe-area-inset-bottom) + 0.5rem)" }}>
           <ConnectWalletButton />
         </div>
       </div>
@@ -293,7 +288,7 @@ export function SidebarNavigation({ className }: SidebarNavigationProps) {
             ref={sheetContentRef as any}
             side="left"
             className={cn(
-              "w-[85vw] sm:w-64 p-0 bg-background text-foreground border-r border-primary/10 will-change-transform transform-gpu transition-transform duration-300 ease-out",
+              "w-[85vw] sm:w-64 p-0 bg-background text-foreground border-r border-border will-change-transform transform-gpu transition-transform duration-300 ease-out",
               "motion-reduce:transition-none motion-reduce:transform-none",
             )}
           >
@@ -305,7 +300,7 @@ export function SidebarNavigation({ className }: SidebarNavigationProps) {
       {/* Desktop: Persistent sidebar */}
       <div
         className={cn(
-          "hidden md:block fixed inset-y-0 left-0 z-40 w-64 border-r border-primary/10 bg-background/80 backdrop-blur supports-[backdrop-filter]:bg-background/60",
+          "hidden md:block fixed inset-y-0 left-0 z-40 w-64 border-r border-border bg-background",
           className,
         )}
       >
