@@ -130,26 +130,26 @@ export default function StudentDetailsPage() {
     }
 
     return (
-        <div className="p-6 md:p-8 space-y-6">
+        <div className="p-4 md:p-8 space-y-6">
             {/* Header */}
-            <div className="flex items-center justify-between">
-                <div>
+            <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+                <div className="w-full overflow-hidden">
                     <Button
                         variant="ghost"
                         onClick={() => router.push("/community")}
-                        className="mb-4 font-mono uppercase text-sm -ml-4"
+                        className="mb-4 font-mono uppercase text-sm -ml-2 md:-ml-4 px-2"
                     >
                         <ArrowLeft className="h-4 w-4 mr-2" />
                         BACK TO COMMUNITY
                     </Button>
-                    <h1 className="text-3xl font-mono font-bold uppercase tracking-tight">
+                    <h1 className="text-2xl md:text-3xl font-mono font-bold uppercase tracking-tight truncate">
                         STUDENT PROFILE
                     </h1>
-                    <p className="text-muted-foreground font-mono text-sm mt-2">
+                    <p className="text-muted-foreground font-mono text-xs md:text-sm mt-2 break-all">
                         {studentAddress}
                     </p>
                 </div>
-                <div className="flex flex-col items-end gap-2">
+                <div className="flex flex-row md:flex-col items-center md:items-end justify-between md:justify-start gap-2 w-full md:w-auto">
                     <Badge variant="active" className="font-mono uppercase">
                         <CheckCircle className="h-3 w-3 mr-1" />
                         VERIFIED
@@ -170,7 +170,7 @@ export default function StudentDetailsPage() {
             {/* Statistics Grid */}
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                 <Card className="terminal-box">
-                    <CardContent className="p-6">
+                    <CardContent className="p-4 md:p-6">
                         <div className="flex items-center justify-between mb-4">
                             <BookOpen className="h-8 w-8 text-terminal-green" />
                             <div className="text-right">
@@ -189,7 +189,7 @@ export default function StudentDetailsPage() {
                 </Card>
 
                 <Card className="terminal-box">
-                    <CardContent className="p-6">
+                    <CardContent className="p-4 md:p-6">
                         <div className="flex items-center justify-between mb-4">
                             <Award className="h-8 w-8 text-terminal-orange" />
                             <div className="text-right">
@@ -208,7 +208,7 @@ export default function StudentDetailsPage() {
                 </Card>
 
                 <Card className="terminal-box">
-                    <CardContent className="p-6">
+                    <CardContent className="p-4 md:p-6">
                         <div className="flex items-center justify-between mb-4">
                             <Calendar className="h-8 w-8 text-terminal-green" />
                             <div className="text-right">
@@ -229,13 +229,13 @@ export default function StudentDetailsPage() {
 
             {/* Enrolled Courses */}
             <Card className="terminal-box">
-                <CardHeader className="border-b border-terminal-border">
-                    <CardTitle className="font-mono uppercase tracking-wider flex items-center gap-2">
+                <CardHeader className="border-b border-terminal-border p-4 md:p-6">
+                    <CardTitle className="font-mono uppercase tracking-wider flex items-center gap-2 text-sm md:text-base">
                         <BookOpen className="h-5 w-5 text-terminal-green" />
                         ENROLLED COURSES
                     </CardTitle>
                 </CardHeader>
-                <CardContent className="p-6">
+                <CardContent className="p-4 md:p-6">
                     {courses.length === 0 ? (
                         <div className="text-center py-12">
                             <BookOpen className="h-16 w-16 mx-auto mb-4 text-muted-foreground opacity-50" />
@@ -279,13 +279,13 @@ export default function StudentDetailsPage() {
 
             {/* Credentials */}
             <Card className="terminal-box">
-                <CardHeader className="border-b border-terminal-border">
-                    <CardTitle className="font-mono uppercase tracking-wider flex items-center gap-2">
+                <CardHeader className="border-b border-terminal-border p-4 md:p-6">
+                    <CardTitle className="font-mono uppercase tracking-wider flex items-center gap-2 text-sm md:text-base">
                         <Award className="h-5 w-5 text-terminal-orange" />
                         CREDENTIALS & CERTIFICATES
                     </CardTitle>
                 </CardHeader>
-                <CardContent className="p-6">
+                <CardContent className="p-4 md:p-6">
                     {credentials.length === 0 ? (
                         <div className="text-center py-12">
                             <Award className="h-16 w-16 mx-auto mb-4 text-muted-foreground opacity-50" />
