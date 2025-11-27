@@ -551,7 +551,7 @@ export function Providers({ children }: { children: React.ReactNode }) {
   // Determine preferred environment based on build mode
   const getPreferredEnvironment = (): 'localhost' | 'testnet' | 'mainnet' => {
     if (process.env.NODE_ENV === 'development') {
-      return 'localhost';
+      return 'testnet';
     }
     return process.env.NEXT_PUBLIC_NETWORK === 'mainnet' ? 'mainnet' : 'testnet';
   };

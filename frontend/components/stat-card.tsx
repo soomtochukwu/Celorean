@@ -25,28 +25,28 @@ export function StatCard({
   loading = false,
 }: StatCardProps) {
   return (
-    <Card className={cn("glass border border-primary/10", className)}>
+    <Card className={cn("terminal-box transition-colors hover:border-terminal-green/50", className)}>
       <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-        <CardTitle className="text-sm font-medium">
+        <CardTitle className="text-xs font-mono font-bold uppercase tracking-wider text-muted-foreground">
           {loading ? <Skeleton className="h-4 w-24" /> : title}
         </CardTitle>
-        <div className="text-muted-foreground">
-          {loading ? <Skeleton className="h-5 w-5 rounded-full" /> : icon}
+        <div className="text-terminal-green">
+          {loading ? <Skeleton className="h-5 w-5" /> : icon}
         </div>
       </CardHeader>
       <CardContent>
-        <div className="text-2xl font-bold">
+        <div className="text-3xl font-mono font-bold text-white">
           {loading ? <Skeleton className="h-7 w-28" /> : value}
         </div>
-        <div className="text-xs text-muted-foreground mt-1">
+        <div className="text-xs text-muted-foreground mt-1 font-mono">
           {loading ? <Skeleton className="h-3 w-40" /> : description}
         </div>
         {trendValue && !loading && (
           <div className={cn(
-            "mt-3 inline-flex items-center rounded-full px-2 py-1 text-xs",
-            trend === "up" && "bg-emerald-500/10 text-emerald-500",
-            trend === "down" && "bg-red-500/10 text-red-500",
-            trend === "neutral" && "bg-muted text-muted-foreground"
+            "mt-3 inline-flex items-center border px-2 py-1 text-xs font-mono font-bold tracking-wider uppercase",
+            trend === "up" && "bg-terminal-green/10 text-terminal-green border-terminal-green",
+            trend === "down" && "bg-terminal-orange/10 text-terminal-orange border-terminal-orange",
+            trend === "neutral" && "bg-muted/10 text-muted-foreground border-terminal-border"
           )}>
             {trend === "up" && <span className="mr-1">▲</span>}
             {trend === "down" && <span className="mr-1">▼</span>}
@@ -55,7 +55,14 @@ export function StatCard({
         )}
         {loading && (
           <div className="mt-3">
-            <Skeleton className="h-6 w-24 rounded-full" />
+            <Skeleton className="h-6 w-24" />
+          </div>
+        )}
+
+        {/* Status indicator dot */}
+        {!loading && trend === "up" && (
+          <div className="absolute top-4 right-4">
+            <div className="status-dot status-dot-active" />
           </div>
         )}
       </CardContent>

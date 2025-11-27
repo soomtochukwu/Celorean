@@ -164,42 +164,42 @@ export function SidebarNavigation({ className }: SidebarNavigationProps) {
 
   const baseRoutes = [
     {
-      name: "Dashboard",
+      name: "DASHBOARD",
       href: "/dashboard",
       icon: LayoutDashboard,
     },
     {
-      name: "Learning",
+      name: "LEARNING",
       href: "/learning",
       icon: BookOpen,
     },
     {
-      name: "Activity",
+      name: "ACTIVITY",
       href: "/activity",
       icon: Activity,
     },
     {
-      name: "Events",
+      name: "EVENTS",
       href: "/events/discover",
       icon: CalendarDays,
     },
     {
-      name: "Community",
+      name: "COMMUNITY",
       href: "/community",
       icon: Users,
     },
     {
-      name: "Verification",
+      name: "VERIFICATION",
       href: "/self-verification",
       icon: Shield,
     },
     {
-      name: "My Credentials",
+      name: "CREDENTIALS",
       href: "/credentials",
       icon: BadgeCheck,
     },
     {
-      name: "Profile",
+      name: "PROFILE",
       href: "/profile",
       icon: User,
     }
@@ -211,22 +211,24 @@ export function SidebarNavigation({ className }: SidebarNavigationProps) {
   // Add admin route if user is admin or lecturer (insert before Profile and Settings)
   if ((isAdmin || isUserLecturer) && address) {
     routes.splice(-2, 0, {
-      name: "Admin",
+      name: "ADMIN",
       href: "/admin",
       icon: UserCog,
     })
   }
 
   const MenuContent = (
-    <div className="flex h-full w-full flex-col" role="navigation" aria-label="Primary" style={{ paddingBottom: "env(safe-area-inset-bottom)" }}>
-      <div className="flex h-16 items-center px-6 border-b border-border" style={{ paddingTop: "env(safe-area-inset-top)" }}>
-        <Link href="/" className="flex items-center space-x-2" onClick={() => setIsOpen(false)}>
-          <Zap className="h-6 w-6 text-primary terminal-glow" />
-          <span className="text-xl font-mono font-bold tracking-wider uppercase">CELOREAN</span>
+    <div className="flex h-full w-full flex-col bg-terminal-black border-r border-terminal-border" role="navigation" aria-label="Primary" style={{ paddingBottom: "env(safe-area-inset-bottom)" }}>
+      {/* Header */}
+      <div className="flex h-16 items-center px-6 border-b border-terminal-border" style={{ paddingTop: "env(safe-area-inset-top)" }}>
+        <Link href="/" className="flex items-center space-x-3" onClick={() => setIsOpen(false)}>
+          <img src="/logo.svg" alt="Celorean Logo" className="h-8 w-8" style={{ filter: 'brightness(0) saturate(100%) invert(84%) sepia(23%) saturate(2578%) hue-rotate(91deg) brightness(101%) contrast(101%)' }} />
+          <span className="text-xl font-mono font-bold tracking-widest text-terminal-green">CELOREAN</span>
         </Link>
       </div>
 
       <div className="flex flex-col justify-between h-[calc(100%-4rem)]" style={{ paddingBottom: "env(safe-area-inset-bottom)" }}>
+        {/* Navigation */}
         <nav className="flex-1 space-y-1 px-4 py-6 overflow-y-auto">
           {routes.map((route) => {
             const isActive = pathname === route.href
@@ -237,20 +239,22 @@ export function SidebarNavigation({ className }: SidebarNavigationProps) {
                 aria-current={isActive ? "page" : undefined}
                 onClick={() => setIsOpen(false)}
                 className={cn(
-                  "flex items-center px-4 py-3 text-sm font-mono uppercase tracking-wider rounded-sm transition-colors duration-200 focus:outline-none focus-visible:ring-1 focus-visible:ring-primary active:scale-[0.98] border border-transparent",
+                  "flex items-center px-4 py-3 text-sm font-mono font-bold tracking-wider uppercase transition-colors duration-200 focus:outline-none focus-visible:ring-2 focus-visible:ring-terminal-green border border-transparent",
                   isActive
-                    ? "bg-primary/10 text-primary border-primary/30 terminal-glow"
-                    : "text-muted-foreground hover:text-foreground hover:bg-muted hover:border-border",
+                    ? "bg-terminal-green/10 text-terminal-green border-terminal-green"
+                    : "text-muted-foreground hover:text-terminal-green hover:bg-terminal-border/20 hover:border-terminal-border",
                 )}
               >
-                <route.icon className={cn("mr-3 h-5 w-5", isActive ? "text-primary" : "text-muted-foreground")} />
+                <route.icon className={cn("mr-3 h-5 w-5", isActive ? "text-terminal-green" : "text-muted-foreground")} />
                 {route.name}
+                {isActive && <span className="ml-auto">▶</span>}
               </Link>
             )
           })}
         </nav>
 
-        <div className="p-4 border-t border-border" style={{ paddingBottom: "calc(env(safe-area-inset-bottom) + 0.5rem)" }}>
+        {/* Wallet Connection */}
+        <div className="p-4 border-t border-terminal-border" style={{ paddingBottom: "calc(env(safe-area-inset-bottom) + 0.5rem)" }}>
           <ConnectWalletButton />
         </div>
       </div>
@@ -264,14 +268,14 @@ export function SidebarNavigation({ className }: SidebarNavigationProps) {
         <Button
           variant="ghost"
           size="icon"
-          className="fixed top-4 right-4 z-[60] rounded-full bg-background/70 backdrop-blur supports-[backdrop-filter]:bg-background/60 shadow-sm"
+          className="fixed top-4 right-4 z-[60] bg-terminal-black border border-terminal-border hover:border-terminal-green"
           onClick={() => setIsOpen((v) => !v)}
           aria-label={isOpen ? "Close menu" : "Open menu"}
           aria-expanded={isOpen}
           aria-controls="mobile-menu"
           style={{ top: "max(1rem, env(safe-area-inset-top))", right: "max(1rem, env(safe-area-inset-right))" }}
         >
-          {isOpen ? <X className="h-6 w-6" /> : <Menu className="h-6 w-6" />}
+          {isOpen ? <X className="h-6 w-6 text-terminal-green" /> : <Menu className="h-6 w-6 text-terminal-green" />}
         </Button>
         {/* Edge swipe zone (left edge) */}
         {!isOpen && (
@@ -282,13 +286,13 @@ export function SidebarNavigation({ className }: SidebarNavigationProps) {
           />
         )}
         <Sheet open={isOpen} onOpenChange={setIsOpen}>
-          <SheetOverlay className="data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0" />
+          <SheetOverlay className="data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 bg-black/80" />
           <SheetContent
             id="mobile-menu"
             ref={sheetContentRef as any}
             side="left"
             className={cn(
-              "w-[85vw] sm:w-64 p-0 bg-background text-foreground border-r border-border will-change-transform transform-gpu transition-transform duration-300 ease-out",
+              "w-[85vw] sm:w-64 p-0 bg-terminal-black text-foreground border-r border-terminal-border will-change-transform transform-gpu transition-transform duration-300 ease-out",
               "motion-reduce:transition-none motion-reduce:transform-none",
             )}
           >
@@ -300,7 +304,7 @@ export function SidebarNavigation({ className }: SidebarNavigationProps) {
       {/* Desktop: Persistent sidebar */}
       <div
         className={cn(
-          "hidden md:block fixed inset-y-0 left-0 z-40 w-64 border-r border-border bg-background",
+          "hidden md:block fixed inset-y-0 left-0 z-40 w-64 bg-terminal-black",
           className,
         )}
       >

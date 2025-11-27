@@ -1,51 +1,71 @@
-@import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600;700&family=Space+Mono:wght@400;700&family=Inter:wght@400;500;600;700&display=swap');
-
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
 @layer base {
   :root {
-    /* Terminal-Style Theme - High Contrast Dark Mode */
-    --background: 0 0% 0%; /* True Black #000000 */
-    --foreground: 0 0% 100%; /* Pure White #FFFFFF */
+    /* Terminal Theme - High Contrast Dark Mode */
+    --background: 0 0% 2%;
+    /* True Black #050505 */
+    --foreground: 0 0% 100%;
+    /* Pure White */
 
-    --card: 0 0% 4%; /* Very Dark Charcoal #0A0A0A */
+    --card: 0 0% 0%;
+    /* True Black for cards */
     --card-foreground: 0 0% 100%;
 
-    --popover: 0 0% 4%;
+    --popover: 0 0% 0%;
     --popover-foreground: 0 0% 100%;
 
-    --primary: 158 100% 50%; /* Electric Mint/Terminal Green #00FF9D */
-    --primary-foreground: 0 0% 0%; /* Black text on green */
+    --primary: 158 100% 50%;
+    /* Electric Mint/Terminal Green #00FF9D */
+    --primary-foreground: 0 0% 0%;
 
-    --secondary: 24 100% 50%; /* Safety Orange #FF6B00 */
-    --secondary-foreground: 0 0% 0%;
+    --secondary: 24 100% 50%;
+    /* Safety Orange #FF6B00 */
+    --secondary-foreground: 0 0% 100%;
 
-    --muted: 0 0% 10%; /* #1A1A1A */
-    --muted-foreground: 0 0% 53%; /* #888888 */
+    --muted: 0 0% 20%;
+    /* Dark Grey #333333 */
+    --muted-foreground: 0 0% 80%;
+    /* Light Grey #CCCCCC */
 
-    --accent: 158 100% 50%; /* Same as primary for consistency */
+    --accent: 158 100% 50%;
+    /* Terminal Green */
     --accent-foreground: 0 0% 0%;
 
-    --destructive: 0 84% 60%;
+    --destructive: 24 100% 50%;
+    /* Safety Orange for destructive actions */
     --destructive-foreground: 0 0% 100%;
 
-    --border: 0 0% 20%; /* Dark Grey #333333 */
+    --border: 0 0% 20%;
+    /* #333333 */
     --input: 0 0% 20%;
-    --ring: 158 100% 50%; /* Terminal green for focus */
+    --ring: 158 100% 50%;
+    /* Terminal Green */
 
-    --radius: 0.125rem; /* Minimal radius (2px) */
+    --radius: 0.125rem;
+    /* Minimal rounding: 2px */
 
     /* Sidebar variables */
     --sidebar-background: 0 0% 0%;
     --sidebar-foreground: 0 0% 100%;
     --sidebar-primary: 158 100% 50%;
     --sidebar-primary-foreground: 0 0% 0%;
-    --sidebar-accent: 0 0% 10%;
+    --sidebar-accent: 0 0% 20%;
     --sidebar-accent-foreground: 0 0% 100%;
     --sidebar-border: 0 0% 20%;
     --sidebar-ring: 158 100% 50%;
+
+    /* Terminal Color Tokens */
+    --terminal-green: 158 100% 50%;
+    /* #00FF9D */
+    --terminal-orange: 24 100% 50%;
+    /* #FF6B00 */
+    --terminal-black: 0 0% 0%;
+    /* #000000 */
+    --terminal-border: 0 0% 20%;
+    /* #333333 */
   }
 }
 
@@ -56,118 +76,88 @@
 
   body {
     @apply bg-background text-foreground;
-    font-family: 'Inter', sans-serif;
-    /* Pure black background, no gradients */
-  }
-
-  h1, h2, h3, h4, h5, h6, .heading {
-    font-family: 'JetBrains Mono', 'Space Mono', monospace;
-    letter-spacing: -0.02em;
+    /* Remove gradient background, use pure black */
+    font-feature-settings: "cv02", "cv03", "cv04", "cv11";
   }
 }
 
-/* Terminal-Style Utilities */
-.terminal-border {
-  @apply border border-border;
+/* Terminal Utilities - Border-First Design */
+.terminal-box {
+  @apply bg-card border border-terminal-border;
 }
 
-.terminal-glow {
-  color: hsl(var(--primary));
-  text-shadow: 0 0 10px rgba(0, 255, 157, 0.5), 0 0 20px rgba(0, 255, 157, 0.3);
-}
-
-.terminal-box-glow {
-  box-shadow: 0 0 0 1px hsl(var(--primary)), 0 0 10px rgba(0, 255, 157, 0.2);
+.terminal-button {
+  @apply uppercase tracking-wider font-mono;
 }
 
 .status-active {
-  position: relative;
-}
-
-.status-active::before {
-  content: '';
-  display: inline-block;
-  width: 8px;
-  height: 8px;
-  background: hsl(var(--primary));
-  border-radius: 50%;
-  margin-right: 8px;
-  box-shadow: 0 0 6px rgba(0, 255, 157, 0.6);
+  @apply text-primary;
 }
 
 .status-paused {
-  position: relative;
+  @apply text-secondary;
 }
 
-.status-paused::before {
-  content: '';
-  display: inline-block;
-  width: 8px;
-  height: 8px;
-  background: hsl(var(--secondary));
-  border-radius: 50%;
-  margin-right: 8px;
-  box-shadow: 0 0 6px rgba(255, 107, 0, 0.6);
-}
-
-/* Tag/Badge Styling */
 .tag-pill {
-  @apply inline-block px-3 py-1 text-xs font-mono uppercase tracking-wider border border-primary/30 text-primary;
-  background: transparent;
-  letter-spacing: 0.05em;
+  @apply uppercase text-xs font-mono px-2.5 py-1 border rounded-sm tracking-wider;
 }
 
-/* Remove old glass utilities - replaced with border-first */
-.glass {
-  @apply bg-card border border-border;
-}
-
-.glow-border {
-  @apply border-primary/20 hover:border-primary/40 transition-colors;
-}
-
-/* Text Utilities */
+/* Remove old glass/gradient utilities */
 .gradient-text {
-  @apply text-primary font-mono uppercase tracking-wider;
+  @apply text-white;
 }
 
-/* Animations */
-@keyframes terminal-blink {
-  0%, 49% { opacity: 1; }
-  50%, 100% { opacity: 0; }
-}
-
-.terminal-cursor::after {
-  content: '▊';
-  animation: terminal-blink 1s infinite;
-  color: hsl(var(--primary));
-}
-
-@keyframes scan-line {
-  0% { transform: translateY(-100%); }
-  100% { transform: translateY(100%); }
-}
-
-/* Scrollbar - Terminal Style */
+/* Scrollbar - Minimal Terminal Style */
 ::-webkit-scrollbar {
   width: 8px;
+  height: 8px;
 }
 
 ::-webkit-scrollbar-track {
   @apply bg-background;
-  border-left: 1px solid hsl(var(--border));
 }
 
 ::-webkit-scrollbar-thumb {
-  background: hsl(var(--primary));
-  border: 1px solid hsl(var(--border));
+  @apply bg-muted border border-terminal-border;
 }
 
 ::-webkit-scrollbar-thumb:hover {
-  background: hsl(var(--primary) / 0.8);
+  @apply bg-muted-foreground;
 }
 
 /* Safe Area for Mobile Devices */
 .safe-area-bottom {
   padding-bottom: env(safe-area-inset-bottom);
+}
+
+/* Terminal-specific animations - minimal and functional */
+@keyframes terminal-blink {
+
+  0%,
+  100% {
+    opacity: 1;
+  }
+
+  50% {
+    opacity: 0.3;
+  }
+}
+
+.terminal-blink {
+  animation: terminal-blink 2s ease-in-out infinite;
+}
+
+/* Status indicator dot */
+.status-dot {
+  @apply w-2 h-2 rounded-full inline-block;
+}
+
+.status-dot-active {
+  @apply bg-primary;
+  box-shadow: 0 0 8px hsl(var(--primary));
+}
+
+.status-dot-paused {
+  @apply bg-secondary;
+  box-shadow: 0 0 8px hsl(var(--secondary));
 }

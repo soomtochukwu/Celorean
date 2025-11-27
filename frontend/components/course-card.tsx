@@ -1,4 +1,4 @@
-import { Clock, Users, Star, BookOpen, Lock, CheckCircle, Tag } from "lucide-react"
+import { Clock, Users, Star, BookOpen, Lock, CheckCircle, Tag, Activity, Pause } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardFooter } from "@/components/ui/card"
 import { Progress } from "@/components/ui/progress"
@@ -31,7 +31,7 @@ interface CourseCardProps {
   onEnrollmentSuccess?: () => void
   thumbnail?: string
   isAdmitted?: boolean
-  capacity?: number // NEW: capacity prop
+  capacity?: number
 }
 
 export function CourseCard({
@@ -53,7 +53,7 @@ export function CourseCard({
   onEnrollmentSuccess,
   thumbnail,
   isAdmitted = false,
-  capacity = 100, // Default capacity
+  capacity = 100,
 }: CourseCardProps) {
   const router = useRouter()
   const { address, isConnected } = useAccount()
@@ -63,20 +63,18 @@ export function CourseCard({
   const [coursePrice, setCoursePrice] = useState('0')
 
   const isFull = students >= capacity;
+  const isActive = !isFull;
 
-  // Check enrollment status from blockchain - MUST call hook unconditionally
+  // Check enrollment status from blockchain
   const enrollmentQuery = isStudentEnrolled(id, address || "0x0")
   const enrollmentStatus = enrollmentQuery?.data
 
-  // Update enrollment status when blockchain data changes
   useEffect(() => {
-    // Only use enrollment data if user is connected
     if (address && typeof enrollmentStatus === 'boolean') {
       setIsEnrolled(enrollmentStatus)
     }
   }, [enrollmentStatus, address])
 
-  // Fetch course details to get the actual price in wei
   const { data: courseData } = getCourse(id)
 
   useEffect(() => {
@@ -168,7 +166,6 @@ export function CourseCard({
     }
   }
 
-
   useEffect(() => {
     if (isConfirmed && isEnrolling) {
       setIsEnrolled(true)
@@ -197,101 +194,101 @@ export function CourseCard({
   return (
     <Card
       className={cn(
-        "group cursor-pointer transition-all duration-300 overflow-hidden border-border hover:border-primary/40",
+        "group cursor-pointer transition-all duration-200 border-terminal-border hover:border-terminal-green bg-terminal-black overflow-hidden",
         className
       )}
       onClick={handleCardClick}
     >
-      <div className="relative h-48 overflow-hidden">
-        <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent z-10" />
-        <img
-          src={thumbnail || image || "/placeholder.jpg"}
-          alt={title}
-          className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110"
-          onError={(e) => {
-            const target = e.target as HTMLImageElement;
-            target.src = "/placeholder.jpg";
-          }}
-        />
-        <div className="absolute top-2 right-2 z-20 flex gap-2">
-          {isFull && !isEnrolled && (
-            <Badge variant="destructive" className="font-mono uppercase">
-              FULL
-            </Badge>
+      {/* Status Bar */}
+      <div className="flex items-center justify-between px-4 py-2 border-b border-terminal-border bg-terminal-border/20">
+        <div className="flex items-center gap-2">
+          {isActive ? (
+            <>
+              <Activity className="h-3 w-3 text-terminal-green" />
+              <span className="text-xs font-mono font-bold tracking-wider uppercase text-terminal-green">ACTIVE</span>
+            </>
+          ) : (
+            <>
+              <Pause className="h-3 w-3 text-terminal-orange" />
+              <span className="text-xs font-mono font-bold tracking-wider uppercase text-terminal-orange">PAUSED</span>
+            </>
           )}
-          <div className="bg-card border border-border px-2 py-1 rounded-sm text-xs font-mono uppercase tracking-wider flex items-center gap-1 text-foreground">
-            {isAdmitted ? (
-              <>
-                <CheckCircle className="h-3 w-3 text-primary" />
-                <span>REGISTERED</span>
-              </>
-            ) : (
-              <>
-                <Lock className="h-3 w-3 text-secondary" />
-                <span>GUEST</span>
-              </>
-            )}
-          </div>
+        </div>
+        <div className="flex items-center gap-2 text-xs font-mono font-bold tracking-wider uppercase text-muted-foreground">
+          <span>ID: #{id.toString().padStart(3, '0')}</span>
         </div>
       </div>
-      <CardContent className="p-5 relative z-20">
-        <div className="flex justify-between items-start mb-2">
-          <h3 className="text-xl font-mono font-bold line-clamp-1 text-foreground group-hover:text-primary transition-colors uppercase">{title}</h3>
-          <div className="flex items-center text-yellow-400 text-xs font-bold bg-yellow-400/10 px-2 py-1 rounded-full">
-            <Star className="h-3 w-3 mr-1 fill-yellow-400" />
-            {rating.toFixed(1)}
-          </div>
-        </div>
 
-        <p className="text-sm text-gray-400 mb-4 line-clamp-2 h-10">{description}</p>
+      <CardContent className="p-4 space-y-3">
+        {/* Title */}
+        <h3 className="text-lg font-mono font-bold uppercase text-white group-hover:text-terminal-green transition-colors tracking-wide">
+          {title}
+        </h3>
 
-        <div className="flex items-center justify-between text-xs text-muted-foreground mb-4 bg-card p-2 rounded-sm border border-border font-mono">
-          <div className="flex items-center">
-            <Clock className="h-3 w-3 mr-1.5 text-primary" />
-            {duration}
+        {/* Description */}
+        <p className="text-sm text-muted-foreground font-mono line-clamp-2 leading-relaxed">
+          {description}
+        </p>
+
+        {/* Metadata Grid */}
+        <div className="grid grid-cols-2 gap-2 py-2 border-y border-terminal-border">
+          <div className="flex items-center gap-1.5 text-xs font-mono">
+            <Clock className="h-3 w-3 text-terminal-green" />
+            <span className="text-muted-foreground uppercase tracking-wider">{duration}</span>
           </div>
-          <div className="flex items-center">
-            <Users className="h-3 w-3 mr-1.5 text-secondary" />
-            <span className={cn(isFull ? "text-red-400 font-bold" : "")}>
+          <div className="flex items-center gap-1.5 text-xs font-mono">
+            <Users className="h-3 w-3 text-terminal-green" />
+            <span className={cn("uppercase tracking-wider", isFull ? "text-terminal-orange font-bold" : "text-muted-foreground")}>
               {students}/{capacity}
             </span>
           </div>
-          <div className="flex items-center">
-            <BookOpen className="h-3 w-3 mr-1.5 text-accent" />
-            {level}
+          <div className="flex items-center gap-1.5 text-xs font-mono">
+            <BookOpen className="h-3 w-3 text-terminal-green" />
+            <span className="text-muted-foreground uppercase tracking-wider">{level}</span>
           </div>
-          <div className="flex items-center text-primary font-mono uppercase">
-            <Tag className="h-3 w-3 mr-1.5" />
-            FREE
+          <div className="flex items-center gap-1.5 text-xs font-mono">
+            <Star className="h-3 w-3 text-yellow-500 fill-yellow-500" />
+            <span className="text-muted-foreground uppercase tracking-wider">{rating.toFixed(1)}</span>
           </div>
         </div>
 
-        <div className="flex flex-wrap gap-1.5 mb-4">
-          {tags.slice(0, 3).map((tag, index) => (
-            <span key={index} className="px-2.5 py-0.5 bg-transparent text-primary border border-primary/30 rounded-sm text-[10px] font-mono uppercase tracking-wider">
+        {/* Tags - Show more tags (5-6) */}
+        <div className="flex flex-wrap gap-1.5">
+          {tags.slice(0, 6).map((tag, index) => (
+            <span
+              key={index}
+              className="tag-pill border-terminal-border bg-terminal-border/20 text-muted-foreground hover:border-terminal-green hover:text-terminal-green transition-colors"
+            >
               {tag}
             </span>
           ))}
         </div>
 
+        {/* Progress for enrolled students */}
         {isEnrolled && (
-          <div className="mb-1">
-            <div className="flex justify-between text-xs mb-1.5 text-gray-300">
-              <span>Progress</span>
-              <span>{progress || 0}%</span>
+          <div className="space-y-1.5 pt-2">
+            <div className="flex justify-between text-xs font-mono font-bold uppercase tracking-wider">
+              <span className="text-muted-foreground">Progress</span>
+              <span className="text-terminal-green">{progress || 0}%</span>
             </div>
-            <Progress value={progress || 0} className="h-1.5 bg-white/10" />
+            <Progress value={progress || 0} className="h-2 bg-terminal-border" />
           </div>
         )}
       </CardContent>
 
-      <CardFooter className="p-5 pt-0 relative z-20">
+      <CardFooter className="p-4 pt-0 border-t border-terminal-border bg-terminal-border/10">
         <div className="flex items-center justify-between w-full">
           <div className="flex items-center gap-2">
+            {isAdmitted && (
+              <div className="flex items-center gap-1.5 text-xs font-mono">
+                <CheckCircle className="h-3 w-3 text-terminal-green" />
+                <span className="text-terminal-green font-bold uppercase tracking-wider">REGISTERED</span>
+              </div>
+            )}
             {tokenReward && (
-              <Badge variant="secondary" className="bg-yellow-500/10 text-yellow-500 border-yellow-500/20 hover:bg-yellow-500/20">
-                🪙 {tokenReward}
-              </Badge>
+              <span className="text-xs font-mono font-bold text-yellow-500 uppercase tracking-wider">
+                +{tokenReward} CEL
+              </span>
             )}
           </div>
 
@@ -301,33 +298,30 @@ export function CourseCard({
                 size="sm"
                 onClick={handleEnrollmentClick}
                 disabled={buttonLoading || isFull}
-                className={cn(
-                  "font-mono uppercase tracking-wider transition-all duration-300",
-                  isFull
-                    ? "bg-muted text-muted-foreground cursor-not-allowed"
-                    : "bg-primary text-primary-foreground border-primary hover:bg-primary/90"
-                )}
+                variant={isFull ? "destructive" : "default"}
+                className="text-xs"
               >
-                {buttonLoading ? "Processing..." : isFull ? "Course Full" : "Enroll Now"}
+                {buttonLoading ? "PROCESSING..." : isFull ? "FULL" : "ENROLL"}
               </Button>
             ) : (
-              <Button asChild size="sm" variant="outline" className="font-mono uppercase">
+              <Button asChild size="sm" variant="outline" className="text-xs">
                 <Link href="/register" onClick={(e) => e.stopPropagation()}>
-                  Register to Enroll
+                  REGISTER
                 </Link>
               </Button>
             )
           ) : (
             <Button
               size="sm"
-              className="bg-primary/10 text-primary border-primary/30 hover:bg-primary/20 font-mono uppercase"
+              variant="default"
               onClick={(e) => {
                 e.stopPropagation();
                 router.push(`/course/${id}`);
               }}
+              className="text-xs"
             >
-              <BookOpen className="w-4 h-4 mr-2" />
-              Continue Learning
+              <BookOpen className="w-3 h-3 mr-1.5" />
+              CONTINUE
             </Button>
           )}
         </div>

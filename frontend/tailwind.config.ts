@@ -20,10 +20,14 @@ const config = {
     },
     extend: {
       fontFamily: {
-        sans: ["var(--font-space-grotesk)", "Inter", "sans-serif"],
-        mono: ["'JetBrains Mono'", "'Space Mono'", "'Fira Code'", "monospace"],
+        sans: ["var(--font-jetbrains-mono)", "var(--font-space-mono)", "monospace"],
+        mono: ["var(--font-jetbrains-mono)", "var(--font-space-mono)", "monospace"],
       },
       colors: {
+        "terminal-green": "hsl(var(--terminal-green))",
+        "terminal-orange": "hsl(var(--terminal-orange))",
+        "terminal-black": "hsl(var(--terminal-black))",
+        "terminal-border": "hsl(var(--terminal-border))",
         border: "hsl(var(--border))",
         input: "hsl(var(--input))",
         ring: "hsl(var(--ring))",
@@ -59,9 +63,9 @@ const config = {
         },
       },
       borderRadius: {
-        lg: "0.25rem", // 4px - minimal
-        md: "0.125rem", // 2px
-        sm: "0.0625rem", // 1px
+        lg: "var(--radius)",
+        md: "calc(var(--radius) - 2px)",
+        sm: "calc(var(--radius) - 4px)",
       },
       keyframes: {
         "accordion-down": {

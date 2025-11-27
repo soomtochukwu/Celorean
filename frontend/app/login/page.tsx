@@ -193,11 +193,11 @@ export default function Login() {
 
   return (
     <div className="min-h-screen flex flex-col">
-      <header className="w-full py-4 px-6 glass border-b border-primary/10">
+      <header className="w-full py-4 px-6 border-b border-terminal-border bg-terminal-black">
         <div className="container mx-auto flex justify-between items-center">
-          <Link href="/" className="flex items-center space-x-2">
-            <Zap className="h-6 w-6 text-primary" />
-            <span className="text-xl font-bold tracking-wider">CELOREAN</span>
+          <Link href="/" className="flex items-center space-x-3">
+            <img src="/logo.svg" alt="Celorean Logo" className="h-8 w-8" style={{ filter: 'brightness(0) saturate(100%) invert(84%) sepia(23%) saturate(2578%) hue-rotate(91deg) brightness(101%) contrast(101%)' }} />
+            <span className="text-xl font-mono font-bold tracking-widest text-terminal-green">CELOREAN</span>
           </Link>
         </div>
       </header>
