@@ -52,22 +52,10 @@ export function useUserActivities() {
         for (const courseId of enrolledCourseIds) {
           const course = courses.find((c) => c.id === courseId);
           
-          // 1. Enrollment Activity
-          // Note: Contract doesn't currently store enrollment timestamp, so we'll use a placeholder
-          // or we could fetch the block timestamp of the enrollment event if we had an indexer.
-          // For now, we'll omit enrollment timestamp or use a fallback if needed.
-          // Let's assume enrollment happened recently for display if we can't get exact time.
-          
-          newActivities.push({
-            id: `enrollment-${courseId}`,
-            type: "enrollment",
-            title: "Course Enrollment",
-            description: `Enrolled in ${course?.title || `Course ${courseId}`}`,
-            timestamp: new Date().toISOString(), // TODO: Fetch real enrollment time from events
-            metadata: {
-              courseId: courseId,
-            },
-          });
+          // 1. Enrollment Activity - REMOVED
+          // We cannot fetch the actual enrollment timestamp without an indexer.
+          // Using new Date() causes old enrollments to appear as "just now", breaking the timeline sorting.
+          // For now, we only show activities with verifiable timestamps (like progress).
 
           // 2. Progress Activities (Real Data)
           // Get total content count for the course
