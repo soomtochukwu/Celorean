@@ -2,7 +2,36 @@
 
 ---
 
-## 🆕 Recent Updates (2025-11-24)
+## 🆕 Recent Updates (2025-11-27)
+
+### Dashboard & Learning Experience
+- **Simplified Dashboard**:
+  - Replaced bulky course cards with a clean, clickable list of enrolled courses.
+  - Improved visual hierarchy and reduced clutter in the "My Courses" section.
+  - **Critical Fix**: Resolved a crash in the dashboard caused by incorrect course data parsing (missing `price` field) and corrected the data fetching function to properly retrieve enrolled courses.
+- **Real-time Progress Tracking**:
+  - **Course Card**: Now displays actual user progress percentage fetched from the blockchain (replacing static 0%).
+  - **Course Detail Page**: Added a progress bar to the sidebar, showing live completion status.
+  - **Dynamic "Revise" Mode**: The "Continue Learning" button automatically changes to "Revise" (or "REVISE") when a course is 100% complete.
+- **Activity Feed Sorting**:
+  - Fixed chronological sorting in the Activity Feed.
+  - Removed "fake" enrollment timestamps that were causing old enrollments to appear as "Just now".
+  - Feed now strictly reflects verifiable events (like lesson completions) in correct time order.
+- **Student Profile Enhancements**:
+  - Added "Message" button (currently disabled with "Coming Soon" badge) for future instructor communication.
+  - Fixed enrollment count display to correctly show the number of courses a student has joined.
+- **Learning Page Improvements**:
+  - **Course Thumbnails**: Added visual thumbnails to course cards with fallback to placeholders.
+  - **Responsive Filters**: Implemented a mobile-friendly filter drawer (Sheet component) for better usability on small screens.
+- **Polished Neo-Brutalism Design**:
+  - Enforced a consistent "Terminal/Cyberpunk" aesthetic across new components.
+  - Utilized **JetBrains Mono** and uppercase typography for headers and data points.
+  - Applied high-contrast colors (Terminal Green, Neon Orange) with sharp borders and glassmorphism effects.
+  - Enhanced interactive states with hover effects and "glitch" style transitions.
+
+---
+
+## Recent Updates (2025-11-24)
 
 ### Frontend Enhancements
 - **On-chain Progress Tracking**:
