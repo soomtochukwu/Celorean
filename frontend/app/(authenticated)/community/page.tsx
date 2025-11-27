@@ -9,6 +9,7 @@ import {
   Filter,
   ChevronDown,
   Lock,
+  Users,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -30,89 +31,24 @@ import {
   PaginationNext,
 } from "@/components/ui/pagination";
 import { useAccount } from "wagmi";
+import useCeloreanContract from "@/hooks/useCeloreanContract";
 
-// Mock data for learners
-const learners = [
-  {
-    id: 1,
-    name: "Alex Johnson",
-    avatar: "/placeholder.svg?height=80&width=80",
-    level: 5,
-    badges: 12,
-    courses: 8,
-    specialty: "Blockchain Development",
-    walletAddress: "0x1a2b3c4d5e6f7a8b9c0d1e2f3a4b5c6d7e8f9a0b",
-    isVerified: true,
-    isOnline: true,
-  },
-  {
-    id: 2,
-    name: "Sarah Chen",
-    avatar: "/placeholder.svg?height=80&width=80",
-    level: 7,
-    badges: 18,
-    courses: 10,
-    specialty: "Smart Contract Security",
-    walletAddress: "0x2b3c4d5e6f7a8b9c0d1e2f3a4b5c6d7e8f9a0b1a",
-    isVerified: true,
-    isOnline: false,
-  },
-  {
-    id: 3,
-    name: "Michael Rivera",
-    avatar: "/placeholder.svg?height=80&width=80",
-    level: 4,
-    badges: 9,
-    courses: 6,
-    specialty: "DeFi Applications",
-    walletAddress: "0x3c4d5e6f7a8b9c0d1e2f3a4b5c6d7e8f9a0b1a2b",
-    isVerified: true,
-    isOnline: true,
-  },
-  {
-    id: 4,
-    name: "Emma Wilson",
-    avatar: "/placeholder.svg?height=80&width=80",
-    level: 6,
-    badges: 15,
-    courses: 9,
-    specialty: "Web3 Frontend",
-    walletAddress: "0x4d5e6f7a8b9c0d1e2f3a4b5c6d7e8f9a0b1a2b3c",
-    isVerified: true,
-    isOnline: false,
-  },
-  {
-    id: 5,
-    name: "David Kim",
-    avatar: "/placeholder.svg?height=80&width=80",
-    level: 8,
-    badges: 22,
-    courses: 12,
-    specialty: "Zero-Knowledge Proofs",
-    walletAddress: "0x5e6f7a8b9c0d1e2f3a4b5c6d7e8f9a0b1a2b3c4d",
-    isVerified: true,
-    isOnline: true,
-  },
-  {
-    id: 6,
-    name: "Olivia Martinez",
-    avatar: "/placeholder.svg?height=80&width=80",
-    level: 3,
-    badges: 7,
-    courses: 4,
-    specialty: "Blockchain Fundamentals",
-    walletAddress: "0x6f7a8b9c0d1e2f3a4b5c6d7e8f9a0b1a2b3c4d5e",
-    isVerified: false,
-    isOnline: false,
-  },
-];
+interface Student {
+  address: string;
+  badges: number;
+  courses: number;
+  isOnline: boolean;
+}
 
 export default function Community() {
   const [searchQuery, setSearchQuery] = useState("");
   const [filter, setFilter] = useState("all");
-  const [sortBy, setSortBy] = useState("level");
+  const [sortBy, setSortBy] = useState("courses");
+  const [students, setStudents] = useState<Student[]>([]);
+  const [loadingStudents, setLoadingStudents] = useState(true);
 
   const { address, isConnected } = useAccount();
+  const { getListOfStudents, fetchCoursesRegisteredByStudent } = useCeloreanContract();
 
   // Messages state
   const [msgContent, setMsgContent] = useState("");
@@ -124,18 +60,72 @@ export default function Community() {
   const limit = 10;
   const [hasMore, setHasMore] = useState(false);
 
-  // Filter and sort learners
-  const filteredLearners = learners
-    .filter((learner) => {
-      if (filter === "verified" && !learner.isVerified) return false;
-      if (filter === "online" && !learner.isOnline) return false;
-      return (
-        learner.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        learner.specialty.toLowerCase().includes(searchQuery.toLowerCase())
-      );
+  // Fetch admitted students from blockchain
+  const { data: studentAddresses, isLoading: isLoadingAddresses } = getListOfStudents();
+
+  useEffect(() => {
+    const fetchStudentData = async () => {
+      if (!studentAddresses || (studentAddresses as any[]).length === 0) {
+        setStudents([]);
+        setLoadingStudents(false);
+        return;
+      }
+
+      setLoadingStudents(true);
+      try {
+        const addresses = studentAddresses as string[];
+        const studentData: Student[] = [];
+
+        // Fetch sequentially with delays to avoid rate limits
+        for (const addr of addresses) {
+          try {
+            // Fetch courses for each student using imperative function
+            const coursesData = await fetchCoursesRegisteredByStudent(addr);
+            const courseCount = coursesData ? (coursesData as any[]).length : 0;
+
+            studentData.push({
+              address: addr,
+              badges: 0, // We don't have badge data from contract yet
+              courses: courseCount,
+              isOnline: false, // We don't track online status on-chain
+            });
+
+            // Add delay to avoid rate limiting (200ms between requests)
+            await new Promise(resolve => setTimeout(resolve, 200));
+          } catch (error) {
+            console.error(`Failed to fetch data for ${addr}:`, error);
+            studentData.push({
+              address: addr,
+              badges: 0,
+              courses: 0,
+              isOnline: false,
+            });
+            // Continue with next student even if one fails
+          }
+        }
+
+        setStudents(studentData);
+      } catch (error) {
+        console.error("Error fetching student data:", error);
+        setStudents([]);
+      } finally {
+        setLoadingStudents(false);
+      }
+    };
+
+    if (studentAddresses) {
+      fetchStudentData();
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [studentAddresses]);
+
+  // Filter and sort students
+  const filteredStudents = students
+    .filter((student) => {
+      if (filter === "online" && !student.isOnline) return false;
+      return student.address.toLowerCase().includes(searchQuery.toLowerCase());
     })
     .sort((a, b) => {
-      if (sortBy === "level") return b.level - a.level;
       if (sortBy === "courses") return b.courses - a.courses;
       if (sortBy === "badges") return b.badges - a.badges;
       return 0;
@@ -207,8 +197,8 @@ export default function Community() {
   return (
     <div className="p-6 md:p-8">
       <div className="mb-8">
-        <h1 className="text-3xl font-bold">Community</h1>
-        <p className="text-muted-foreground">
+        <h1 className="text-3xl font-mono font-bold uppercase tracking-tight">COMMUNITY</h1>
+        <p className="text-muted-foreground font-mono">
           Connect with other learners in the Celorean ecosystem
         </p>
       </div>
@@ -217,233 +207,228 @@ export default function Community() {
         <div className="relative flex-1">
           <Search className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
           <Input
-            placeholder="Search by name or specialty..."
-            className="pl-10 glass border-primary/20"
+            placeholder="SEARCH BY WALLET ADDRESS..."
+            className="pl-10 terminal-box font-mono uppercase placeholder:normal-case"
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
           />
         </div>
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
-            <Button variant="outline" className="flex items-center gap-2">
+            <Button variant="outline" className="flex items-center gap-2 font-mono uppercase">
               <Filter className="h-4 w-4" />
-              Filter
+              FILTER
               <ChevronDown className="h-4 w-4" />
             </Button>
           </DropdownMenuTrigger>
-          <DropdownMenuContent align="end" className="glass border-primary/20">
-            <DropdownMenuItem onClick={() => setFilter("all")}>
-              All Learners
+          <DropdownMenuContent align="end" className="terminal-box font-mono">
+            <DropdownMenuItem onClick={() => setFilter("all")} className="uppercase">
+              ALL STUDENTS
             </DropdownMenuItem>
-            <DropdownMenuItem onClick={() => setFilter("verified")}>
-              Verified Only
-            </DropdownMenuItem>
-            <DropdownMenuItem onClick={() => setFilter("online")}>
-              Currently Online
+            <DropdownMenuItem onClick={() => setFilter("online")} className="uppercase">
+              ONLINE ONLY
             </DropdownMenuItem>
           </DropdownMenuContent>
         </DropdownMenu>
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
-            <Button variant="outline" className="flex items-center gap-2">
-              Sort By
+            <Button variant="outline" className="flex items-center gap-2 font-mono uppercase">
+              SORT BY
               <ChevronDown className="h-4 w-4" />
             </Button>
           </DropdownMenuTrigger>
-          <DropdownMenuContent align="end" className="glass border-primary/20">
-            <DropdownMenuItem onClick={() => setSortBy("level")}>
-              Level
+          <DropdownMenuContent align="end" className="terminal-box font-mono">
+            <DropdownMenuItem onClick={() => setSortBy("courses")} className="uppercase">
+              COURSES COMPLETED
             </DropdownMenuItem>
-            <DropdownMenuItem onClick={() => setSortBy("courses")}>
-              Courses Completed
-            </DropdownMenuItem>
-            <DropdownMenuItem onClick={() => setSortBy("badges")}>
-              Badges Earned
+            <DropdownMenuItem onClick={() => setSortBy("badges")} className="uppercase">
+              BADGES EARNED
             </DropdownMenuItem>
           </DropdownMenuContent>
         </DropdownMenu>
       </div>
 
       <Tabs defaultValue="grid" className="mb-8">
-        <TabsList className="glass border border-primary/10 mb-6">
-          <TabsTrigger value="grid">Grid View</TabsTrigger>
-          <TabsTrigger value="list">List View</TabsTrigger>
-          <TabsTrigger value="messages">Messages</TabsTrigger>
+        <TabsList className="terminal-box border border-terminal-border mb-6">
+          <TabsTrigger value="grid">GRID VIEW</TabsTrigger>
+          <TabsTrigger value="list">LIST VIEW</TabsTrigger>
+          <TabsTrigger
+            value="messages"
+            disabled
+            className="opacity-60 cursor-not-allowed"
+          >
+            MESSAGES
+            <span className="ml-2 text-[9px] px-1.5 py-0.5 border border-terminal-orange text-terminal-orange">SOON</span>
+          </TabsTrigger>
         </TabsList>
+
         <TabsContent value="grid">
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {filteredLearners.map((learner) => (
-              <Card
-                key={learner.id}
-                className="glass border-primary/10 overflow-hidden hover:border-primary/30 transition-colors"
-              >
-                <CardContent className="p-6">
-                  <div className="flex items-center gap-4 mb-4">
-                    <div className="relative">
-                      <img
-                        src={learner.avatar || "/placeholder.svg"}
-                        alt={learner.name}
-                        className="w-16 h-16 rounded-full object-cover border-2 border-primary/30"
-                      />
-                      {learner.isOnline && (
-                        <span className="absolute bottom-0 right-0 w-4 h-4 bg-green-500 rounded-full border-2 border-background"></span>
-                      )}
-                    </div>
-                    <div>
-                      <div className="flex items-center gap-2">
-                        <h3 className="font-bold">{learner.name}</h3>
-                        {learner.isVerified && (
-                          <span className="text-primary" title="Verified">
-                            <svg
-                              xmlns="http://www.w3.org/2000/svg"
-                              viewBox="0 0 24 24"
-                              fill="currentColor"
-                              className="w-4 h-4"
-                            >
-                              <path
-                                fillRule="evenodd"
-                                d="M8.603 3.799A4.49 4.49 0 0112 2.25c1.357 0 2.573.6 3.397 1.549a4.49 4.49 0 013.498 1.307 4.491 4.491 0 011.307 3.497A4.49 4.49 0 0121.75 12a4.49 4.49 0 01-1.549 3.397 4.491 4.491 0 01-1.307 3.497 4.491 4.491 0 01-3.497 1.307A4.49 4.49 0 0112 21.75a4.49 4.49 0 01-3.397-1.549 4.49 4.49 0 01-3.498-1.306 4.491 4.491 0 01-1.307-3.498A4.49 4.49 0 012.25 12c0-1.357.6-2.573 1.549-3.397a4.49 4.49 0 011.307-3.497 4.49 4.49 0 013.497-1.307zm7.007 6.387a.75.75 0 10-1.22-.872l-3.236 4.53-1.471-1.47a.75.75 0 00-1.06 1.06l2 2a.75.75 0 001.146-.102l4-5.598z"
-                                clipRule="evenodd"
-                              />
-                            </svg>
-                          </span>
-                        )}
-                      </div>
-                      <p className="text-sm text-muted-foreground">
-                        {learner.specialty}
-                      </p>
-                    </div>
-                  </div>
-                  <div className="flex items-center justify-between mb-4">
-                    <div className="flex items-center gap-1 text-sm">
-                      <span className="w-6 h-6 rounded-full bg-primary/20 flex items-center justify-center text-primary font-bold">
-                        {learner.level}
-                      </span>
-                      <span className="text-muted-foreground">Level</span>
-                    </div>
-                    <div className="flex items-center gap-1 text-sm">
-                      <Award className="h-4 w-4 text-primary" />
-                      <span>{learner.badges}</span>
-                      <span className="text-muted-foreground">Badges</span>
-                    </div>
-                    <div className="flex items-center gap-1 text-sm">
-                      <BookOpen className="h-4 w-4 text-primary" />
-                      <span>{learner.courses}</span>
-                      <span className="text-muted-foreground">Courses</span>
-                    </div>
-                  </div>
-                  <div className="flex justify-between items-center">
-                    <p className="text-xs font-mono text-muted-foreground truncate w-32">
-                      {learner.walletAddress.slice(0, 6)}...
-                      {learner.walletAddress.slice(-4)}
-                    </p>
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      className="flex items-center gap-1"
-                    >
-                      <MessageSquare className="h-3 w-3" />
-                      Connect
-                    </Button>
-                  </div>
-                </CardContent>
-              </Card>
-            ))}
-          </div>
-        </TabsContent>
-        <TabsContent value="list">
-          <div className="space-y-4">
-            {filteredLearners.map((learner) => (
-              <Card
-                key={learner.id}
-                className="glass border-primary/10 hover:border-primary/30 transition-colors"
-              >
-                <CardContent className="p-4">
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-4">
+          {loadingStudents ? (
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+              {[1, 2, 3].map((i) => (
+                <div key={i} className="h-64 terminal-box animate-pulse" />
+              ))}
+            </div>
+          ) : filteredStudents.length === 0 ? (
+            <Card className="terminal-box">
+              <CardContent className="p-12 text-center">
+                <Users className="h-16 w-16 mx-auto mb-4 text-muted-foreground" />
+                <h3 className="text-xl font-mono font-bold uppercase mb-2">NO STUDENTS FOUND</h3>
+                <p className="text-muted-foreground font-mono">
+                  {students.length === 0
+                    ? "No admitted students yet."
+                    : "Try adjusting your search or filters."}
+                </p>
+              </CardContent>
+            </Card>
+          ) : (
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+              {filteredStudents.map((student, index) => (
+                <Card
+                  key={student.address}
+                  className="terminal-box overflow-hidden hover:border-terminal-green transition-colors"
+                >
+                  <CardContent className="p-6">
+                    <div className="flex items-center gap-4 mb-4">
                       <div className="relative">
-                        <img
-                          src={learner.avatar || "/placeholder.svg"}
-                          alt={learner.name}
-                          className="w-12 h-12 rounded-full object-cover border-2 border-primary/30"
-                        />
-                        {learner.isOnline && (
-                          <span className="absolute bottom-0 right-0 w-3 h-3 bg-green-500 rounded-full border-2 border-background"></span>
+                        <div className="w-16 h-16 border-2 border-terminal-green bg-terminal-green/10 flex items-center justify-center font-mono font-bold text-terminal-green">
+                          {student.address.slice(2, 4).toUpperCase()}
+                        </div>
+                        {student.isOnline && (
+                          <span className="absolute bottom-0 right-0 status-dot status-dot-active"></span>
                         )}
                       </div>
                       <div>
                         <div className="flex items-center gap-2">
-                          <h3 className="font-bold">{learner.name}</h3>
-                          {learner.isVerified && (
-                            <span className="text-primary" title="Verified">
-                              <svg
-                                xmlns="http://www.w3.org/2000/svg"
-                                viewBox="0 0 24 24"
-                                fill="currentColor"
-                                className="w-4 h-4"
-                              >
-                                <path
-                                  fillRule="evenodd"
-                                  d="M8.603 3.799A4.49 4.49 0 0112 2.25c1.357 0 2.573.6 3.397 1.549a4.49 4.49 0 013.498 1.307 4.491 4.491 0 011.307 3.497A4.49 4.49 0 0121.75 12a4.49 4.49 0 01-1.549 3.397 4.491 4.491 0 01-1.307 3.497 4.491 4.491 0 01-3.497 1.307A4.49 4.49 0 0112 21.75a4.49 4.49 0 01-3.397-1.549 4.49 4.49 0 01-3.498-1.306 4.491 4.491 0 01-1.307-3.498A4.49 4.49 0 012.25 12c0-1.357.6-2.573 1.549-3.397a4.49 4.49 0 011.307-3.497 4.49 4.49 0 013.497-1.307zm7.007 6.387a.75.75 0 10-1.22-.872l-3.236 4.53-1.471-1.47a.75.75 0 00-1.06 1.06l2 2a.75.75 0 001.146-.102l4-5.598z"
-                                  clipRule="evenodd"
-                                />
-                              </svg>
-                            </span>
-                          )}
+                          <h3 className="font-mono font-bold uppercase text-sm">STUDENT #{index + 1}</h3>
                         </div>
-                        <p className="text-sm text-muted-foreground">
-                          {learner.specialty}
+                        <p className="text-xs font-mono text-muted-foreground truncate">
+                          {student.address.slice(0, 8)}...{student.address.slice(-6)}
                         </p>
                       </div>
                     </div>
-                    <div className="hidden md:flex items-center gap-6">
+                    <div className="flex items-center justify-between mb-4 py-3 border-y border-terminal-border">
                       <div className="flex items-center gap-1 text-sm">
-                        <span className="w-6 h-6 rounded-full bg-primary/20 flex items-center justify-center text-primary font-bold">
-                          {learner.level}
-                        </span>
-                        <span className="text-muted-foreground">Level</span>
+                        <Award className="h-4 w-4 text-terminal-green" />
+                        <span className="font-mono font-bold">{student.badges}</span>
+                        <span className="text-muted-foreground font-mono text-xs uppercase">BADGES</span>
                       </div>
                       <div className="flex items-center gap-1 text-sm">
-                        <Award className="h-4 w-4 text-primary" />
-                        <span>{learner.badges}</span>
-                        <span className="text-muted-foreground">Badges</span>
+                        <BookOpen className="h-4 w-4 text-terminal-green" />
+                        <span className="font-mono font-bold">{student.courses}</span>
+                        <span className="text-muted-foreground font-mono text-xs uppercase">COURSES</span>
                       </div>
-                      <div className="flex items-center gap-1 text-sm">
-                        <BookOpen className="h-4 w-4 text-primary" />
-                        <span>{learner.courses}</span>
-                        <span className="text-muted-foreground">Courses</span>
-                      </div>
-                      <p className="text-xs font-mono text-muted-foreground truncate w-32">
-                        {learner.walletAddress.slice(0, 6)}...
-                        {learner.walletAddress.slice(-4)}
+                    </div>
+                    <div className="flex justify-between items-center">
+                      <p className="text-xs font-mono text-muted-foreground uppercase">
+                        VERIFIED
                       </p>
                       <Button
                         variant="outline"
                         size="sm"
-                        className="flex items-center gap-1"
+                        disabled
+                        className="flex items-center gap-1 font-mono uppercase text-xs opacity-60 cursor-not-allowed"
                       >
                         <MessageSquare className="h-3 w-3" />
-                        Connect
+                        CONNECT
+                        <span className="ml-1 text-[10px] px-1 border border-terminal-orange text-terminal-orange">SOON</span>
                       </Button>
                     </div>
-                    <Button variant="outline" size="sm" className="md:hidden">
-                      <MessageSquare className="h-4 w-4" />
-                    </Button>
-                  </div>
-                </CardContent>
-              </Card>
-            ))}
-          </div>
+                  </CardContent>
+                </Card>
+              ))}
+            </div>
+          )}
         </TabsContent>
+
+        <TabsContent value="list">
+          {loadingStudents ? (
+            <div className="space-y-4">
+              {[1, 2, 3].map((i) => (
+                <div key={i} className="h-20 terminal-box animate-pulse" />
+              ))}
+            </div>
+          ) : filteredStudents.length === 0 ? (
+            <Card className="terminal-box">
+              <CardContent className="p-12 text-center">
+                <Users className="h-16 w-16 mx-auto mb-4 text-muted-foreground" />
+                <h3 className="text-xl font-mono font-bold uppercase mb-2">NO STUDENTS FOUND</h3>
+                <p className="text-muted-foreground font-mono">
+                  {students.length === 0
+                    ? "No admitted students yet."
+                    : "Try adjusting your search or filters."}
+                </p>
+              </CardContent>
+            </Card>
+          ) : (
+            <div className="space-y-4">
+              {filteredStudents.map((student, index) => (
+                <Card
+                  key={student.address}
+                  className="terminal-box hover:border-terminal-green transition-colors"
+                >
+                  <CardContent className="p-4">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-4">
+                        <div className="relative">
+                          <div className="w-12 h-12 border-2 border-terminal-green bg-terminal-green/10 flex items-center justify-center font-mono font-bold text-terminal-green text-sm">
+                            {student.address.slice(2, 4).toUpperCase()}
+                          </div>
+                          {student.isOnline && (
+                            <span className="absolute bottom-0 right-0 w-3 h-3 bg-terminal-green rounded-full border-2 border-background"></span>
+                          )}
+                        </div>
+                        <div>
+                          <div className="flex items-center gap-2">
+                            <h3 className="font-mono font-bold uppercase text-sm">STUDENT #{index + 1}</h3>
+                          </div>
+                          <p className="text-xs font-mono text-muted-foreground">
+                            {student.address}
+                          </p>
+                        </div>
+                      </div>
+                      <div className="hidden md:flex items-center gap-6">
+                        <div className="flex items-center gap-1 text-sm">
+                          <Award className="h-4 w-4 text-terminal-green" />
+                          <span className="font-mono font-bold">{student.badges}</span>
+                          <span className="text-muted-foreground font-mono text-xs uppercase">BADGES</span>
+                        </div>
+                        <div className="flex items-center gap-1 text-sm">
+                          <BookOpen className="h-4 w-4 text-terminal-green" />
+                          <span className="font-mono font-bold">{student.courses}</span>
+                          <span className="text-muted-foreground font-mono text-xs uppercase">COURSES</span>
+                        </div>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          disabled
+                          className="flex items-center gap-1 font-mono uppercase text-xs opacity-60 cursor-not-allowed"
+                        >
+                          <MessageSquare className="h-3 w-3" />
+                          CONNECT
+                          <span className="ml-1 text-[10px] px-1 border border-terminal-orange text-terminal-orange">SOON</span>
+                        </Button>
+                      </div>
+                      <Button variant="outline" size="sm" disabled className="md:hidden font-mono uppercase opacity-60 cursor-not-allowed">
+                        <MessageSquare className="h-4 w-4" />
+                      </Button>
+                    </div>
+                  </CardContent>
+                </Card>
+              ))}
+            </div>
+          )}
+        </TabsContent>
+
         <TabsContent value="messages">
           <div className="space-y-6">
-            <Card className="glass border-primary/10">
+            <Card className="terminal-box">
               <CardContent className="p-4 md:p-6">
                 <div className="flex items-center justify-between mb-3">
-                  <h3 className="font-semibold">Compose a message</h3>
+                  <h3 className="font-mono font-bold uppercase">COMPOSE MESSAGE</h3>
                   <div className="flex items-center gap-2 text-sm">
                     <Lock className="h-4 w-4 text-muted-foreground" />
-                    <span className="text-muted-foreground">Private</span>
+                    <span className="text-muted-foreground font-mono uppercase text-xs">PRIVATE</span>
                     <Switch
                       checked={msgPrivate}
                       onCheckedChange={setMsgPrivate}
@@ -451,7 +436,7 @@ export default function Community() {
                   </div>
                 </div>
                 {!isConnected ? (
-                  <p className="text-sm text-muted-foreground">
+                  <p className="text-sm text-muted-foreground font-mono">
                     Connect your wallet to post messages.
                   </p>
                 ) : (
@@ -460,14 +445,15 @@ export default function Community() {
                       placeholder="Share something with the community..."
                       value={msgContent}
                       onChange={(e) => setMsgContent(e.target.value)}
-                      className="min-h-[100px]"
+                      className="min-h-[100px] terminal-box font-mono"
                     />
                     <div className="flex justify-end">
                       <Button
                         onClick={postMessage}
                         disabled={posting || !msgContent.trim()}
+                        className="font-mono uppercase"
                       >
-                        {posting ? "Posting..." : "Post"}
+                        {posting ? "POSTING..." : "POST"}
                       </Button>
                     </div>
                   </div>
@@ -477,13 +463,13 @@ export default function Community() {
 
             <div className="space-y-3">
               {messages.length === 0 && !loadingMsgs ? (
-                <p className="text-sm text-muted-foreground">
+                <p className="text-sm text-muted-foreground font-mono text-center py-8">
                   No messages yet.
                 </p>
               ) : null}
 
               {messages.map((m) => (
-                <Card key={m.id} className="glass border-primary/10">
+                <Card key={m.id} className="terminal-box">
                   <CardContent className="p-4">
                     <div className="flex items-start justify-between">
                       <div className="space-y-1">
@@ -493,14 +479,14 @@ export default function Community() {
                             {(m.authorAddress || "").slice(-4)}
                           </p>
                           {m.isPrivate ? (
-                            <span className="text-xs px-2 py-0.5 rounded-full bg-primary/10 text-primary">
-                              Private
+                            <span className="text-xs px-2 py-0.5 border border-terminal-orange bg-terminal-orange/10 text-terminal-orange font-mono uppercase tracking-wider">
+                              PRIVATE
                             </span>
                           ) : null}
                         </div>
-                        <p className="whitespace-pre-wrap">{m.content}</p>
+                        <p className="whitespace-pre-wrap font-mono text-sm">{m.content}</p>
                       </div>
-                      <span className="text-xs text-muted-foreground ml-4">
+                      <span className="text-xs text-muted-foreground ml-4 font-mono">
                         {formatDate(m.createdAt)}
                       </span>
                     </div>
@@ -535,20 +521,15 @@ export default function Community() {
                   variant="outline"
                   onClick={() => fetchMessages(offset)}
                   disabled={loadingMsgs}
+                  className="font-mono uppercase"
                 >
-                  {loadingMsgs ? "Loading..." : "Refresh"}
+                  {loadingMsgs ? "LOADING..." : "REFRESH"}
                 </Button>
               </div>
             </div>
           </div>
         </TabsContent>
       </Tabs>
-
-      <div className="flex justify-center">
-        <Button variant="outline" className="glass border-primary/20">
-          Load More Learners
-        </Button>
-      </div>
     </div>
   );
 }
