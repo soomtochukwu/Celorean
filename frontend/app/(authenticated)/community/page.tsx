@@ -32,6 +32,7 @@ import {
 } from "@/components/ui/pagination";
 import { useAccount } from "wagmi";
 import useCeloreanContract from "@/hooks/useCeloreanContract";
+import Link from "next/link";
 
 interface Student {
   address: string;
@@ -284,58 +285,61 @@ export default function Community() {
           ) : (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
               {filteredStudents.map((student, index) => (
-                <Card
+                <Link
                   key={student.address}
-                  className="terminal-box overflow-hidden hover:border-terminal-green transition-colors"
+                  href={`/student/${student.address}`}
+                  className="group"
                 >
-                  <CardContent className="p-6">
-                    <div className="flex items-center gap-4 mb-4">
-                      <div className="relative">
-                        <div className="w-16 h-16 border-2 border-terminal-green bg-terminal-green/10 flex items-center justify-center font-mono font-bold text-terminal-green">
-                          {student.address.slice(2, 4).toUpperCase()}
+                  <Card className="terminal-box overflow-hidden hover:border-terminal-green transition-colors cursor-pointer">
+                    <CardContent className="p-6">
+                      <div className="flex items-center gap-4 mb-4">
+                        <div className="relative">
+                          <div className="w-16 h-16 border-2 border-terminal-green bg-terminal-green/10 flex items-center justify-center font-mono font-bold text-terminal-green">
+                            {student.address.slice(2, 4).toUpperCase()}
+                          </div>
+                          {student.isOnline && (
+                            <span className="absolute bottom-0 right-0 status-dot status-dot-active"></span>
+                          )}
                         </div>
-                        {student.isOnline && (
-                          <span className="absolute bottom-0 right-0 status-dot status-dot-active"></span>
-                        )}
+                        <div>
+                          <div className="flex items-center gap-2">
+                            <h3 className="font-mono font-bold uppercase text-sm group-hover:text-terminal-green transition-colors">STUDENT #{index + 1}</h3>
+                          </div>
+                          <p className="text-xs font-mono text-muted-foreground truncate">
+                            {student.address.slice(0, 8)}...{student.address.slice(-6)}
+                          </p>
+                        </div>
                       </div>
-                      <div>
-                        <div className="flex items-center gap-2">
-                          <h3 className="font-mono font-bold uppercase text-sm">STUDENT #{index + 1}</h3>
+                      <div className="flex items-center justify-between mb-4 py-3 border-y border-terminal-border">
+                        <div className="flex items-center gap-1 text-sm">
+                          <Award className="h-4 w-4 text-terminal-green" />
+                          <span className="font-mono font-bold">{student.badges}</span>
+                          <span className="text-muted-foreground font-mono text-xs uppercase">BADGES</span>
                         </div>
-                        <p className="text-xs font-mono text-muted-foreground truncate">
-                          {student.address.slice(0, 8)}...{student.address.slice(-6)}
+                        <div className="flex items-center gap-1 text-sm">
+                          <BookOpen className="h-4 w-4 text-terminal-green" />
+                          <span className="font-mono font-bold">{student.courses}</span>
+                          <span className="text-muted-foreground font-mono text-xs uppercase">COURSES</span>
+                        </div>
+                      </div>
+                      <div className="flex justify-between items-center">
+                        <p className="text-xs font-mono text-muted-foreground uppercase">
+                          VERIFIED
                         </p>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          disabled
+                          className="flex items-center gap-1 font-mono uppercase text-xs opacity-60 cursor-not-allowed pointer-events-none"
+                        >
+                          <MessageSquare className="h-3 w-3" />
+                          CONNECT
+                          <span className="ml-1 text-[10px] px-1 border border-terminal-orange text-terminal-orange">SOON</span>
+                        </Button>
                       </div>
-                    </div>
-                    <div className="flex items-center justify-between mb-4 py-3 border-y border-terminal-border">
-                      <div className="flex items-center gap-1 text-sm">
-                        <Award className="h-4 w-4 text-terminal-green" />
-                        <span className="font-mono font-bold">{student.badges}</span>
-                        <span className="text-muted-foreground font-mono text-xs uppercase">BADGES</span>
-                      </div>
-                      <div className="flex items-center gap-1 text-sm">
-                        <BookOpen className="h-4 w-4 text-terminal-green" />
-                        <span className="font-mono font-bold">{student.courses}</span>
-                        <span className="text-muted-foreground font-mono text-xs uppercase">COURSES</span>
-                      </div>
-                    </div>
-                    <div className="flex justify-between items-center">
-                      <p className="text-xs font-mono text-muted-foreground uppercase">
-                        VERIFIED
-                      </p>
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        disabled
-                        className="flex items-center gap-1 font-mono uppercase text-xs opacity-60 cursor-not-allowed"
-                      >
-                        <MessageSquare className="h-3 w-3" />
-                        CONNECT
-                        <span className="ml-1 text-[10px] px-1 border border-terminal-orange text-terminal-orange">SOON</span>
-                      </Button>
-                    </div>
-                  </CardContent>
-                </Card>
+                    </CardContent>
+                  </Card>
+                </Link>
               ))}
             </div>
           )}

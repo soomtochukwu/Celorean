@@ -10,6 +10,14 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
+import {
+  Sheet,
+  SheetContent,
+  SheetDescription,
+  SheetHeader,
+  SheetTitle,
+  SheetTrigger,
+} from "@/components/ui/sheet"
 import { CourseCard } from "@/components/course-card"
 import { useCourses } from "@/hooks/useCourses"
 import { useAccount } from "wagmi"
@@ -90,73 +98,103 @@ export default function LearningPage() {
     window.location.reload()
   }
 
+
+  const FilterContent = () => (
+    <div className="space-y-4">
+      <div>
+        <label className="text-sm font-medium mb-2 block">Search</label>
+        <div className="relative">
+          <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+          <Input
+            placeholder="Search courses..."
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+            className="pl-10"
+          />
+        </div>
+      </div>
+
+      <div>
+        <label className="text-sm font-medium mb-2 block">Level</label>
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <Button variant="outline" className="w-full justify-between">
+              <span className="flex items-center">
+                <Filter className="h-4 w-4 mr-2" />
+                {selectedLevel === "all" ? "All Levels" : selectedLevel}
+              </span>
+            </Button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent className="w-full">
+            <DropdownMenuItem onClick={() => setSelectedLevel("all")}>All Levels</DropdownMenuItem>
+            <DropdownMenuItem onClick={() => setSelectedLevel("Beginner")}>Beginner</DropdownMenuItem>
+            <DropdownMenuItem onClick={() => setSelectedLevel("Intermediate")}>Intermediate</DropdownMenuItem>
+            <DropdownMenuItem onClick={() => setSelectedLevel("Advanced")}>Advanced</DropdownMenuItem>
+          </DropdownMenuContent>
+        </DropdownMenu>
+      </div>
+
+      <div>
+        <label className="text-sm font-medium mb-2 block">Sort By</label>
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <Button variant="outline" className="w-full justify-between">
+              <span className="flex items-center">
+                <SortAsc className="h-4 w-4 mr-2" />
+                {sortBy === "title" ? "Title" :
+                  sortBy === "rating" ? "Rating" :
+                    sortBy === "students" ? "Students" : "Level"}
+              </span>
+            </Button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent className="w-full">
+            <DropdownMenuItem onClick={() => setSortBy("title")}>Title</DropdownMenuItem>
+            <DropdownMenuItem onClick={() => setSortBy("rating")}>Rating</DropdownMenuItem>
+            <DropdownMenuItem onClick={() => setSortBy("students")}>Students</DropdownMenuItem>
+            <DropdownMenuItem onClick={() => setSortBy("level")}>Level</DropdownMenuItem>
+          </DropdownMenuContent>
+        </DropdownMenu>
+      </div>
+    </div>
+  )
+
   return (
     <div className="container mx-auto px-4 py-8">
       <div className="flex flex-col lg:flex-row gap-8">
-        <div className="lg:w-1/4">
-          <div className="glass p-6 rounded-lg border border-primary/10">
+        {/* Desktop Sidebar */}
+        <div className="hidden lg:block lg:w-1/4">
+          <div className="glass p-6 rounded-lg border border-primary/10 sticky top-24">
             <h2 className="text-xl font-bold mb-4">Filters</h2>
-
-            <div className="space-y-4">
-              <div>
-                <label className="text-sm font-medium mb-2 block">Search</label>
-                <div className="relative">
-                  <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                  <Input
-                    placeholder="Search courses..."
-                    value={searchTerm}
-                    onChange={(e) => setSearchTerm(e.target.value)}
-                    className="pl-10"
-                  />
-                </div>
-              </div>
-
-              <div>
-                <label className="text-sm font-medium mb-2 block">Level</label>
-                <DropdownMenu>
-                  <DropdownMenuTrigger asChild>
-                    <Button variant="outline" className="w-full justify-between">
-                      <span className="flex items-center">
-                        <Filter className="h-4 w-4 mr-2" />
-                        {selectedLevel === "all" ? "All Levels" : selectedLevel}
-                      </span>
-                    </Button>
-                  </DropdownMenuTrigger>
-                  <DropdownMenuContent className="w-full">
-                    <DropdownMenuItem onClick={() => setSelectedLevel("all")}>All Levels</DropdownMenuItem>
-                    <DropdownMenuItem onClick={() => setSelectedLevel("Beginner")}>Beginner</DropdownMenuItem>
-                    <DropdownMenuItem onClick={() => setSelectedLevel("Intermediate")}>Intermediate</DropdownMenuItem>
-                    <DropdownMenuItem onClick={() => setSelectedLevel("Advanced")}>Advanced</DropdownMenuItem>
-                  </DropdownMenuContent>
-                </DropdownMenu>
-              </div>
-
-              <div>
-                <label className="text-sm font-medium mb-2 block">Sort By</label>
-                <DropdownMenu>
-                  <DropdownMenuTrigger asChild>
-                    <Button variant="outline" className="w-full justify-between">
-                      <span className="flex items-center">
-                        <SortAsc className="h-4 w-4 mr-2" />
-                        {sortBy === "title" ? "Title" :
-                          sortBy === "rating" ? "Rating" :
-                            sortBy === "students" ? "Students" : "Level"}
-                      </span>
-                    </Button>
-                  </DropdownMenuTrigger>
-                  <DropdownMenuContent className="w-full">
-                    <DropdownMenuItem onClick={() => setSortBy("title")}>Title</DropdownMenuItem>
-                    <DropdownMenuItem onClick={() => setSortBy("rating")}>Rating</DropdownMenuItem>
-                    <DropdownMenuItem onClick={() => setSortBy("students")}>Students</DropdownMenuItem>
-                    <DropdownMenuItem onClick={() => setSortBy("level")}>Level</DropdownMenuItem>
-                  </DropdownMenuContent>
-                </DropdownMenu>
-              </div>
-            </div>
+            <FilterContent />
           </div>
         </div>
 
         <div className="lg:w-3/4">
+          {/* Mobile Filter Trigger */}
+          <div className="lg:hidden mb-6">
+            <Sheet>
+              <SheetTrigger asChild>
+                <Button variant="outline" className="w-full flex items-center justify-between">
+                  <span className="flex items-center gap-2">
+                    <Filter className="h-4 w-4" />
+                    Filters & Search
+                  </span>
+                  <span className="text-xs text-muted-foreground bg-secondary px-2 py-0.5 rounded-full">
+                    {selectedLevel !== "all" ? "Active" : "Default"}
+                  </span>
+                </Button>
+              </SheetTrigger>
+              <SheetContent side="left" className="w-[300px] sm:w-[400px]">
+                <SheetHeader className="mb-6">
+                  <SheetTitle>Filters</SheetTitle>
+                  <SheetDescription>
+                    Refine your course search
+                  </SheetDescription>
+                </SheetHeader>
+                <FilterContent />
+              </SheetContent>
+            </Sheet>
+          </div>
           {/* Registration status banner for guests */}
           <div className={`mb-6 rounded-lg border p-4 flex items-start gap-3 ${isStudent ? "border-green-500/30 bg-green-500/10 text-green-800" : "border-amber-500/30 bg-amber-500/10 text-amber-900"}`}>
             {isStudent ? (

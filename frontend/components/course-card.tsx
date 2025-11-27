@@ -57,10 +57,21 @@ export function CourseCard({
 }: CourseCardProps) {
   const router = useRouter()
   const { address, isConnected } = useAccount()
-  const { registerForCourse, isPending, isConfirming, isConfirmed, error, getCourse, isStudentEnrolled } = useCeloreanContract()
+  const {
+    registerForCourse,
+    isPending,
+    isConfirming,
+    isConfirmed,
+    error,
+    getCourse,
+    isStudentEnrolled,
+    fetchCourseContentCount,
+    fetchCompletedContentCount
+  } = useCeloreanContract()
   const [isEnrolled, setIsEnrolled] = useState(initialIsEnrolled || progress !== undefined)
   const [isEnrolling, setIsEnrolling] = useState(false)
   const [coursePrice, setCoursePrice] = useState('0')
+  const [calculatedProgress, setCalculatedProgress] = useState(progress || 0)
 
   const isFull = students >= capacity;
   const isActive = !isFull;
@@ -74,6 +85,30 @@ export function CourseCard({
       setIsEnrolled(enrollmentStatus)
     }
   }, [enrollmentStatus, address])
+
+  // Fetch progress if enrolled
+  useEffect(() => {
+    const fetchProgress = async () => {
+      if (isEnrolled && address) {
+        try {
+          const totalContentBigInt = await fetchCourseContentCount(id)
+          const completedContentBigInt = await fetchCompletedContentCount(id, address)
+
+          const totalContent = Number(totalContentBigInt || 0)
+          const completedContent = Number(completedContentBigInt || 0)
+
+          if (totalContent > 0) {
+            const percent = Math.round((completedContent / totalContent) * 100)
+            setCalculatedProgress(percent)
+          }
+        } catch (err) {
+          console.error("Failed to fetch progress", err)
+        }
+      }
+    }
+
+    fetchProgress()
+  }, [isEnrolled, address, id])
 
   const { data: courseData } = getCourse(id)
 
@@ -200,22 +235,38 @@ export function CourseCard({
       onClick={handleCardClick}
     >
       {/* Status Bar */}
-      <div className="flex items-center justify-between px-4 py-2 border-b border-terminal-border bg-terminal-border/20">
-        <div className="flex items-center gap-2">
+      <div className="relative w-full aspect-video bg-terminal-black border-b border-terminal-border overflow-hidden">
+        {/* Image */}
+        <img
+          src={image || "/placeholder.jpg"}
+          alt={title}
+          className="w-full h-full object-cover opacity-80 group-hover:opacity-100 transition-opacity duration-300"
+          onError={(e) => {
+            (e.target as HTMLImageElement).src = "/placeholder.jpg";
+          }}
+        />
+
+        {/* Overlay Gradient */}
+        <div className="absolute inset-0 bg-gradient-to-t from-terminal-black via-transparent to-transparent opacity-60" />
+
+        {/* Status Badge (Overlaid) */}
+        <div className="absolute top-2 left-2 flex items-center gap-2 px-2 py-1 bg-terminal-black/80 backdrop-blur-sm border border-terminal-border rounded-sm">
           {isActive ? (
             <>
               <Activity className="h-3 w-3 text-terminal-green" />
-              <span className="text-xs font-mono font-bold tracking-wider uppercase text-terminal-green">ACTIVE</span>
+              <span className="text-[10px] font-mono font-bold tracking-wider uppercase text-terminal-green">ACTIVE</span>
             </>
           ) : (
             <>
               <Pause className="h-3 w-3 text-terminal-orange" />
-              <span className="text-xs font-mono font-bold tracking-wider uppercase text-terminal-orange">PAUSED</span>
+              <span className="text-[10px] font-mono font-bold tracking-wider uppercase text-terminal-orange">PAUSED</span>
             </>
           )}
         </div>
-        <div className="flex items-center gap-2 text-xs font-mono font-bold tracking-wider uppercase text-muted-foreground">
-          <span>ID: #{id.toString().padStart(3, '0')}</span>
+
+        {/* ID Badge (Overlaid) */}
+        <div className="absolute top-2 right-2 px-2 py-1 bg-terminal-black/80 backdrop-blur-sm border border-terminal-border rounded-sm">
+          <span className="text-[10px] font-mono font-bold tracking-wider uppercase text-muted-foreground">ID: #{id.toString().padStart(3, '0')}</span>
         </div>
       </div>
 
@@ -269,9 +320,9 @@ export function CourseCard({
           <div className="space-y-1.5 pt-2">
             <div className="flex justify-between text-xs font-mono font-bold uppercase tracking-wider">
               <span className="text-muted-foreground">Progress</span>
-              <span className="text-terminal-green">{progress || 0}%</span>
+              <span className="text-terminal-green">{calculatedProgress}%</span>
             </div>
-            <Progress value={progress || 0} className="h-2 bg-terminal-border" />
+            <Progress value={calculatedProgress} className="h-2 bg-terminal-border" />
           </div>
         )}
       </CardContent>
@@ -321,7 +372,7 @@ export function CourseCard({
               className="text-xs"
             >
               <BookOpen className="w-3 h-3 mr-1.5" />
-              CONTINUE
+              {calculatedProgress === 100 ? "REVISE" : "CONTINUE"}
             </Button>
           )}
         </div>

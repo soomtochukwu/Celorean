@@ -9,7 +9,7 @@ import CeloreanABI from "../contracts/Celorean.json";
 import { useNetworkAddresses, useNetworkConfig } from "@/contexts/NetworkContext";
 import { toast } from "sonner";
 import { handleNetworkError, createContractAddressError } from '@/utils/network-error-handler';
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useCallback } from "react";
 
 export function useCeloreanContract() {
   // Get current network addresses dynamically
@@ -416,7 +416,7 @@ export function useCeloreanContract() {
   const publicClient = usePublicClient();
 
   // Imperative read functions (safe for useEffect)
-  const fetchCourse = async (courseId: number) => {
+  const fetchCourse = useCallback(async (courseId: number) => {
     if (!publicClient) return null;
     return publicClient.readContract({
       address: CELOREAN_CONTRACT_ADDRESS as `0x${string}`,
@@ -424,9 +424,9 @@ export function useCeloreanContract() {
       functionName: "getCourse",
       args: [courseId],
     });
-  };
+  }, [publicClient, CELOREAN_CONTRACT_ADDRESS]);
 
-  const fetchStudentCourses = async (studentAddress: string) => {
+  const fetchStudentCourses = useCallback(async (studentAddress: string) => {
     if (!publicClient) return null;
     return publicClient.readContract({
       address: CELOREAN_CONTRACT_ADDRESS as `0x${string}`,
@@ -434,9 +434,9 @@ export function useCeloreanContract() {
       functionName: "getStudentCourses",
       args: [studentAddress],
     });
-  };
+  }, [publicClient, CELOREAN_CONTRACT_ADDRESS]);
 
-  const fetchCoursesRegisteredByStudent = async (studentAddress: string) => {
+  const fetchCoursesRegisteredByStudent = useCallback(async (studentAddress: string) => {
     if (!publicClient) return null;
     return publicClient.readContract({
       address: CELOREAN_CONTRACT_ADDRESS as `0x${string}`,
@@ -444,18 +444,18 @@ export function useCeloreanContract() {
       functionName: "getCoursesRegisteredByStudent",
       args: [studentAddress],
     });
-  };
+  }, [publicClient, CELOREAN_CONTRACT_ADDRESS]);
 
-  const fetchTotalRegisteredCourses = async () => {
+  const fetchTotalRegisteredCourses = useCallback(async () => {
     if (!publicClient) return null;
     return publicClient.readContract({
       address: CELOREAN_CONTRACT_ADDRESS as `0x${string}`,
       abi: CeloreanABI.abi,
       functionName: "getTotalRegisteredCourses",
     });
-  };
+  }, [publicClient, CELOREAN_CONTRACT_ADDRESS]);
 
-  const fetchCompletedTimestamps = async (courseId: number, studentAddress: string, totalContentCount: number) => {
+  const fetchCompletedTimestamps = useCallback(async (courseId: number, studentAddress: string, totalContentCount: number) => {
     if (!publicClient) return null;
     return publicClient.readContract({
       address: CELOREAN_CONTRACT_ADDRESS as `0x${string}`,
@@ -463,9 +463,9 @@ export function useCeloreanContract() {
       functionName: "getCompletedTimestamps",
       args: [courseId, studentAddress, totalContentCount],
     });
-  };
+  }, [publicClient, CELOREAN_CONTRACT_ADDRESS]);
 
-  const fetchCompletedContentCount = async (courseId: number, studentAddress: string) => {
+  const fetchCompletedContentCount = useCallback(async (courseId: number, studentAddress: string) => {
     if (!publicClient) return null;
     return publicClient.readContract({
       address: CELOREAN_CONTRACT_ADDRESS as `0x${string}`,
@@ -473,9 +473,9 @@ export function useCeloreanContract() {
       functionName: "getCompletedContentCount",
       args: [courseId, studentAddress],
     });
-  };
+  }, [publicClient, CELOREAN_CONTRACT_ADDRESS]);
 
-  const fetchCourseContentCount = async (courseId: number) => {
+  const fetchCourseContentCount = useCallback(async (courseId: number) => {
     if (!publicClient) return null;
     return publicClient.readContract({
       address: CELOREAN_CONTRACT_ADDRESS as `0x${string}`,
@@ -483,7 +483,7 @@ export function useCeloreanContract() {
       functionName: "getCourseContentCount",
       args: [courseId],
     });
-  };
+  }, [publicClient, CELOREAN_CONTRACT_ADDRESS]);
 
   return {
     // Read functions

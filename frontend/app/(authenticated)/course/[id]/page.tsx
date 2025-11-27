@@ -25,12 +25,22 @@ import { CourseContentViewer } from "@/components/CourseContentViewer"
 import Link from "next/link"
 import { cn } from "@/lib/utils"
 
+import { Progress } from "@/components/ui/progress"
+
 export default function CourseDetailPage() {
   const params = useParams()
   const router = useRouter()
   const courseId = parseInt(params.id as string)
   const { address, isConnected } = useAccount()
-  const { fetchCourse, registerForCourse, isPending, isStudentEnrolled, getCourseContentUris } = useCeloreanContract()
+  const {
+    fetchCourse,
+    registerForCourse,
+    isPending,
+    isStudentEnrolled,
+    getCourseContentUris,
+    fetchCourseContentCount,
+    fetchCompletedContentCount
+  } = useCeloreanContract()
   const { isStudent, isLecturer } = useUserData()
 
   const [course, setCourse] = useState<any>(null)
@@ -38,6 +48,7 @@ export default function CourseDetailPage() {
   const [enrolling, setEnrolling] = useState(false)
   const [isEnrolled, setIsEnrolled] = useState(false)
   const [activeTab, setActiveTab] = useState("overview")
+  const [calculatedProgress, setCalculatedProgress] = useState(0)
 
   // Fetch content URIs from blockchain
   const contentUrisQuery = getCourseContentUris(courseId)
@@ -56,6 +67,30 @@ export default function CourseDetailPage() {
       setIsEnrolled(enrollmentStatus)
     }
   }, [enrollmentStatus, address, isStudent])
+
+  // Fetch progress if enrolled
+  useEffect(() => {
+    const fetchProgress = async () => {
+      if (isEnrolled && address && courseId) {
+        try {
+          const totalContentBigInt = await fetchCourseContentCount(courseId)
+          const completedContentBigInt = await fetchCompletedContentCount(courseId, address)
+
+          const totalContent = Number(totalContentBigInt || 0)
+          const completedContent = Number(completedContentBigInt || 0)
+
+          if (totalContent > 0) {
+            const percent = Math.round((completedContent / totalContent) * 100)
+            setCalculatedProgress(percent)
+          }
+        } catch (err) {
+          console.error("Failed to fetch progress", err)
+        }
+      }
+    }
+
+    fetchProgress()
+  }, [isEnrolled, address, courseId])
 
   // Fetch course data
   useEffect(() => {
@@ -368,11 +403,20 @@ export default function CourseDetailPage() {
                       <BookOpen className="w-5 h-5" />
                       <span className="font-medium">You're enrolled!</span>
                     </div>
+
+                    <div className="space-y-2 mb-4">
+                      <div className="flex justify-between text-sm font-medium">
+                        <span className="text-gray-400">Your Progress</span>
+                        <span className="text-primary">{calculatedProgress}%</span>
+                      </div>
+                      <Progress value={calculatedProgress} className="h-2 bg-white/10" />
+                    </div>
+
                     <Button
                       className="w-full bg-gradient-to-r from-primary to-accent hover:opacity-90"
                       onClick={() => { setActiveTab("content") }}
                     >
-                      Continue Learning
+                      {calculatedProgress === 100 ? "Revise" : "Continue Learning"}
                     </Button>
                   </div>
                 ) : (

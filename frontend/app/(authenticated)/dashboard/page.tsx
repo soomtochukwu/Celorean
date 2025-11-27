@@ -1,6 +1,6 @@
 "use client"
 
-import { Coins, Users, BookOpen, TrendingUp, Activity, Zap, Wallet, Clock, Calendar } from "lucide-react"
+import { Coins, Users, BookOpen, TrendingUp, Activity, Zap, Wallet, Clock, Calendar, ExternalLink } from "lucide-react"
 import { StatCard } from "@/components/stat-card"
 import { useUserData } from "@/hooks/useUserData"
 import { useRouter } from "next/navigation"
@@ -23,15 +23,13 @@ export default function Dashboard() {
   } = useUserData()
 
   const {
-    fetchCoursesRegisteredByStudent,
-    fetchTotalRegisteredCourses,
+    fetchStudentCourses,
     fetchCourse,
     isPending
   } = useCeloreanContract()
 
   const [registeredCourses, setRegisteredCourses] = useState<any[]>([])
   const [loadingCourses, setLoadingCourses] = useState(false)
-  const [totalCourses, setTotalCourses] = useState(0)
 
   // Fetch registered courses
   useEffect(() => {
@@ -40,12 +38,8 @@ export default function Dashboard() {
 
       setLoadingCourses(true)
       try {
-        // Get total count first
-        const total = await fetchTotalRegisteredCourses()
-        setTotalCourses(Number(total || 0))
-
         // Get course IDs
-        const courseIdsData = await fetchCoursesRegisteredByStudent(address)
+        const courseIdsData = await fetchStudentCourses(address)
         const courseIds = (courseIdsData as any[]) || []
 
         // Fetch details for each course
@@ -57,16 +51,18 @@ export default function Dashboard() {
           if (!data) return null
 
           // Parse course data
-          const title = data.title || data[1]
-          const description = data.description || data[2]
-          const durationVal = Number(data.duration || data[3])
-          const price = (data.price || data[4]).toString()
-          const level = data.level || data[6]
-          const rating = Number(data.rating || data[7])
-          const enrolledCount = Number(data.enrolledCount || data[8])
-          const capacity = Number(data.capacity || data[9])
-          const instructor = data.instructor || data[10]
-          const metadataUri = data.metadataUri || data[11]
+          // Parse course data
+          const title = data.title
+          const description = data.description
+          const durationVal = Number(data.duration || 0)
+          // Price is no longer in the contract struct, default to "Free" or "0"
+          const price = "0"
+          const level = data.level
+          const rating = Number(data.rating || 0)
+          const enrolledCount = Number(data.enrolledCount || 0)
+          const capacity = Number(data.capacity || 0)
+          const instructor = data.instructor
+          const metadataUri = data.metadataUri
 
           // Fetch metadata
           let metadata = { thumbnail: "", tokenReward: "0", tags: [] }
@@ -203,57 +199,20 @@ export default function Dashboard() {
               ))}
             </div>
           ) : registeredCourses.length > 0 ? (
-            <div className="space-y-4">
+            <div className="space-y-2">
               {registeredCourses.map((course) => (
                 <div
                   key={course.id}
-                  className="group flex flex-col sm:flex-row items-center gap-4 p-4 glass-panel rounded-xl hover:bg-white/5 transition-all border border-white/5 cursor-pointer"
+                  className="group flex items-center justify-between p-4 glass-panel rounded-lg hover:bg-white/5 transition-all border border-white/5 cursor-pointer"
                   onClick={() => router.push(`/course/${course.id}`)}
                 >
-                  {/* Thumbnail */}
-                  <div className="relative w-full sm:w-48 h-32 sm:h-28 rounded-lg overflow-hidden flex-shrink-0">
-                    <img
-                      src={course.image}
-                      alt={course.title}
-                      className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110"
-                      onError={(e) => {
-                        const target = e.target as HTMLImageElement;
-                        target.src = "/placeholder.jpg";
-                      }}
-                    />
-                    <div className="absolute inset-0 bg-black/20 group-hover:bg-transparent transition-colors" />
+                  <div className="flex items-center gap-3">
+                    <BookOpen className="h-4 w-4 text-primary" />
+                    <span className="font-mono text-sm group-hover:text-primary transition-colors uppercase tracking-wide">
+                      {course.title}
+                    </span>
                   </div>
-
-                  {/* Info */}
-                  <div className="flex-1 text-center sm:text-left w-full">
-                    <h3 className="text-lg font-bold text-white mb-1 group-hover:text-primary transition-colors">{course.title}</h3>
-                    <div className="flex items-center justify-center sm:justify-start gap-4 text-sm text-gray-400 mb-2">
-                      <span className="flex items-center">
-                        <Users className="w-3 h-3 mr-1" /> {course.instructor}
-                      </span>
-                      <span className="flex items-center">
-                        <Clock className="w-3 h-3 mr-1" /> {course.duration}
-                      </span>
-                    </div>
-
-                    {/* Progress Bar Placeholder - can be connected to real data later */}
-                    <div className="w-full max-w-md bg-white/10 h-1.5 rounded-full overflow-hidden">
-                      <div className="bg-primary h-full rounded-full" style={{ width: `${course.progress || 0}%` }} />
-                    </div>
-                    <p className="text-xs text-gray-500 mt-1">{course.progress || 0}% Complete</p>
-                  </div>
-
-                  {/* Action */}
-                  <Button
-                    className="w-full sm:w-auto bg-primary/10 text-primary hover:bg-primary hover:text-white border border-primary/20 transition-all"
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      router.push(`/course/${course.id}`);
-                    }}
-                  >
-                    <BookOpen className="w-4 h-4 mr-2" />
-                    Continue Learning
-                  </Button>
+                  <ExternalLink className="h-3 w-3 text-gray-500 group-hover:text-primary transition-colors opacity-0 group-hover:opacity-100" />
                 </div>
               ))}
             </div>
