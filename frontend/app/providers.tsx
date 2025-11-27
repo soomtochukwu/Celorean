@@ -98,7 +98,7 @@ const transports = {
   [localhost.id]: http('http://127.0.0.1:8545'),
 } as const;
 
-const WALLETCONNECT_PROJECT_ID = "b7cfcf662095cd0ee1e06aa9eebd146a";
+const WALLETCONNECT_PROJECT_ID = process.env.NEXT_PUBLIC_WALLETCONNECT_PROJECT_ID;
 
 function createWagmiConfig(isMiniApp: boolean) {
   // Build RainbowKit connectors for browser wallets
@@ -106,11 +106,12 @@ function createWagmiConfig(isMiniApp: boolean) {
     wallets,
     {
       appName: "Celorean",
-      projectId: WALLETCONNECT_PROJECT_ID,
+      projectId: WALLETCONNECT_PROJECT_ID as string,
     }
   );
 
   // Optionally prepend Farcaster MiniApp connector when inside miniapp
+  // Note: The connector uses the chains defined in the wagmi config below
   const connectors = isMiniApp
     ? [miniAppConnector(), ...rkConnectors]
     : rkConnectors;
@@ -630,20 +631,52 @@ export function Providers({ children }: { children: React.ReactNode }) {
 function MiniAppChainGuard({ enabled }: { enabled: boolean }) {
   const chainId = useChainId();
   const { switchChain } = useSwitchChain();
+  const [hasShownWarning, setHasShownWarning] = React.useState(false);
 
   React.useEffect(() => {
     if (!enabled) return;
+
     // Allowed chains: Celo Sepolia (11142220), Celo (42220), Localhost (1337)
     const allowed = new Set([11142220, 42220, 1337]);
+
     if (!allowed.has(chainId)) {
-      // Prefer Celo Sepolia in miniapp
+      // Try to switch to Celo Sepolia first
       try {
         switchChain({ chainId: 11142220 });
       } catch (e) {
-        // Swallow errors; user can switch manually via UI
+        // If auto-switch fails, show a helpful message
+        if (!hasShownWarning) {
+          setHasShownWarning(true);
+          toast.error('Unsupported Chain', {
+            description: 'Please use the network switcher to manually change to Celo Mainnet for the best experience in Farcaster.',
+            duration: 8000,
+          });
+        }
       }
+    } else {
+      // Reset warning flag if we're on a valid chain
+      setHasShownWarning(false);
     }
-  }, [enabled, chainId, switchChain]);
+  }, [enabled, chainId, switchChain, hasShownWarning]);
+
+  // Show persistent warning if user is on unsupported chain
+  React.useEffect(() => {
+    if (!enabled) return;
+
+    const allowed = new Set([11142220, 42220, 1337]);
+
+    if (!allowed.has(chainId) && !hasShownWarning) {
+      setHasShownWarning(true);
+      toast.warning('Network Not Supported', {
+        description: 'Farcaster wallet may not support this chain. Please switch to Celo Mainnet using the network switcher icon.',
+        duration: 10000,
+        action: {
+          label: 'Understood',
+          onClick: () => { },
+        },
+      });
+    }
+  }, [enabled, chainId, hasShownWarning]);
 
   return null;
 }
