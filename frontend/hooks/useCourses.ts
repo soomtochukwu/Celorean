@@ -21,6 +21,8 @@ export interface Course {
   tokenReward?: string
   isEnrolled?: boolean
   thumbnail?: string // Add thumbnail field
+  courseType?: number // 0=Bootcamp, 1=Workshop, 2=Seminar
+  courseStatus?: number // 0=Ongoing, 1=Ended
 }
 
 export function useCourses() {
@@ -125,6 +127,8 @@ export function useCourses() {
               price: 'Free',
               tokenReward: courseData.tokenReward?.toString() || '100',
               isEnrolled: enrolledCourses.includes(i),
+              courseType: Number(courseData.courseType ?? 0), // Extract courseType
+              courseStatus: Number(courseData.status ?? 0), // Extract courseStatus
             }
             coursesData.push(course)
           }

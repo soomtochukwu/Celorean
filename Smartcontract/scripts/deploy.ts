@@ -330,7 +330,7 @@ async function main() {
     console.log("\uD83D\uDEE0\uFE0F Seeding mock data (DEV mode)...");
     try {
       // Ensure deployer is a lecturer
-      const txLecturer = await celorean.employLecturer(deployer.address, 100);
+      const txLecturer = await celorean.employLecturer(deployer.address);
       await txLecturer.wait();
       console.log(`\u2705 Deployer employed as lecturer: ${deployer.address}`);
 
@@ -357,6 +357,7 @@ async function main() {
         level: string;
         metadataUri: string;
         capacity: number;
+        courseType: number; // 0=Bootcamp, 1=Workshop, 2=Seminar
       }> = [
         {
           title: "Solidity Basics",
@@ -368,6 +369,7 @@ async function main() {
           level: "Beginner",
           metadataUri: getRandomItem(REAL_IPFS_URIS),
           capacity: 50,
+          courseType: 0, // Bootcamp
         },
         {
           title: "Advanced DApp Development",
@@ -378,6 +380,7 @@ async function main() {
           level: "Intermediate",
           metadataUri: getRandomItem(REAL_IPFS_URIS),
           capacity: 30,
+          courseType: 1, // Workshop
         },
         {
           title: "DeFi Protocol Design",
@@ -388,6 +391,7 @@ async function main() {
           level: "Advanced",
           metadataUri: getRandomItem(REAL_IPFS_URIS),
           capacity: 20,
+          courseType: 2, // Seminar
         },
       ];
 
@@ -406,7 +410,8 @@ async function main() {
           c.tags,
           c.level,
           c.metadataUri,
-          c.capacity
+          c.capacity,
+          c.courseType
         );
         const receipt = await tx.wait();
         // Attempt to derive courseId from event or by reading latest count

@@ -6,24 +6,24 @@ import "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol";
 contract InstructorModule is Initializable {
     mapping(address => uint256) public lecturers;
     address[] public lecturerList;
-    
-    event LecturerEmployed(address indexed lecturer, uint256 amount);
-    
+
+    event LecturerEmployed(address indexed lecturer);
+
     function __InstructorModule_init() internal onlyInitializing {
         // Initialization logic without ownership
     }
-    
-    function _employLecturer(address lecturer, uint256 value) internal {
+
+    function _employLecturer(address lecturer) internal {
         require(lecturers[lecturer] == 0, "Lecturer already exists");
-        lecturers[lecturer] = value;
+        lecturers[lecturer] = 1; // Use 1 as default active status
         lecturerList.push(lecturer);
-        emit LecturerEmployed(lecturer, value);
+        emit LecturerEmployed(lecturer);
     }
-    
+
     function isLecturer(address account) external view returns (bool) {
         return lecturers[account] > 0;
     }
-    
+
     function getLecturerList() external view returns (address[] memory) {
         return lecturerList;
     }

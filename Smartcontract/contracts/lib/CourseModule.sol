@@ -4,6 +4,19 @@ pragma solidity ^0.8.20;
 import "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol";
 
 contract CourseModule is Initializable {
+    // Course type categories
+    enum CourseType {
+        Bootcamp,
+        Workshop,
+        Seminar
+    }
+
+    // Course status
+    enum CourseStatus {
+        Ongoing,
+        Ended
+    }
+
     struct Course {
         uint256 id;
         string title;
@@ -18,6 +31,9 @@ contract CourseModule is Initializable {
         address instructor;
         string metadataUri; // IPFS URI for course metadata
         string[] contentUris; // Array of IPFS URIs for course content
+        // NEW FIELDS - Added at the end for upgrade safety
+        CourseType courseType; // Type of course
+        CourseStatus status; // Current status of the course
     }
 
     // Authorization hook to be overridden by inheriting contract (default: open)
@@ -54,6 +70,16 @@ contract CourseModule is Initializable {
     event CourseMetadataUpdated(
         uint256 indexed courseId,
         string newMetadataUri
+    );
+
+    event CourseTypeUpdated(
+        uint256 indexed courseId,
+        CourseType indexed courseType
+    );
+
+    event CourseStatusUpdated(
+        uint256 indexed courseId,
+        CourseStatus indexed status
     );
 
     function updateCourseMetadata(
@@ -181,6 +207,42 @@ contract CourseModule is Initializable {
         require(courseId > 0 && courseId <= courseCount, "Invalid course ID");
         require(newRating <= 50, "Rating must be between 0 and 50");
         courses[courseId].rating = newRating;
+    }
+
+    function updateCourseType(
+        uint256 courseId,
+        CourseType newType
+    ) public virtual {
+        require(courseId > 0 && courseId <= courseCount, "Invalid course ID");
+        require(
+            courses[courseId].instructor == msg.sender,
+            "Only course instructor can update course type"
+        );
+        courses[courseId].courseType = newType;
+        emit CourseTypeUpdated(courseId, newType);
+    }
+
+    function updateCourseStatus(
+        uint256 courseId,
+        CourseStatus newStatus
+    ) public virtual {
+        require(courseId > 0 && courseId <= courseCount, "Invalid course ID");
+        require(
+            courses[courseId].instructor == msg.sender,
+            "Only course instructor can update course status"
+        );
+        courses[courseId].status = newStatus;
+        emit CourseStatusUpdated(courseId, newStatus);
+    }
+
+    function markCourseAsEnded(uint256 courseId) public virtual {
+        require(courseId > 0 && courseId <= courseCount, "Invalid course ID");
+        require(
+            courses[courseId].instructor == msg.sender,
+            "Only course instructor can mark course as ended"
+        );
+        courses[courseId].status = CourseStatus.Ended;
+        emit CourseStatusUpdated(courseId, CourseStatus.Ended);
     }
 
     function getAllCourseNames() external view returns (string[] memory) {

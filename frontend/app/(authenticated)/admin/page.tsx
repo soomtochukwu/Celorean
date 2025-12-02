@@ -65,7 +65,8 @@ export default function AdminPage() {
         price: "",
         tags: "",
         level: "Beginner",
-        capacity: ""
+        capacity: "",
+        courseType: "0" // Default to Bootcamp (0)
     })
 
     // Check if current user is admin or lecturer
@@ -196,7 +197,7 @@ export default function AdminPage() {
     const handleEmployLecturer = async (e: React.FormEvent) => {
         e.preventDefault()
         try {
-            await employLecturer(lecturerForm.address, parseInt(lecturerForm.value))
+            await employLecturer(lecturerForm.address)
             toast({
                 title: "Lecturer employment initiated",
                 description: "Please confirm the transaction in your wallet.",
@@ -214,7 +215,7 @@ export default function AdminPage() {
     const handleAdmitStudent = async (e: React.FormEvent) => {
         e.preventDefault()
         try {
-            await admitStudent(studentForm.address, parseInt(studentForm.value || "0"))
+            await admitStudent(studentForm.address)
             toast({
                 title: "Student admission initiated",
                 description: "Please confirm the transaction in your wallet.",
@@ -258,7 +259,8 @@ export default function AdminPage() {
                 tags,
                 courseForm.level,
                 metadataUri,
-                parseInt(courseForm.capacity)
+                parseInt(courseForm.capacity),
+                parseInt(courseForm.courseType) // Pass course type
             )
 
             toast({
@@ -273,7 +275,8 @@ export default function AdminPage() {
                 price: "",
                 tags: "",
                 level: "Beginner",
-                capacity: ""
+                capacity: "",
+                courseType: "0" // Reset to Bootcamp
             })
             setThumbnailFile(null)
             setThumbnailPreview(null)
@@ -410,16 +413,6 @@ export default function AdminPage() {
                                                         className="font-mono text-sm"
                                                     />
                                                 </div>
-                                                <div className="space-y-2">
-                                                    <Label htmlFor="student-value">Initial Tokens (Optional)</Label>
-                                                    <Input
-                                                        id="student-value"
-                                                        type="number"
-                                                        placeholder="0"
-                                                        value={studentForm.value}
-                                                        onChange={(e) => setStudentForm(prev => ({ ...prev, value: e.target.value }))}
-                                                    />
-                                                </div>
                                                 <Button type="submit" className="w-full" disabled={isPending || isConfirming}>
                                                     {isPending || isConfirming ? (
                                                         <>
@@ -513,17 +506,6 @@ export default function AdminPage() {
                                                         onChange={(e) => setLecturerForm(prev => ({ ...prev, address: e.target.value }))}
                                                         required
                                                         className="font-mono text-sm"
-                                                    />
-                                                </div>
-                                                <div className="space-y-2">
-                                                    <Label htmlFor="lecturer-value">Initial Value</Label>
-                                                    <Input
-                                                        id="lecturer-value"
-                                                        type="number"
-                                                        placeholder="100"
-                                                        value={lecturerForm.value}
-                                                        onChange={(e) => setLecturerForm(prev => ({ ...prev, value: e.target.value }))}
-                                                        required
                                                     />
                                                 </div>
                                                 <Button type="submit" className="w-full" disabled={isPending || isConfirming}>
@@ -668,7 +650,7 @@ export default function AdminPage() {
                                             />
                                         </div>
 
-                                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                                             <div className="space-y-2">
                                                 <Label htmlFor="course-level">Level</Label>
                                                 <Select value={courseForm.level} onValueChange={(value) => setCourseForm(prev => ({ ...prev, level: value }))}>
@@ -679,6 +661,19 @@ export default function AdminPage() {
                                                         <SelectItem value="Beginner">Beginner</SelectItem>
                                                         <SelectItem value="Intermediate">Intermediate</SelectItem>
                                                         <SelectItem value="Advanced">Advanced</SelectItem>
+                                                    </SelectContent>
+                                                </Select>
+                                            </div>
+                                            <div className="space-y-2">
+                                                <Label htmlFor="course-type">Course Type</Label>
+                                                <Select value={courseForm.courseType} onValueChange={(value) => setCourseForm(prev => ({ ...prev, courseType: value }))}>
+                                                    <SelectTrigger>
+                                                        <SelectValue />
+                                                    </SelectTrigger>
+                                                    <SelectContent>
+                                                        <SelectItem value="0">🎓 Bootcamp</SelectItem>
+                                                        <SelectItem value="1">🛠️ Workshop</SelectItem>
+                                                        <SelectItem value="2">💼 Seminar</SelectItem>
                                                     </SelectContent>
                                                 </Select>
                                             </div>

@@ -29,6 +29,7 @@ import Link from "next/link"
 export default function LearningPage() {
   const [searchTerm, setSearchTerm] = useState("")
   const [selectedLevel, setSelectedLevel] = useState<string>("all")
+  const [selectedStatus, setSelectedStatus] = useState<string>("all") // all, ongoing, ended
   const [sortBy, setSortBy] = useState<string>("title")
   const { courses, loading } = useCourses()
   const { isConnected, address } = useAccount()
@@ -44,7 +45,10 @@ export default function LearningPage() {
         course.description.toLowerCase().includes(searchTerm.toLowerCase()) ||
         course.tags.some(tag => tag.toLowerCase().includes(searchTerm.toLowerCase()))
       const matchesLevel = selectedLevel === "all" || course.level === selectedLevel
-      return matchesSearch && matchesLevel
+      const matchesStatus = selectedStatus === "all" ||
+        (selectedStatus === "ongoing" && course.courseStatus === 0) ||
+        (selectedStatus === "ended" && course.courseStatus === 1)
+      return matchesSearch && matchesLevel && matchesStatus
     })
 
     // Sort courses
@@ -65,7 +69,7 @@ export default function LearningPage() {
     })
 
     return filtered
-  }, [courses, searchTerm, selectedLevel, sortBy])
+  }, [courses, searchTerm, selectedLevel, selectedStatus, sortBy])
 
   // AI Learning Path State
   const [aiGoal, setAiGoal] = useState("")
@@ -135,6 +139,26 @@ export default function LearningPage() {
       </div>
 
       <div>
+        <label className="text-sm font-medium mb-2 block">Status</label>
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <Button variant="outline" className="w-full justify-between">
+              <span className="flex items-center">
+                <Filter className="h-4 w-4 mr-2" />
+                {selectedStatus === "all" ? "All Statuses" :
+                  selectedStatus === "ongoing" ? "Ongoing" : "Ended"}
+              </span>
+            </Button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent className="w-full">
+            <DropdownMenuItem onClick={() => setSelectedStatus("all")}>All Statuses</DropdownMenuItem>
+            <DropdownMenuItem onClick={() => setSelectedStatus("ongoing")}>Ongoing</DropdownMenuItem>
+            <DropdownMenuItem onClick={() => setSelectedStatus("ended")}>Ended</DropdownMenuItem>
+          </DropdownMenuContent>
+        </DropdownMenu>
+      </div>
+
+      <div>
         <label className="text-sm font-medium mb-2 block">Sort By</label>
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
@@ -180,7 +204,7 @@ export default function LearningPage() {
                     Filters & Search
                   </span>
                   <span className="text-xs text-muted-foreground bg-secondary px-2 py-0.5 rounded-full">
-                    {selectedLevel !== "all" ? "Active" : "Default"}
+                    {selectedLevel !== "all" || selectedStatus !== "all" ? "Active" : "Default"}
                   </span>
                 </Button>
               </SheetTrigger>

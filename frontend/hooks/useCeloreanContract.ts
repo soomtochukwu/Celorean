@@ -213,19 +213,19 @@ export function useCeloreanContract() {
     });
   };
 
-  // Admin function: Employ lecturer
-  const employLecturer = async (lecturerAddress: string, value: number) => {
+   // Admin function: Employ lecturer
+  const employLecturer = async (lecturerAddress: string) => {
     return runTransaction("Employ lecturer", {
       functionName: "employLecturer",
-      args: [lecturerAddress, value],
+      args: [lecturerAddress],
     });
   };
 
   // Admin function: Admit student
-  const admitStudent = async (studentAddress: string, value: number) => {
+  const admitStudent = async (studentAddress: string) => {
     return runTransaction("Admit student", {
       functionName: "admitStudent",
-      args: [studentAddress, value],
+      args: [studentAddress],
     });
   };
 
@@ -237,11 +237,12 @@ export function useCeloreanContract() {
     tags: string[],
     level: string,
     metadataUri: string,
-    capacity: number
+    capacity: number,
+    courseType: number // 0=Bootcamp, 1=Workshop, 2=Seminar
   ) => {
     return runTransaction("Create course", {
       functionName: "createCourse",
-      args: [title, BigInt(duration), description, tags, level, metadataUri, BigInt(capacity)],
+      args: [title, BigInt(duration), description, tags, level, metadataUri, BigInt(capacity), courseType],
     });
   };
 
@@ -305,6 +306,40 @@ export function useCeloreanContract() {
     return runTransaction("Update course content", {
       functionName: "updateCourseContent",
       args: [courseId, newContentUris],
+    });
+  };
+
+  // =======================
+  // Course Management APIs
+  // =======================
+
+  // Update course type (Lecturer-only)
+  const updateCourseType = async (
+    courseId: number,
+    newType: number // 0=Bootcamp, 1=Workshop, 2=Seminar
+  ) => {
+    return runTransaction("Update course type", {
+      functionName: "updateCourseType",
+      args: [courseId, newType],
+    });
+  };
+
+  // Update course status (Lecturer-only)
+  const updateCourseStatus = async (
+    courseId: number,
+    newStatus: number // 0=Ongoing, 1=Ended
+  ) => {
+    return runTransaction("Update course status", {
+      functionName: "updateCourseStatus",
+      args: [courseId, newStatus],
+    });
+  };
+
+  // Mark course as ended (Lecturer-only)
+  const markCourseAsEnded = async (courseId: number) => {
+    return runTransaction("Mark course as ended", {
+      functionName: "markCourseAsEnded",
+      args: [courseId],
     });
   };
 
@@ -526,6 +561,9 @@ export function useCeloreanContract() {
     updateCourseContent,
     addCourseContent,
     addMultipleCourseContent,
+    updateCourseType,
+    updateCourseStatus,
+    markCourseAsEnded,
     createClassSession,
     markAttendance,
     // Credentials writes

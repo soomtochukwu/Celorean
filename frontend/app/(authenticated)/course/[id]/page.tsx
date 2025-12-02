@@ -16,7 +16,10 @@ import {
   GraduationCap,
   Target,
   Award,
-  PlayCircle
+  PlayCircle,
+  Settings,
+  CheckCircle,
+  XCircle
 } from "lucide-react"
 import { useAccount } from "wagmi"
 import useCeloreanContract from "@/hooks/useCeloreanContract"
@@ -39,7 +42,11 @@ export default function CourseDetailPage() {
     isStudentEnrolled,
     getCourseContentUris,
     fetchCourseContentCount,
-    fetchCompletedContentCount
+    fetchCompletedContentCount,
+    updateCourseType,
+    updateCourseStatus,
+    markCourseAsEnded,
+    isConfirming
   } = useCeloreanContract()
   const { isStudent, isLecturer } = useUserData()
 
@@ -125,6 +132,8 @@ export default function CourseDetailPage() {
         const instructor = data.instructor || data[10] || ""
         const metadataUri = data.metadataUri || data[11] || ""
         const tags = Array.isArray(data.tags) ? data.tags : (data[5] || [])
+        const courseType = Number(data.courseType || data[12] || 0) // Extract courseType
+        const courseStatus = Number(data.status || data[13] || 0) // Extract courseStatus
 
         // Try to fetch metadata for thumbnail
         let thumbnail = "/placeholder.jpg"
@@ -168,7 +177,9 @@ export default function CourseDetailPage() {
           instructor,
           thumbnail,
           tags,
-          isFull: enrolledCount >= capacity
+          isFull: enrolledCount >= capacity,
+          courseType, // Add courseType to state
+          courseStatus, // Add courseStatus to state
         })
 
       } catch (error) {
@@ -261,6 +272,12 @@ export default function CourseDetailPage() {
           <PlayCircle className="w-4 h-4 mr-2" />
           Course Content
         </TabsTrigger>
+        {(isInstructor || isLecturer) && (
+          <TabsTrigger value="manage" className="data-[state=active]:bg-primary/20">
+            <Settings className="w-4 h-4 mr-2" />
+            Manage
+          </TabsTrigger>
+        )}
       </TabsList>
 
       {/* Overview Tab Content */}
@@ -288,6 +305,34 @@ export default function CourseDetailPage() {
                   <Badge variant="secondary" className="bg-primary/20 text-primary border-primary/30">
                     {course.level}
                   </Badge>
+                  {/* Course Type Badge */}
+                  {course.courseType !== undefined && (
+                    <Badge
+                      variant="secondary"
+                      className={
+                        course.courseType === 1
+                          ? "bg-blue-500/20 text-blue-400 border-blue-500/30"
+                          : course.courseType === 2
+                            ? "bg-purple-500/20 text-purple-400 border-purple-500/30"
+                            : "bg-green-500/20 text-green-400 border-green-500/30"
+                      }
+                    >
+                      {course.courseType === 1 ? "🛠️ Workshop" : course.courseType === 2 ? "💼 Seminar" : "🎓 Bootcamp"}
+                    </Badge>
+                  )}
+                  {/* Course Status Badge */}
+                  {course.courseStatus !== undefined && (
+                    <Badge
+                      variant="secondary"
+                      className={
+                        course.courseStatus === 1
+                          ? "bg-gray-500/20 text-gray-400 border-gray-500/30"
+                          : "bg-green-500/20 text-green-400 border-green-500/30"
+                      }
+                    >
+                      {course.courseStatus === 1 ? "Ended" : "Ongoing"}
+                    </Badge>
+                  )}
                   {course.isFull && (
                     <Badge variant="destructive" className="animate-pulse">
                       Full
@@ -471,6 +516,171 @@ export default function CourseDetailPage() {
           isInstructor={isInstructor || false}
         />
       </TabsContent>
+
+      {/* Manage Tab - Only for Instructor/Lecturer */}
+      {(isInstructor || isLecturer) && (
+        <TabsContent value="manage" className="mt-0">
+          <Card className="glass-card border-white/10">
+            <CardContent className="p-8">
+              <h2 className="text-2xl font-bold text-white mb-6 flex items-center gap-2">
+                <Settings className="w-6 h-6 text-primary" />
+                Course Management
+              </h2>
+
+              <div className="space-y-8">
+                {/* Current Status Display */}
+                <div className="p-4 rounded-lg border border-white/10 bg-white/5">
+                  <h3 className="text-sm font-semibold text-gray-400 mb-3">Current Settings</h3>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                      <p className="text-xs text-gray-500 mb-1">Course Type</p>
+                      <Badge
+                        variant="secondary"
+                        className={
+                          course.courseType === 1
+                            ? "bg-blue-500/20 text-blue-400 border-blue-500/30"
+                            : course.courseType === 2
+                              ? "bg-purple-500/20 text-purple-400 border-purple-500/30"
+                              : "bg-green-500/20 text-green-400 border-green-500/30"
+                        }
+                      >
+                        {course.courseType === 1 ? "🛠️ Workshop" : course.courseType === 2 ? "💼 Seminar" : "🎓 Bootcamp"}
+                      </Badge>
+                    </div>
+                    <div>
+                      <p className="text-xs text-gray-500 mb-1">Course Status</p>
+                      <Badge
+                        variant="secondary"
+                        className={
+                          course.courseStatus === 1
+                            ? "bg-gray-500/20 text-gray-400 border-gray-500/30"
+                            : "bg-green-500/20 text-green-400 border-green-500/30"
+                        }
+                      >
+                        {course.courseStatus === 1 ? "Ended" : "Ongoing"}
+                      </Badge>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Update Course Type */}
+                <div className="space-y-4">
+                  <h3 className="text-lg font-semibold text-white flex items-center gap-2">
+                    Update Course Type
+                  </h3>
+                  <p className="text-sm text-gray-400">
+                    Change the course type classification
+                  </p>
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    <Button
+                      type="button"
+                      variant={course.courseType === 0 ? "default" : "outline"}
+                      className="w-full"
+                      onClick={async () => {
+                        try {
+                          await updateCourseType(courseId, 0)
+                          toast.success("Course type updated to Bootcamp")
+                        } catch (error: any) {
+                          toast.error(error.message || "Failed to update course type")
+                        }
+                      }}
+                      disabled={isPending || isConfirming || course.courseType === 0}
+                    >
+                      🎓 Bootcamp
+                    </Button>
+                    <Button
+                      type="button"
+                      variant={course.courseType === 1 ? "default" : "outline"}
+                      className="w-full"
+                      onClick={async () => {
+                        try {
+                          await updateCourseType(courseId, 1)
+                          toast.success("Course type updated to Workshop")
+                        } catch (error: any) {
+                          toast.error(error.message || "Failed to update course type")
+                        }
+                      }}
+                      disabled={isPending || isConfirming || course.courseType === 1}
+                    >
+                      🛠️ Workshop
+                    </Button>
+                    <Button
+                      type="button"
+                      variant={course.courseType === 2 ? "default" : "outline"}
+                      className="w-full"
+                      onClick={async () => {
+                        try {
+                          await updateCourseType(courseId, 2)
+                          toast.success("Course type updated to Seminar")
+                        } catch (error: any) {
+                          toast.error(error.message || "Failed to update course type")
+                        }
+                      }}
+                      disabled={isPending || isConfirming || course.courseType === 2}
+                    >
+                      💼 Seminar
+                    </Button>
+                  </div>
+                </div>
+
+                {/* Update Course Status */}
+                <div className="space-y-4">
+                  <h3 className="text-lg font-semibold text-white flex items-center gap-2">
+                    Update Course Status
+                  </h3>
+                  <p className="text-sm text-gray-400">
+                    Mark the course as ongoing or ended
+                  </p>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <Button
+                      type="button"
+                      variant={course.courseStatus === 0 ? "default" : "outline"}
+                      className="w-full"
+                      onClick={async () => {
+                        try {
+                          await updateCourseStatus(courseId, 0)
+                          toast.success("Course marked as Ongoing")
+                        } catch (error: any) {
+                          toast.error(error.message || "Failed to update course status")
+                        }
+                      }}
+                      disabled={isPending || isConfirming || course.courseStatus === 0}
+                    >
+                      <CheckCircle className="w-4 h-4 mr-2" />
+                      Mark as Ongoing
+                    </Button>
+                    <Button
+                      type="button"
+                      variant={course.courseStatus === 1 ? "default" : "outline"}
+                      className="w-full"
+                      onClick={async () => {
+                        try {
+                          await markCourseAsEnded(courseId)
+                          toast.success("Course marked as Ended")
+                        } catch (error: any) {
+                          toast.error(error.message || "Failed to mark course as ended")
+                        }
+                      }}
+                      disabled={isPending || isConfirming || course.courseStatus === 1}
+                    >
+                      <XCircle className="w-4 h-4 mr-2" />
+                      Mark as Ended
+                    </Button>
+                  </div>
+                </div>
+
+                {/* Info Box */}
+                <div className="p-4 rounded-lg border border-primary/20 bg-primary/5">
+                  <p className="text-sm text-gray-300">
+                    <span className="font-semibold text-primary">Note:</span> All changes will be recorded on the blockchain
+                    and reflected immediately after transaction confirmation. The page will refresh automatically.
+                  </p>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        </TabsContent>
+      )}
 
     </Tabs>
   </div>

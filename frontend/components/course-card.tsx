@@ -32,6 +32,8 @@ interface CourseCardProps {
   thumbnail?: string
   isAdmitted?: boolean
   capacity?: number
+  courseType?: number // 0=Bootcamp, 1=Workshop, 2=Seminar
+  courseStatus?: number // 0=Ongoing, 1=Ended
 }
 
 export function CourseCard({
@@ -54,6 +56,8 @@ export function CourseCard({
   thumbnail,
   isAdmitted = false,
   capacity = 100,
+  courseType = 0, // Default to Bootcamp
+  courseStatus = 0, // Default to Ongoing
 }: CourseCardProps) {
   const router = useRouter()
   const { address, isConnected } = useAccount()
@@ -75,6 +79,20 @@ export function CourseCard({
 
   const isFull = students >= capacity;
   const isActive = !isFull;
+
+  // Helper function to get course type info
+  const getCourseTypeInfo = (type: number) => {
+    switch (type) {
+      case 1:
+        return { label: "Workshop", icon: "🛠️", color: "text-blue-400" }
+      case 2:
+        return { label: "Seminar", icon: "💼", color: "text-purple-400" }
+      default:
+        return { label: "Bootcamp", icon: "🎓", color: "text-terminal-green" }
+    }
+  }
+
+  const courseTypeInfo = getCourseTypeInfo(courseType);
 
   // Check enrollment status from blockchain
   const enrollmentQuery = isStudentEnrolled(id, address || "0x0")
@@ -249,24 +267,26 @@ export function CourseCard({
         {/* Overlay Gradient */}
         <div className="absolute inset-0 bg-gradient-to-t from-terminal-black via-transparent to-transparent opacity-60" />
 
-        {/* Status Badge (Overlaid) */}
+        {/* Status Badge (Overlaid) - Course Status: Ongoing/Ended */}
         <div className="absolute top-2 left-2 flex items-center gap-2 px-2 py-1 bg-terminal-black/80 backdrop-blur-sm border border-terminal-border rounded-sm">
-          {isActive ? (
+          {courseStatus === 1 ? (
             <>
-              <Activity className="h-3 w-3 text-terminal-green" />
-              <span className="text-[10px] font-mono font-bold tracking-wider uppercase text-terminal-green">ACTIVE</span>
+              <Pause className="h-3 w-3 text-gray-400" />
+              <span className="text-[10px] font-mono font-bold tracking-wider uppercase text-gray-400">ENDED</span>
             </>
           ) : (
             <>
-              <Pause className="h-3 w-3 text-terminal-orange" />
-              <span className="text-[10px] font-mono font-bold tracking-wider uppercase text-terminal-orange">PAUSED</span>
+              <Activity className="h-3 w-3 text-terminal-green" />
+              <span className="text-[10px] font-mono font-bold tracking-wider uppercase text-terminal-green">ONGOING</span>
             </>
           )}
         </div>
 
-        {/* ID Badge (Overlaid) */}
+        {/* Course Type Badge (Overlaid) - Top Right */}
         <div className="absolute top-2 right-2 px-2 py-1 bg-terminal-black/80 backdrop-blur-sm border border-terminal-border rounded-sm">
-          <span className="text-[10px] font-mono font-bold tracking-wider uppercase text-muted-foreground">ID: #{id.toString().padStart(3, '0')}</span>
+          <span className={cn("text-[10px] font-mono font-bold tracking-wider uppercase", courseTypeInfo.color)}>
+            {courseTypeInfo.icon} {courseTypeInfo.label}
+          </span>
         </div>
       </div>
 
@@ -275,33 +295,6 @@ export function CourseCard({
         <h3 className="text-lg font-mono font-bold uppercase text-white group-hover:text-terminal-green transition-colors tracking-wide">
           {title}
         </h3>
-
-        {/* Description */}
-        <p className="text-sm text-muted-foreground font-mono line-clamp-2 leading-relaxed">
-          {description}
-        </p>
-
-        {/* Metadata Grid */}
-        <div className="grid grid-cols-2 gap-2 py-2 border-y border-terminal-border">
-          <div className="flex items-center gap-1.5 text-xs font-mono">
-            <Clock className="h-3 w-3 text-terminal-green" />
-            <span className="text-muted-foreground uppercase tracking-wider">{duration}</span>
-          </div>
-          <div className="flex items-center gap-1.5 text-xs font-mono">
-            <Users className="h-3 w-3 text-terminal-green" />
-            <span className={cn("uppercase tracking-wider", isFull ? "text-terminal-orange font-bold" : "text-muted-foreground")}>
-              {students}/{capacity}
-            </span>
-          </div>
-          <div className="flex items-center gap-1.5 text-xs font-mono">
-            <BookOpen className="h-3 w-3 text-terminal-green" />
-            <span className="text-muted-foreground uppercase tracking-wider">{level}</span>
-          </div>
-          <div className="flex items-center gap-1.5 text-xs font-mono">
-            <Star className="h-3 w-3 text-yellow-500 fill-yellow-500" />
-            <span className="text-muted-foreground uppercase tracking-wider">{rating.toFixed(1)}</span>
-          </div>
-        </div>
 
         {/* Tags - Show more tags (5-6) */}
         <div className="flex flex-wrap gap-1.5">

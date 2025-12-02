@@ -86,7 +86,8 @@ contract Celorean is
         string[] memory tags,
         string memory level,
         string memory metadataUri,
-        uint256 capacity
+        uint256 capacity,
+        CourseType courseType
     ) public onlyLecturer returns (uint256) {
         require(
             courseNameToId[title] == 0,
@@ -108,7 +109,9 @@ contract Celorean is
             capacity: capacity,
             instructor: msg.sender,
             metadataUri: metadataUri,
-            contentUris: new string[](0)
+            contentUris: new string[](0),
+            courseType: courseType,
+            status: CourseStatus.Ongoing
         });
 
         courseNameToId[title] = courseId;
@@ -235,18 +238,12 @@ contract Celorean is
         return credentialId;
     }
 
-    function admitStudent(
-        address student,
-        uint256 amount
-    ) external onlyLecturer {
-        _admitStudent(student, amount);
+    function admitStudent(address student) external onlyLecturer {
+        _admitStudent(student);
     }
 
-    function employLecturer(
-        address lecturer,
-        uint256 value
-    ) external onlyOwner {
-        _employLecturer(lecturer, value);
+    function employLecturer(address lecturer) external onlyOwner {
+        _employLecturer(lecturer);
     }
 
     function rewardStudent(
