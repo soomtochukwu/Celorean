@@ -14,8 +14,6 @@ interface EnvAddresses {
   deployedAt?: string | null;
   deployer?: string | null;
   certificateNFT?: string | null;
-  eventManager?: string | null;
-  verifierRegistry?: string | null;
   [k: string]: unknown;
 }
 
@@ -82,8 +80,6 @@ function main() {
 
     // Include extended addresses if available
     if (env.certificateNFT) out.certificateNFT = env.certificateNFT;
-    if (env.eventManager) out.eventManager = env.eventManager;
-    if (env.verifierRegistry) out.verifierRegistry = env.verifierRegistry;
 
     writeJson(outPath, out);
     wrote++;
@@ -96,8 +92,6 @@ function main() {
     const abiMap: Array<{ src: string; dest: string }> = [
       { src: path.join(artifactsDir, 'Celorean.sol/Celorean.json'), dest: path.join(frontendContractsDir, 'Celorean.json') },
       { src: path.join(artifactsDir, 'CertificateNFT.sol/CertificateNFT.json'), dest: path.join(frontendContractsDir, 'CertificateNFT.json') },
-      { src: path.join(artifactsDir, 'EventManager.sol/EventManager.json'), dest: path.join(frontendContractsDir, 'EventManager.json') },
-      { src: path.join(artifactsDir, 'VerifierRegistry.sol/VerifierRegistry.json'), dest: path.join(frontendContractsDir, 'VerifierRegistry.json') },
     ];
 
     for (const { src, dest } of abiMap) {

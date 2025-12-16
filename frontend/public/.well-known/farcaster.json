@@ -31,7 +31,8 @@
     ],
     "requiredChains": [
       "eip155:44787",
-      "eip155:42220"
+      "eip155:42220",
+      "eip155:11142220"
     ]
   },
   "accountAssociation": {

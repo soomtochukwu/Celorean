@@ -236,21 +236,9 @@ async function main() {
   const certificateNftAddress = await certificateNft.getAddress();
   console.log(`✅ CertificateNFT Deployed: ${certificateNftAddress}`);
 
-  // Deploy EventManager
-  const EventManager = await hre.ethers.getContractFactory("EventManager");
-  console.log("Deploying EventManager...");
-  const eventManager = await EventManager.deploy();
-  await eventManager.waitForDeployment();
-  const eventManagerAddress = await eventManager.getAddress();
-  console.log(`✅ EventManager Deployed: ${eventManagerAddress}`);
+  // EventManager removed - now using EventModule integrated in Celorean
 
-  // Deploy VerifierRegistry
-  const VerifierRegistry = await hre.ethers.getContractFactory("VerifierRegistry");
-  console.log("Deploying VerifierRegistry...");
-  const verifierRegistry = await VerifierRegistry.deploy();
-  await verifierRegistry.waitForDeployment();
-  const verifierRegistryAddress = await verifierRegistry.getAddress();
-  console.log(`✅ VerifierRegistry Deployed: ${verifierRegistryAddress}`);
+  // VerifierRegistry removed - unused contract
 
   // Wire relationships with retry logic
   console.log("Configuring contract relationships...");
@@ -258,34 +246,19 @@ async function main() {
   try {
     const txSetCertInCelorean = await celorean.setCertificateNFT(certificateNftAddress);
     await waitForTransactionWithRetry(txSetCertInCelorean, envConfig.confirmationBlocks);
+    console.log("✅ CertificateNFT set in Celorean");
   } catch (error: any) {
     console.warn("⚠️  Failed to set CertificateNFT in Celorean:", error.message);
     console.warn("You may need to call setCertificateNFT manually");
   }
-  
-  try {
-    const txSetCertInEventMgr = await eventManager.setCertificateNFT(certificateNftAddress);
-    await waitForTransactionWithRetry(txSetCertInEventMgr, envConfig.confirmationBlocks);
-  } catch (error: any) {
-    console.warn("⚠️  Failed to set CertificateNFT in EventManager:", error.message);
-    console.warn("You may need to call setCertificateNFT manually");
-  }
 
-  // Grant minter roles for certificate NFT to Celorean and EventManager
+  // Grant minter roles for certificate NFT to Celorean
   try {
     const txMinterCelorean = await certificateNft.setMinter(await celorean.getAddress(), true);
     await waitForTransactionWithRetry(txMinterCelorean, envConfig.confirmationBlocks);
+    console.log("✅ Minter role granted to Celorean");
   } catch (error: any) {
     console.warn("⚠️  Failed to grant minter role to Celorean:", error.message);
-    console.warn("You may need to call setMinter manually");
-  }
-  
-  try {
-    const txMinterEventMgr = await certificateNft.setMinter(eventManagerAddress, true);
-    await waitForTransactionWithRetry(txMinterEventMgr, envConfig.confirmationBlocks);
-    console.log("✅ CertificateNFT minter roles granted");
-  } catch (error: any) {
-    console.warn("⚠️  Failed to grant minter role to EventManager:", error.message);
     console.warn("You may need to call setMinter manually");
   }
 
@@ -450,8 +423,6 @@ async function main() {
 
     // Extended addresses
     certificateNFT: certificateNftAddress,
-    eventManager: eventManagerAddress,
-    verifierRegistry: verifierRegistryAddress,
   };
 
   // Create the addresses directory if it doesn't exist
@@ -512,9 +483,7 @@ async function main() {
 
   // Write individual JSONs for new contracts (for reference)
   const extraJsons = [
-    { name: "certificate-nft", address: certificateNftAddress },
-    { name: "event-manager", address: eventManagerAddress },
-    { name: "verifier-registry", address: verifierRegistryAddress },
+    { name: "certificateNFT", address: certificateNftAddress },
   ];
   for (const extra of extraJsons) {
     const p = path.join(addressesDir, `${hre.network.name}-${extra.name}.json`);
@@ -539,27 +508,13 @@ async function main() {
     );
     await celorean.deploymentTransaction()?.wait(envConfig.confirmationBlocks);
 
-    // Verify CertificateNFT, EventManager, VerifierRegistry
+    // Verify CertificateNFT
     try {
       await verify(certificateNftAddress, ["Celorean Certificates", "CLRN-CERT"], "contracts/CertificateNFT.sol:CertificateNFT");
       console.log("✅ CertificateNFT verification successful!");
     } catch (e: unknown) {
       const errMsg = e instanceof Error ? e.message : String(e);
       console.log("⚠️ CertificateNFT verification skipped/failed:", errMsg);
-    }
-    try {
-      await verify(eventManagerAddress, [], "contracts/EventManager.sol:EventManager");
-      console.log("✅ EventManager verification successful!");
-    } catch (e: unknown) {
-      const errMsg = e instanceof Error ? e.message : String(e);
-      console.log("⚠️ EventManager verification skipped/failed:", errMsg);
-    }
-    try {
-      await verify(verifierRegistryAddress, [], "contracts/VerifierRegistry.sol:VerifierRegistry");
-      console.log("✅ VerifierRegistry verification successful!");
-    } catch (e: unknown) {
-      const errMsg = e instanceof Error ? e.message : String(e);
-      console.log("⚠️ VerifierRegistry verification skipped/failed:", errMsg);
     }
 
     if (implementationAddress !== "IMPLEMENTATION_ADDRESS_NOT_AVAILABLE") {
@@ -622,8 +577,6 @@ async function main() {
     console.log(`🏠 Proxy Contract:                ${proxyAddress}`);
     console.log(`🔧 Implementation Contract:       ${implementationAddress}`);
     console.log(`🏅 CertificateNFT:                ${certificateNftAddress}`);
-    console.log(`📅 EventManager:                  ${eventManagerAddress}`);
-    console.log(`✅ VerifierRegistry:              ${verifierRegistryAddress}`);
     console.log(`👤 Deploying Account:             ${deployer.address}`);
     console.log("");
     console.log("⛽ TRANSACTION DETAILS:");

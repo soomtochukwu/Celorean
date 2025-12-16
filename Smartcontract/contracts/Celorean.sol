@@ -14,6 +14,7 @@ import "./lib/EnrollmentModule.sol";
 import "./lib/AttendanceModule.sol";
 import "./lib/CredentialModule.sol";
 import "./lib/ProgressModule.sol";
+import "./lib/EventModule.sol";
 
 // Lightweight interface for the Certificate NFT contract
 interface ICertificateNFT {
@@ -37,7 +38,8 @@ contract Celorean is
     EnrollmentModule,
     AttendanceModule,
     CredentialModule,
-    ProgressModule
+    ProgressModule,
+    EventModule
 {
     // Address of external Certificate NFT contract (upgrade-safe new storage)
     address public certificateNFT;
@@ -74,6 +76,7 @@ contract Celorean is
         __AttendanceModule_init();
         __CredentialModule_init();
         __ProgressModule_init();
+        __EventModule_init();
         _tokenIdCounter = 0;
         // certificateNFT left unset by default; can be set post-deploy
     }
@@ -350,7 +353,12 @@ contract Celorean is
     // Override required functions
     function supportsInterface(
         bytes4 interfaceId
-    ) public view override(ERC721Upgradeable) returns (bool) {
+    )
+        public
+        view
+        override(ERC721Upgradeable, AccessControlUpgradeable)
+        returns (bool)
+    {
         return super.supportsInterface(interfaceId);
     }
 }

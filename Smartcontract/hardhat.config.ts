@@ -11,7 +11,7 @@ const config = {
         settings: {
           optimizer: {
             enabled: true,
-            runs: 50,
+            runs: 1,  // Minimize size for deployment
           },
           viaIR: true,
         },

@@ -570,8 +570,6 @@ export default contractAddresses;
     const abiMap: Array<{ src: string; dest: string }> = [
       { src: path.join(artifactsDir, "Celorean.sol/Celorean.json"), dest: path.join(frontendContractsDir, "Celorean.json") },
       { src: path.join(artifactsDir, "CertificateNFT.sol/CertificateNFT.json"), dest: path.join(frontendContractsDir, "CertificateNFT.json") },
-      { src: path.join(artifactsDir, "EventManager.sol/EventManager.json"), dest: path.join(frontendContractsDir, "EventManager.json") },
-      { src: path.join(artifactsDir, "VerifierRegistry.sol/VerifierRegistry.json"), dest: path.join(frontendContractsDir, "VerifierRegistry.json") },
     ];
     if (!fs.existsSync(frontendContractsDir))
       fs.mkdirSync(frontendContractsDir, { recursive: true });
