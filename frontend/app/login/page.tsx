@@ -12,7 +12,7 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Badge } from "@/components/ui/badge"
 import ConnectWalletButton from "@/components/ConnectWalletButton"
-import { useAccount, useChainId, useSignMessage, useConnect } from "wagmi"
+import { useAccount, useChainId, useConnect } from "wagmi"
 import { toast } from "sonner"
 import { useGlobalLoading } from "@/app/providers"
 import MiniAppSDK, { sdk } from "@farcaster/miniapp-sdk"
@@ -30,8 +30,7 @@ export default function Login() {
 
   const { address, isConnected, connector, status } = useAccount()
   const chainId = useChainId()
-  const { signMessageAsync } = useSignMessage()
-  const verifyingRef = useRef(false)
+  const authingRef = useRef(false)
   const { withLoading } = useGlobalLoading()
 
   // Farcaster Mini App detection and auto-connect
@@ -134,8 +133,8 @@ export default function Login() {
 
   async function startAuth() {
     if (!isConnected || !address || !chainId) return
-    if (verifyingRef.current) return
-    verifyingRef.current = true
+    if (authingRef.current) return
+    authingRef.current = true
 
     await withLoading(async () => {
       const walletType =
@@ -143,35 +142,26 @@ export default function Login() {
           ? "farcaster"
           : "standard"
 
-      const dismiss = toast.loading("Verifying wallet…")
+      const dismiss = toast.loading("Authenticating…")
       try {
-        // 1) Get a signed nonce token from server
-        const nonceRes = await fetch("/api/auth/nonce", { method: "GET" })
-        if (!nonceRes.ok) throw new Error("Failed to get nonce")
-        const { token, nonce, issuedAt, domain, uri } = await nonceRes.json()
-
-        // 2) Build SIWE-style message and sign
-        const message = `${domain} wants you to sign in with your Celo account:\n${address}\n\nURI: ${uri}\nVersion: 1\nChain ID: ${chainId}\nNonce: ${nonce}\nIssued At: ${issuedAt}`
-        const signature = await signMessageAsync({ message })
-
-        // 3) Verify on server (sets httpOnly session cookie)
+        // Create session directly without signature verification
         const verifyRes = await fetch("/api/auth/verify", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ address, signature, token, chainId, walletType }),
+          body: JSON.stringify({ address, chainId, walletType }),
         })
         if (!verifyRes.ok) {
           const err = await verifyRes.json().catch(() => ({}))
-          throw new Error(err?.error || "Verification failed")
+          throw new Error(err?.error || "Authentication failed")
         }
 
-        toast.success("Authenticated")
+        toast.success("Connected successfully")
         router.replace(DASHBOARD_PAGE)
       } catch (err: any) {
         toast.error("Authentication failed", { description: err?.message || "Unknown error" })
       } finally {
         toast.dismiss(dismiss)
-        verifyingRef.current = false
+        authingRef.current = false
       }
     })
   }
@@ -186,7 +176,7 @@ export default function Login() {
   }, [sessionStatus, isConnected, address])
 
   const handleWalletConnect = (addr: string) => {
-    // Deprecated: we now auto-verify on connect via effect
+    // Deprecated: we now auto-authenticate on connect via effect
     // Kept for compatibility if needed elsewhere
     // No-op here; sessionStatus effect will handle auth/redirect
   }
@@ -229,7 +219,7 @@ export default function Login() {
                   <p className="text-xs text-muted-foreground text-center">Connecting wallet…</p>
                 )}
                 {isConnected && (
-                  <p className="text-xs text-muted-foreground text-center">Verifying connection…</p>
+                  <p className="text-xs text-muted-foreground text-center">Authenticating…</p>
                 )}
               </div>
 
